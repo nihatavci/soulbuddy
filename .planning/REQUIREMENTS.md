@@ -16,7 +16,7 @@
 - [ ] **IDEN-01**: User creates a public **alias** during onboarding — no real name required, and no real name is displayed by default
 - [ ] **IDEN-02**: User selects **intent** tags (e.g. date / slow burn / conversation / maybe) to align expectations
 - [ ] **IDEN-03**: User selects **boundary** tags (things they don't want) alongside intent
-- [ ] **IDEN-04**: A user's real identity (auth email) is never exposed to another user via any screen or API — only alias + intent/boundary signals are readable (enforced by Supabase RLS + alias/trust-state separation)
+- [x] **IDEN-04**: A user's real identity (auth email) is never exposed to another user via any screen or API — only alias + intent/boundary signals are readable (enforced by Supabase RLS + alias/trust-state separation)
 
 ### Authentication
 
@@ -100,7 +100,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | IDEN-01 | Phase 1 | Pending |
 | IDEN-02 | Phase 1 | Pending |
 | IDEN-03 | Phase 1 | Pending |
-| IDEN-04 | Phase 1 | Pending |
+| IDEN-04 | Phase 1 | Complete |
 | SIG-01 | Phase 2 | Pending |
 | SIG-02 | Phase 2 | Pending |
 | BOARD-01 | Phase 2 | Pending |

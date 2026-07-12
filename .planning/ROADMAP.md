@@ -38,7 +38,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Backbone: remote profiles schema + owner-only RLS + public_profiles view (IDEN-04), type regen, re:sense tokens/fonts/Wordmark, keyless boot
+- [x] 01-01-PLAN.md — Backbone: remote profiles schema + owner-only RLS + public_profiles view (IDEN-04), type regen, re:sense tokens/fonts/Wordmark, keyless boot
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -119,7 +119,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Identity Foundation | 0/3 | Not started | - |
+| 1. Identity Foundation | 1/3 | In Progress|  |
 | 2. Signal & Board | 0/TBD | Not started | - |
 | 3. Reply & Resonance | 0/TBD | Not started | - |
 | 4. Private Space | 0/TBD | Not started | - |
