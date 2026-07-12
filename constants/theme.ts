@@ -5,32 +5,40 @@
 export { Space, Relation, opticalPadding, ScreenPaddingH, ScreenPaddingTop, ScreenPaddingBottom } from './spacing';
 
 // ─── Colors ──────────────────────────────────────────────────────────────────
+// re:sense dark palette (PRD/design.md). Obsidian base + Paper text + Signal
+// Yellow accent. Keep in sync with tailwind.config.js colors.
 export const AppColors = {
-  background:    '#FFFFFF',
-  surface:       '#F7F7F8',
-  elevated:      '#FFFFFF',
-  border:        '#E6E6E9',
+  background:    '#0E0F12',                  // Obsidian
+  surface:       '#16181D',                  // Coal
+  elevated:      '#1D2026',                  // Surface Soft
+  border:        'rgba(246,241,232,0.10)',   // Divider
 
-  text:          '#0D0D14',
-  textSecondary: '#6B6B7B',
+  text:          '#F6F1E8',                  // Paper
+  textSecondary: '#B8B1A4',                  // Warm Grey
 
-  // Single swappable accent — replace these four with your brand color scale.
-  accent:        '#3B82F6',
-  accentLight:   '#EFF5FF',
-  accentMuted:   '#DBE8FF',
-  accentDeep:    '#1E40AF',
+  // Signal Yellow accent (primary action bg; use Obsidian text on it).
+  accent:        '#F2C94C',                  // Signal Yellow
+  accentLight:   'rgba(242,201,76,0.14)',    // yellow tint surface
+  accentMuted:   'rgba(242,201,76,0.30)',    // yellow tint border
+  accentDeep:    '#D9AB1F',                  // Signal Yellow Deep (focus ring)
 
-  premium:       '#9B59B6',
-  success:       '#22C55E',
-  error:         '#EF4444',
+  premium:       '#69725F',                  // Muted Olive
+  success:       '#6E8F73',                  // Soft Success
+  error:         '#C85C5C',                  // Soft Error
 } satisfies Record<string, string>;
 
 // ─── Typography ──────────────────────────────────────────────────────────────
 // System font placeholder — register a custom font in fonts.ts and update here.
 export const Typography = {
   fonts: {
-    body:    'System',
+    // re:sense: display = serif-italic (wordmark/hero only), heading/body = grotesk.
+    // No brand ttf bundled yet → system fallbacks (keyless boot). The Wordmark
+    // applies fontStyle:'italic' on `display` so `re:` reads italic even on the
+    // system-serif fallback. Register Instrument Serif Italic + Inter Tight in
+    // constants/fonts.ts loadFonts() when the ttf assets land.
+    display: 'serif',
     heading: 'System',
+    body:    'System',
   },
   scale: {
     caption:    { fontSize: 12, lineHeight: 16 },
@@ -42,7 +50,8 @@ export const Typography = {
 } as const;
 
 // ─── Border Radius ───────────────────────────────────────────────────────────
-export const BorderRadius = { sm: 8, md: 12, lg: 16, full: 9999 } as const;
+// re:sense radii: cards 20, inputs 16, pills 999. Keep in sync with tailwind.config.js.
+export const BorderRadius = { sm: 8, md: 12, lg: 16, card: 20, input: 16, pill: 999, full: 9999 } as const;
 
 // ─── Shadows ─────────────────────────────────────────────────────────────────
 export const Shadows = {

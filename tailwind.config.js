@@ -7,22 +7,25 @@ module.exports = {
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
-      // Keep in sync with constants/theme.ts AppColors
+      // Keep in sync with constants/theme.ts AppColors (re:sense dark palette)
       colors: {
-        background:      '#FFFFFF',
-        surface:         '#F7F7F8',
-        elevated:        '#FFFFFF',
-        border:          '#E6E6E9',
-        text:            '#0D0D14',
-        'text-secondary': '#6B6B7B',
-        accent:          '#3B82F6',
-        'accent-light':  '#EFF5FF',
-        premium:         '#9B59B6',
-        success:         '#22C55E',
+        background:      '#0E0F12',                // Obsidian
+        surface:         '#16181D',                // Coal
+        elevated:        '#1D2026',                // Surface Soft
+        border:          'rgba(246,241,232,0.10)', // Divider
+        text:            '#F6F1E8',                // Paper
+        'text-secondary': '#B8B1A4',               // Warm Grey
+        accent:          '#F2C94C',                // Signal Yellow
+        'accent-light':  'rgba(242,201,76,0.14)',
+        'accent-deep':   '#D9AB1F',                // Signal Yellow Deep
+        premium:         '#69725F',                // Muted Olive
+        success:         '#6E8F73',                // Soft Success
+        error:           '#C85C5C',                // Soft Error
       },
       // Keep in sync with constants/theme.ts BorderRadius
       borderRadius: {
-        card:      '12px',
+        card:      '20px',
+        input:     '16px',
         'card-lg': '16px',
         pill:      '9999px',
       },

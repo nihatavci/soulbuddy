@@ -148,7 +148,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: SAGE,
     fontFamily: Platform.select({ ios: 'Georgia', android: 'serif' }),
-    fontStyle: 'italic',
     letterSpacing: 0.9,
     marginTop: 20,
   },
