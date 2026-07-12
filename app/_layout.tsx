@@ -75,8 +75,8 @@ function AuthGuard() {
     return <Redirect href="/(app)" />;
   }
 
-  // Unauthenticated user in (app) group — no redirect; AppGate will create
-  // an anonymous session automatically so the user can proceed without signup.
+  // Unauthenticated user in (app) group — no redirect here; AppGate redirects
+  // them to /(auth)/welcome (no anonymous session is auto-created in re:sense).
 
   return null;
 }

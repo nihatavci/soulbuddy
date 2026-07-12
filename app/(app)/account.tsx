@@ -31,7 +31,7 @@ import { useT } from '@/context/LanguageContext';
 
 export default function AccountScreen() {
   const router = useRouter();
-  const { signOut, user, isAnonymous } = useAuth();
+  const { signOut, user } = useAuth();
   const t = useT();
 
   // ── Change password ─────────────────────────────────────────────────────────
@@ -49,42 +49,6 @@ export default function AccountScreen() {
 
   // ── Delete account (shared hook for both Profile and Account screens) ──────
   const { loading: delLoading, confirmDelete: handleDeleteAccount } = useAccountDeletion();
-
-  // Anonymous users have no password, no session to sign out of, and no
-  // account to delete. Show a sign-up prompt instead of misleading controls.
-  if (isAnonymous) {
-    return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.header}>
-          <Pressable style={styles.backBtn} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={22} color={AppColors.text} />
-          </Pressable>
-          <Text style={styles.headerTitle}>{t('account.title')}</Text>
-          <View style={{ width: 34 }} />
-        </View>
-
-        <View style={styles.guestLockWrap}>
-          <View style={styles.guestLockIconWrap}>
-            <Ionicons name="lock-closed-outline" size={22} color={AppColors.accentDeep} />
-          </View>
-          <Text style={styles.guestLockHeadline}>{t('account.backUpFirst')}</Text>
-          <Text style={styles.guestLockBody}>
-            {t('account.backUpFirstBody')}
-          </Text>
-          <Pressable
-            style={styles.guestLockCTA}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push('/(app)/signup');
-            }}
-          >
-            <Text style={styles.guestLockCTAText}>{t('account.backUpWithEmail')}</Text>
-            <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
-          </Pressable>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   const handleChangePassword = async () => {
     if (!user) return;
@@ -307,12 +271,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderBottomWidth: 1, borderBottomColor: AppColors.border,
     backgroundColor: AppColors.background,
   },
   backBtn: {
     width: 34, height: 34, borderRadius: 17,
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: AppColors.elevated,
     alignItems: 'center', justifyContent: 'center',
   },
   headerTitle: { fontFamily: Typography.fonts.heading, fontSize: 18, color: AppColors.text },
@@ -322,9 +286,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, marginTop: 4,
   },
   card: {
-    backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 10, elevation: 2,
+    backgroundColor: AppColors.surface, borderRadius: 20, overflow: 'hidden',
+    borderWidth: 1, borderColor: AppColors.border,
     marginBottom: 24, padding: 18,
   },
   signOutCard: { padding: 0, borderWidth: 1, borderColor: 'rgba(232,93,86,0.25)' },
