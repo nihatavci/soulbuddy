@@ -44,6 +44,7 @@ Two strangers can build something beautiful together through words — and that 
 - **Anonymous public feed = moderation is a first-class concern.** An open, anonymous, romance-oriented timeline invites abuse, harassment, and unwanted content. Safety/reporting must be considered early, not bolted on.
 - **"ASL" identity model.** Users are anonymous (no name) but surface light demographic signals (age, sex/gender, location) — a deliberate throwback to early-internet anonymous chat that gives just enough context without breaking anonymity.
 - **Emotional/creative UX bar is high.** The product lives or dies on whether writing and replying *feels* intimate and inspiring. This is a design/motion-sensitive app, not a CRUD app.
+- **First target is a primitive, local-only scaffold.** Right now the goal is the bare messaging/collaborative-writing loop that builds and runs locally. Deliberately bypass everything that needs external keys or setup or would block a local run: no paywall/RevenueCat, no Sentry, no analytics (Mixpanel/AppsFlyer), no push (OneSignal), no i18n polish. Those stay in the stack for later but are not wired up now.
 
 ## Constraints
 
@@ -68,6 +69,7 @@ Two strangers can build something beautiful together through words — and that 
 | Identity reveal is mutual-consent and comes later in the relationship | The "soulmate" payoff; protects users and builds anticipation | — Pending |
 | Text-only for v1 (no voice/video/AI) | Keep v1 focused on proving the core writing loop is emotionally real | — Pending |
 | Target audience is romantic seekers (connection-first dating) | Shapes tone, matching, and moderation posture | — Pending |
+| v1 = primitive local scaffold; bypass all external-SDK blockers | Prove the core loop fast, build/test locally without key setup | — Pending |
 
 ## Evolution
 
