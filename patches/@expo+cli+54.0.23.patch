@@ -1,0 +1,45 @@
+diff --git a/node_modules/@expo/cli/build/src/api/rest/client.js b/node_modules/@expo/cli/build/src/api/rest/client.js
+index 5f4a81e..4c6537f 100644
+--- a/node_modules/@expo/cli/build/src/api/rest/client.js
++++ b/node_modules/@expo/cli/build/src/api/rest/client.js
+@@ -106,6 +106,19 @@ function wrapFetchWithCredentials(fetchFunction) {
+                 ...options,
+                 headers: resolvedHeaders
+             });
++            // Detect redirects to expo.dev homepage (e.g. Cloudflare redirecting api.expo.dev to expo.dev).
++            // Native fetch follows redirects, so response.url reflects the final URL.
++            const finalUrl = typeof response.url === 'string' ? response.url : '';
++            if (finalUrl && finalUrl.includes('expo.dev') && !finalUrl.includes('api.expo.dev')) {
++                const contentType = response.headers ? (response.headers.get ? response.headers.get('content-type') : '') || '' : '';
++                if (contentType.includes('text/html')) {
++                    const { env } = require('../../utils/env');
++                    if (env.EXPO_DEBUG) {
++                        process.stderr.write(`[expo-cli-debug] Redirected to expo.dev HTML from: ${url} -> ${finalUrl}\n`);
++                    }
++                    throw new UnexpectedServerError(`Expo API request was redirected to expo.dev (from: ${url}). This may indicate an invalid or expired session, or a server-side redirect. Run with EXPO_DEBUG=1 for details.`);
++                }
++            }
+             // Handle expected API errors (4xx)
+             if (response.status >= 400 && response.status < 500) {
+                 const body = await response.text();
+@@ -117,7 +130,19 @@ function wrapFetchWithCredentials(fetchFunction) {
+                     }
+                 } catch (error) {
+                     // Server returned non-json response.
+-                    if (error.message.includes('in JSON at position')) {
++                    // Node v25 changed JSON.parse error messages, so check for SyntaxError instead of message string.
++                    if (error instanceof SyntaxError || error.message.includes('in JSON at position')) {
++                        // Suppress the full HTML body to avoid flooding the terminal.
++                        // Log the URL for debugging via EXPO_DEBUG, then throw a short message.
++                        const isHtml = body.trimStart().startsWith('<!DOCTYPE') || body.trimStart().startsWith('<!doctype') || body.trimStart().startsWith('<html');
++                        if (isHtml) {
++                            const { env } = require('../../utils/env');
++                            if (env.EXPO_DEBUG) {
++                                process.stderr.write(`[expo-cli-debug] HTML response for request: ${url} (status ${response.status})\n`);
++                                process.stderr.write(`[expo-cli-debug] First 200 chars: ${body.slice(0, 200)}\n`);
++                            }
++                            throw new UnexpectedServerError(`Expo server returned an HTML page instead of JSON (status: ${response.status}, url: ${url}). This may be a Cloudflare redirect. Run with EXPO_DEBUG=1 for details.`);
++                        }
+                         throw new UnexpectedServerError(body);
+                     }
+                     throw error;

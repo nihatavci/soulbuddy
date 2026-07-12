@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Flat card utility (Revolut-clean) — per D-14, D-24 */
+.flat-card {
+  border-radius: 12px;
+  border-width: 1px;
+  border-color: rgba(0, 0, 0, 0.05);
+  background-color: #FFFFFF;
+}
+
+.flat-card-elevated {
+  border-radius: 12px;
+  border-width: 1px;
+  border-color: rgba(0, 0, 0, 0.05);
+  background-color: #FFFFFF;
+  shadow-color: rgba(0, 0, 0, 0.04);
+  shadow-offset: 0px 2px;
+  shadow-radius: 8px;
+  shadow-opacity: 0.04;
+}
+
+/* Pill button */
+.pill-button {
+  border-radius: 9999px;
+  padding-vertical: 8px;
+  padding-horizontal: 16px;
+}

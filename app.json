@@ -1,0 +1,129 @@
+{
+  "expo": {
+    "name": "MyApp",
+    "slug": "myapp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "updates": {
+      "enabled": false
+    },
+    "assetBundlePatterns": [
+      "assets/icon.png",
+      "assets/splash.png",
+      "assets/adaptive-icon.png",
+      "assets/videos/*",
+      "assets/AppIcon/*",
+      "i18n/*.json"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "newArchEnabled": true,
+    "jsEngine": "hermes",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.yourorg.myapp",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSUserTrackingUsageDescription": "We use this data to improve your experience and show you more relevant content.",
+        "NSAdvertisingAttributionReportEndpoint": "https://appsflyer-skadnetwork.com/",
+        "NSLocationWhenInUseUsageDescription": "This app does not use your location. This string is required by a third-party SDK."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "com.yourorg.myapp",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ],
+      "versionCode": 1
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_ME"
+      }
+    },
+    "scheme": "myapp",
+    "plugins": [
+      "./plugins/withAndroidKotlinFix",
+      "./plugins/withGradleMemory",
+      "expo-router",
+      "expo-apple-authentication",
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow access to your photo library to analyze chat screenshots."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow access to your microphone for voice features."
+        }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "note": "Use SENTRY_AUTH_TOKEN env to authenticate with Sentry for source map uploads.",
+          "project": "REPLACE_ME",
+          "organization": "REPLACE_ME"
+        }
+      ],
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "production"
+        }
+      ],
+      [
+        "react-native-appsflyer",
+        {
+          "shouldUseStrictMode": false
+        }
+      ],
+      "expo-tracking-transparency",
+      "expo-dev-client",
+      "expo-asset",
+      "expo-localization",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.REPLACE_ME"
+        }
+      ],
+      [
+        "react-native-fbsdk-next",
+        {
+          "appID": "REPLACE_ME",
+          "clientToken": "REPLACE_ME",
+          "displayName": "MyApp",
+          "scheme": "fbREPLACE_ME",
+          "advertiserIDCollectionEnabled": true,
+          "autoLogAppEventsEnabled": true,
+          "isAutoInitEnabled": false,
+          "iosUserTrackingPermission": false
+        }
+      ]
+    ]
+  }
+}

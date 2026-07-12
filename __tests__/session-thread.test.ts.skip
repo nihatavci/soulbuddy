@@ -1,0 +1,204 @@
+/**
+ * Tests for session thread pure functions.
+ *
+ * Tests groupMessagesIntoTurns exported from session.tsx.
+ */
+
+// Mock all heavy native/network dependencies before imports
+jest.mock('@/services/supabase', () => ({ supabase: {} }));
+jest.mock('@/context/AuthContext', () => ({ useAuth: () => ({ user: null }) }));
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn(), setItem: jest.fn(), removeItem: jest.fn(),
+}));
+jest.mock('@/store/queryClient', () => ({
+  queryKeys: { sessions: jest.fn(), messages: jest.fn() },
+  queryClient: {},
+}));
+jest.mock('@tanstack/react-query', () => ({
+  useQuery: jest.fn(() => ({ data: null, isLoading: false, isError: false })),
+  useMutation: jest.fn(() => ({ mutate: jest.fn(), mutateAsync: jest.fn(), isPending: false })),
+  useQueryClient: jest.fn(() => ({ invalidateQueries: jest.fn(), cancelQueries: jest.fn(), setQueryData: jest.fn(), getQueryData: jest.fn(() => []) })),
+}));
+jest.mock('@/lib/revenuecat', () => ({
+  fetchCustomerInfo: jest.fn(),
+  isProFromCustomerInfo: jest.fn(() => false),
+}));
+jest.mock('expo-image-picker', () => ({ launchImageLibraryAsync: jest.fn() }));
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn(),
+  selectionAsync: jest.fn(),
+  notificationAsync: jest.fn(),
+  ImpactFeedbackStyle: { Light: 'Light', Medium: 'Medium' },
+  NotificationFeedbackType: { Success: 'Success' },
+}));
+jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn() }));
+// Reanimated's Easing.bezier is not provided by jest-expo's preset mock —
+// stub it with an identity function so transitive imports of animation
+// configs don't crash at module load.
+jest.mock('react-native-reanimated', () => {
+  const mock = jest.requireActual('react-native-reanimated/mock');
+  const bezier = () => (t: number) => t;
+  // The default jest mock omits Easing; conf.ts at module-load time calls
+  // Easing.bezier(...) and crashes without this stub.
+  mock.Easing = { bezier, linear: (t: number) => t, ease: (t: number) => t, in: bezier, out: bezier, inOut: bezier };
+  mock.default = mock.default ?? mock;
+  return mock;
+});
+jest.mock('expo-blur', () => ({
+  BlurView: 'BlurView',
+}));
+jest.mock('@/services/geminiWithContext', () => ({
+  analyzeScreenshotAllTonesWithContext: jest.fn(),
+  generateAllTonesFromTextWithContext: jest.fn(),
+}));
+jest.mock('@/hooks/useEntitlements', () => ({
+  useEntitlements: jest.fn(() => ({ data: { isPro: false } })),
+}));
+jest.mock('@/context/LanguageContext', () => ({
+  useT: jest.fn(() => (key: string) => key),
+}));
+jest.mock('@/hooks/useUserContext', () => ({
+  useUserContext: jest.fn(() => ({ userContext: null })),
+}));
+jest.mock('expo-router', () => ({
+  useLocalSearchParams: jest.fn(() => ({ id: 'test-session' })),
+  useRouter: jest.fn(() => ({ back: jest.fn(), push: jest.fn() })),
+}));
+jest.mock('@/constants/theme', () => ({
+  AppColors: {
+    background: '#FFFFFF',
+    surface: '#F7F7FA',
+    accent: '#C9A84C',
+    accentLight: '#FFF8E8',
+    accentMuted: '#F5E6C4',
+    accentDeep: '#92710A',
+    gold: '#C9A84C',
+    border: '#EBEBF0',
+    text: '#0D0D14',
+    textSecondary: '#6B6B80',
+    success: '#22C55E',
+  },
+  Typography: {
+    fonts: { body: 'body', heading: 'heading' },
+  },
+  getCardTheme: jest.fn((i: number) => ({ bg: '#FFF3E0', text: '#1A140A', accent: '#C9A84C' })),
+}));
+jest.mock('@/constants/spacing', () => ({
+  Space: {
+    '2xs': 4, xs: 6, sm: 10, md: 16, lg: 26, xl: 42, '2xl': 68, '3xl': 110,
+  },
+}));
+jest.mock('@/components/glow/Shimmer', () => ({
+  ShimmerEffect: 'ShimmerEffect',
+}));
+jest.mock('@/components/PsychBackFace', () => ({
+  PsychBackFace: 'PsychBackFace',
+}));
+jest.mock('@/src/shared/ui/base/flip-card', () => ({
+  FlipCard: 'FlipCard',
+  useFlipCard: jest.fn(() => ({ flip: jest.fn() })),
+}));
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaView: 'SafeAreaView',
+  useSafeAreaInsets: jest.fn(() => ({ bottom: 0, top: 0 })),
+}));
+jest.mock('react-native-reanimated', () => ({
+  default: {
+    View: 'Animated.View',
+    createAnimatedComponent: (c: any) => c,
+  },
+  useSharedValue: jest.fn(() => ({ value: 0 })),
+  useAnimatedStyle: jest.fn(() => ({})),
+  withSequence: jest.fn(),
+  withTiming: jest.fn(),
+  withSpring: jest.fn(),
+  FadeInDown: { duration: jest.fn(() => ({ delay: jest.fn(() => ({ springify: jest.fn() })) })) },
+  FadeIn: { duration: jest.fn(() => ({ delay: jest.fn(() => ({ springify: jest.fn() })) })) },
+}));
+
+import { groupMessagesIntoTurns } from '../app/(app)/session';
+
+// ─── Mock Message type ────────────────────────────────────────────────────────
+
+type MockMessage = {
+  id: string;
+  session_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+function makeMsg(
+  id: string,
+  role: 'user' | 'assistant',
+  content = '',
+  metadata: Record<string, unknown> = {},
+): MockMessage {
+  return {
+    id,
+    session_id: 'session-1',
+    role,
+    content,
+    metadata,
+    created_at: new Date().toISOString(),
+  };
+}
+
+// ─── groupMessagesIntoTurns ───────────────────────────────────────────────────
+
+describe('groupMessagesIntoTurns', () => {
+  it('returns [] for empty array', () => {
+    expect(groupMessagesIntoTurns([])).toEqual([]);
+  });
+
+  it('returns 1 turn for 1 user + 1 assistant message', () => {
+    const messages = [
+      makeMsg('u1', 'user', 'hey'),
+      makeMsg('a1', 'assistant', 'hi there'),
+    ];
+    const turns = groupMessagesIntoTurns(messages as any);
+    expect(turns).toHaveLength(1);
+    expect(turns[0].userMessage.id).toBe('u1');
+    expect(turns[0].assistantMessages).toHaveLength(1);
+    expect(turns[0].assistantMessages[0].id).toBe('a1');
+  });
+
+  it('returns 2 turns for 2 user messages each followed by assistant', () => {
+    const messages = [
+      makeMsg('u1', 'user', 'first'),
+      makeMsg('a1', 'assistant', 'reply 1'),
+      makeMsg('u2', 'user', 'second'),
+      makeMsg('a2', 'assistant', 'reply 2'),
+    ];
+    const turns = groupMessagesIntoTurns(messages as any);
+    expect(turns).toHaveLength(2);
+    expect(turns[0].userMessage.id).toBe('u1');
+    expect(turns[1].userMessage.id).toBe('u2');
+  });
+
+  it('ignores assistant messages without a preceding user message', () => {
+    const messages = [
+      makeMsg('a0', 'assistant', 'orphan'),
+      makeMsg('u1', 'user', 'first user'),
+      makeMsg('a1', 'assistant', 'reply'),
+    ];
+    const turns = groupMessagesIntoTurns(messages as any);
+    // orphan assistant message is ignored — only 1 valid turn
+    expect(turns).toHaveLength(1);
+    expect(turns[0].userMessage.id).toBe('u1');
+  });
+
+  it('supports multiple assistant messages per turn', () => {
+    const messages = [
+      makeMsg('u1', 'user', 'first'),
+      makeMsg('a1', 'assistant', 'tone 1'),
+      makeMsg('a2', 'assistant', 'tone 2'),
+      makeMsg('a3', 'assistant', 'tone 3'),
+    ];
+    const turns = groupMessagesIntoTurns(messages as any);
+    expect(turns).toHaveLength(1);
+    expect(turns[0].assistantMessages).toHaveLength(3);
+  });
+});
+

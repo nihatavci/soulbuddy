@@ -1,0 +1,70 @@
+diff --git a/node_modules/@expo/ngrok/index.js b/node_modules/@expo/ngrok/index.js
+index c9e5f8d..9d561c5 100644
+--- a/node_modules/@expo/ngrok/index.js
++++ b/node_modules/@expo/ngrok/index.js
+@@ -15,9 +15,10 @@ let ngrokClient = null;
+ async function connect(opts) {
+   opts = defaults(opts);
+   validate(opts);
+-  if (opts.authtoken) {
+-    await setAuthtoken(opts);
+-  }
++  // Skip Expo's shared authtoken — use user's own ngrok config instead
++  // Expo's token (cr_5W1bR67GNbWcXqmxZzBG1) has ACL restrictions on ngrok v3
++  delete opts.authtoken;
++  delete opts.configPath;
+ 
+   processUrl = await getProcess(opts);
+   ngrokClient = new NgrokClient(processUrl);
+@@ -25,7 +26,8 @@ async function connect(opts) {
+ }
+ 
+ async function connectRetry(opts, retryCount = 0) {
+-  opts.name = String(opts.name || uuid.v4());
++  // Generate a new name on every attempt to avoid "tunnel already exists" on retry
++  opts.name = uuid.v4();
+   try {
+     const response = await ngrokClient.startTunnel(opts);
+     return response.public_url;
+@@ -33,7 +35,7 @@ async function connectRetry(opts, retryCount = 0) {
+     if (!isRetriable(err) || retryCount >= 100) {
+       throw err;
+     }
+-    await new Promise((resolve) => setTimeout(resolve, 200));
++    await new Promise((resolve) => setTimeout(resolve, 1000));
+     return connectRetry(opts, ++retryCount);
+   }
+ }
+diff --git a/node_modules/@expo/ngrok/src/client.js b/node_modules/@expo/ngrok/src/client.js
+index 3f748a3..05ad119 100644
+--- a/node_modules/@expo/ngrok/src/client.js
++++ b/node_modules/@expo/ngrok/src/client.js
+@@ -62,7 +62,9 @@ class NgrokClient {
+   }
+ 
+   startTunnel(options = {}) {
+-    return this.request("post", "api/tunnels", options);
++    // Strip fields unsupported by ngrok v3 API or non-serializable callbacks
++    const { authtoken, configPath, port, hostname, subdomain, onStatusChange, onLogEvent, ...tunnelOpts } = options;
++    return this.request("post", "api/tunnels", tunnelOpts);
+   }
+ 
+   tunnelDetail(name) {
+diff --git a/node_modules/@expo/ngrok/src/utils.js b/node_modules/@expo/ngrok/src/utils.js
+index 1c2288a..dba4e28 100644
+--- a/node_modules/@expo/ngrok/src/utils.js
++++ b/node_modules/@expo/ngrok/src/utils.js
+@@ -48,7 +48,12 @@ function isRetriable(err) {
+     body.details &&
+     body.details.err ===
+       "a successful ngrok tunnel session has not yet been established";
+-  return notReady500 || notReady502 || notReady503;
++  // ngrok v3 may queue tunnel creation and return "already exists" on retry
++  const alreadyExists =
++    statusCode === 400 &&
++    body.details &&
++    /already exists/.test(body.details.err);
++  return notReady500 || notReady502 || notReady503 || alreadyExists;
+ }
+ 
+ module.exports = {

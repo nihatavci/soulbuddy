@@ -1,0 +1,22 @@
+# Directories not needed for mobile builds
+landing/
+server/
+.claude/
+.agents/
+.codex/
+.cursor/
+.planning/
+.blitz/
+.github/
+.git/
+
+# Development files
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+.dev.vars
+.mcp.json
+.impeccable.md
+CLAUDE.md

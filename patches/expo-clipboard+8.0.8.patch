@@ -1,0 +1,18 @@
+diff --git a/node_modules/expo-clipboard/android/src/main/java/expo/modules/clipboard/ClipboardModule.kt b/node_modules/expo-clipboard/android/src/main/java/expo/modules/clipboard/ClipboardModule.kt
+index aad412e..cb822e9 100644
+--- a/node_modules/expo-clipboard/android/src/main/java/expo/modules/clipboard/ClipboardModule.kt
++++ b/node_modules/expo-clipboard/android/src/main/java/expo/modules/clipboard/ClipboardModule.kt
+@@ -112,7 +112,12 @@ class ClipboardModule : Module() {
+ 
+     OnCreate {
+       clipboardEventEmitter = ClipboardEventEmitter()
+-      clipboardEventEmitter.attachListener()
++      // Fliq patch: do NOT eagerly attach the OS primary-clip-changed listener.
++      // We never consume CLIPBOARD_CHANGED events (the app only copies via
++      // setStringAsync), yet the listener runs a main-thread `primaryClipDescription`
++      // binder call on every system clipboard change — which tripped ANRs on
++      // low-end Android (and added needless main-thread work on every copy).
++      // clipboardEventEmitter.attachListener()
+     }
+ 
+     OnDestroy {

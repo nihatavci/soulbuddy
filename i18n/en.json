@@ -1,0 +1,288 @@
+{
+  "common": {
+    "continue": "Continue",
+    "back": "Back",
+    "skip": "Skip",
+    "start": "Start",
+    "tryAgain": "Try Again",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "termsOfUse": "Terms of Use",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "and": "and"
+  },
+  "auth": {
+    "signIn": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to continue",
+      "emailLabel": "Email",
+      "emailPlaceholder": "your@email.com",
+      "passwordLabel": "Password",
+      "signInButton": "Sign In",
+      "googleButton": "Continue with Google",
+      "sendCodeButton": "Send Code",
+      "verifyCodeButton": "Verify Code",
+      "noAccount": "Don't have an account?",
+      "signUpLink": "Sign Up",
+      "usePassword": "Use password",
+      "useMagicLink": "Use magic link",
+      "errors": {
+        "emailRequired": "Please enter your email address.",
+        "emailAndPassword": "Please enter your email and password.",
+        "codeRequired": "Please enter the code from your email.",
+        "generic": "Something went wrong. Please try again."
+      },
+      "forgot": "Forgot?",
+      "divider": "or",
+      "verificationCode": "Verification Code",
+      "codeSentTo": "Code sent to {{email}}",
+      "enterSixDigit": "Enter the 6-digit code below.",
+      "resendCode": "Didn't get it? Resend code"
+    },
+    "signUp": {
+      "title": "Create account",
+      "subtitle": "Get started",
+      "emailLabel": "Email",
+      "emailPlaceholder": "your@email.com",
+      "passwordLabel": "Password",
+      "signUpButton": "Create Account",
+      "googleButton": "Continue with Google",
+      "hasAccount": "Already have an account?",
+      "signInLink": "Sign In",
+      "errors": {
+        "generic": "Something went wrong. Please try again.",
+        "codeRequired": "Please enter the verification code.",
+        "nameRequired": "Please enter your name.",
+        "emailRequired": "Please enter your email.",
+        "emailInvalid": "Please enter a valid email address.",
+        "passwordTooShort": "Password must be at least 8 characters.",
+        "passwordsMismatch": "Passwords do not match.",
+        "emailExists": "An account with this email already exists. Please sign in instead."
+      },
+      "verificationCode": "Verification Code",
+      "verifySubtitle": "Enter the 6-digit code sent to {{email}}",
+      "backToSignUp": "Back to sign-up",
+      "nameLabel": "Your name",
+      "passwordPlaceholder": "Min. 8 characters",
+      "confirmPasswordLabel": "Confirm password",
+      "divider": "or",
+      "termsPrefix": "By creating an account you agree to our"
+    },
+    "forgotPassword": {
+      "back": "Back",
+      "title": "Forgot password?",
+      "subtitle": "Enter your email and we'll send a password reset link to your inbox.",
+      "emailPlaceholder": "you@example.com",
+      "sendButton": "Send Reset Link",
+      "sentTitle": "Link sent!",
+      "sentSubtitle": "Check your email and tap the reset link. You'll be redirected back here to set a new password.",
+      "rememberIt": "Remember it?",
+      "errors": {
+        "emailRequired": "Please enter your email address.",
+        "generic": "Something went wrong. Please try again."
+      }
+    },
+    "resetPassword": {
+      "waitingTitle": "Waiting for reset link",
+      "waitingSubtitle": "Please tap the password reset link in your email{{emailSuffix}}. You'll be redirected back here automatically.",
+      "waitingEmailSuffix": " (sent to {{email}})",
+      "backToForgot": "Back to Forgot Password",
+      "newPasswordTitle": "New password",
+      "newPasswordSubtitle": "Choose a new password for your account",
+      "newPasswordLabel": "New Password",
+      "passwordPlaceholder": "Min. 8 characters",
+      "confirmPasswordLabel": "Confirm Password",
+      "setButton": "Set New Password",
+      "doneTitle": "Password updated!",
+      "doneSubtitle": "Your password has been changed. You're now signed in.",
+      "errors": {
+        "passwordTooShort": "Password must be at least 8 characters.",
+        "passwordsMismatch": "Passwords don't match.",
+        "generic": "Failed to reset password. Please try again."
+      }
+    }
+  },
+  "tabs": {
+    "home": "Home"
+  },
+  "profile": {
+    "title": "Profile",
+    "avatarSubtext": "Avatar from initials",
+    "displayName": "Display Name",
+    "email": "Email",
+    "verified": "Verified",
+    "yourNamePlaceholder": "Your name",
+    "cancel": "Cancel",
+    "save": "Save",
+    "account": "Account",
+    "passwordSecurity": "Password & Security",
+    "notifications": "Notifications",
+    "pushNotifications": "Push Notifications",
+    "pushNotificationsSubtitle": "Reminders and tips",
+    "subscription": "Subscription",
+    "currentPlan": "Current Plan",
+    "free": "Free",
+    "upgrade": "Upgrade",
+    "manageSubscription": "Manage Subscription",
+    "nameUpdated": "Name updated",
+    "nameEmpty": "Name cannot be empty.",
+    "failedUpdate": "Failed to update name.",
+    "deleteAccount": "Delete Account",
+    "deleteAccountSubtitle": "Permanently remove your account and data",
+    "resetAndStartOver": "Reset & Start Over",
+    "resetSubtitle": "Clear local data and start fresh",
+    "backUpAccount": "Back up your account",
+    "enhanceReplies": "Enhance your replies",
+    "enhanceReplies_inactive": "Personalise AI replies to your style",
+    "analytics": "Analytics",
+    "analyticsSubtitle": "Usage data to improve the app",
+    "crashReports": "Crash Reports",
+    "crashReportsSubtitle": "Anonymous error reporting",
+    "aiProcessing": "AI Processing",
+    "aiProcessingSubtitle": "Required for AI features",
+    "californiaPrivacy": "California Privacy",
+    "doNotSell": "Do Not Sell My Info",
+    "doNotSellSubtitle": "Opt out of personal data sharing",
+    "yourData": "Your Data",
+    "exportData": "Export My Data",
+    "exportDataSubtitle": "Download all your data as JSON",
+    "guestHeroBody": "Add an email so your data stays safe across devices.",
+    "toasts": {
+      "enablePushInSettings": "Open Settings > Notifications to enable push notifications",
+      "preferenceEnabled": "Preference enabled",
+      "preferenceDisabled": "Preference disabled",
+      "dataSharingOptedOut": "Data sharing opted out",
+      "dataSharingOptedIn": "Data sharing opted in",
+      "dataExported": "Data exported successfully",
+      "exportFailed": "Export failed"
+    }
+  },
+  "account": {
+    "deleteConfirmTitle": "Delete Account",
+    "deleteConfirmBody": "This will permanently delete your account and all associated data. This cannot be undone.",
+    "deleteCta": "Delete Forever",
+    "deleteCancel": "Cancel",
+    "deleteFailed": "Failed to delete account. Please try again.",
+    "title": "Account",
+    "backUpFirst": "Back up first",
+    "backUpFirstBody": "Password changes and sign-out need an email on your account. Add one to manage credentials and protect your data.",
+    "backUpWithEmail": "Back up with email",
+    "passwordSecurity": "Password & Security",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "newPasswordPlaceholder": "Min. 8 characters",
+    "confirmNewPassword": "Confirm New Password",
+    "updatePassword": "Update Password",
+    "session": "Session",
+    "signOut": "Sign Out",
+    "dangerZone": "Danger Zone",
+    "deleteAccountSubtext": "Permanently removes all your data",
+    "errors": {
+      "currentRequired": "Enter your current password.",
+      "tooShort": "New password must be at least 8 characters.",
+      "mismatch": "Passwords don't match.",
+      "sameAsCurrent": "New password must be different from current.",
+      "incorrect": "Current password is incorrect.",
+      "changeFailed": "Failed to change password. Check your current password."
+    },
+    "passwordChanged": "Password changed successfully",
+    "signOutConfirm": {
+      "title": "Sign out",
+      "body": "Are you sure you want to sign out?",
+      "cancel": "Cancel",
+      "confirm": "Sign Out"
+    }
+  },
+  "errors": {
+    "somethingWrong": "Something went wrong",
+    "crashBody": "We hit an unexpected error. You can try again or restart the app.",
+    "restartApp": "Restart App"
+  },
+  "consent": {
+    "customizeTitle": "Customize Preferences",
+    "savePreferences": "Save Preferences",
+    "privacyTitle": "Your Privacy Matters",
+    "acceptAll": "Accept All",
+    "rejectNonEssential": "Reject Non-Essential",
+    "customize": "Customize",
+    "privacySubtitle": "We use analytics, crash reporting, and AI processing to deliver the best experience. You choose what to allow.",
+    "customizeSubtitle": "Choose which optional services you'd like to enable. You can change these anytime in Settings.",
+    "essentialNote": "Essential services (authentication, core app features) are always active and don't require consent.",
+    "legalNote": "Your preferences are stored locally. You can change them anytime in Profile.",
+    "categories": {
+      "analytics": {
+        "title": "Analytics",
+        "description": "Helps us understand how the app is used so we can improve features."
+      },
+      "crashReport": {
+        "title": "Crash Reporting",
+        "description": "Sends anonymous error reports when something goes wrong, so we can fix bugs faster."
+      },
+      "aiProcessing": {
+        "title": "AI Data Processing",
+        "description": "Allows the app to process your context with our AI to generate replies. Required for AI features."
+      }
+    }
+  },
+  "aiConsent": {
+    "title": "Enable AI Processing",
+    "enableContinue": "Enable & continue",
+    "keepOff": "Keep off",
+    "bodyPrefix": "To generate replies, the app sends your input to",
+    "secureService": "a secure AI service",
+    "bodySuffix": ". Your data is used only to create suggestions, never to train AI models, and isn't stored beyond your session. You can turn this off any time in Profile."
+  },
+  "paywall": {
+    "restore": "Restore",
+    "readyToGoPro": "Ready to go PRO?",
+    "noCommitment": "No commitment. Cancel anytime.",
+    "productDesc": "AI-powered suggestions to help you win every conversation.",
+    "today": "Today",
+    "daysFree": "{{count}} days free",
+    "due": "Due {{date}}",
+    "billedToday": "Billed today",
+    "loading": "Loading...",
+    "tryDaysFree": "Try {{count}} days free",
+    "subscribe": "Subscribe",
+    "redeem": "Redeem",
+    "alerts": {
+      "notReadyTitle": "Not ready",
+      "notReadyBody": "Subscription packages are still loading. Please try again.",
+      "purchaseFailedTitle": "Purchase failed",
+      "purchaseFailedAppStore": "There was a problem with the App Store. If you are testing, make sure a sandbox tester is signed in via Settings.",
+      "purchaseFailedGeneric": "Please try again in a moment.",
+      "noSubscriptionTitle": "No active subscription",
+      "noSubscriptionBody": "We couldn't find an active subscription for this account.",
+      "restoreFailedTitle": "Restore failed",
+      "restoreFailedBody": "Please try again later."
+    }
+  },
+  "subscription": {
+    "cancelled": {
+      "offerExpiresIn": "Offer expires in",
+      "heading": "Wait — One Last Offer",
+      "subheading": "Just for you. Right now.",
+      "firstMonth": "First month",
+      "noThanks": "No thanks, continue for free",
+      "badge": "50% OFF",
+      "thenPerMonth": "then {{price}}/month · Cancel anytime",
+      "cancelAnytime": "Cancel anytime",
+      "cta": "Yes, I want 50% off",
+      "processing": "Processing…",
+      "purchaseFailedTitle": "Purchase failed",
+      "purchaseFailedBody": "Please try again or contact support.",
+      "features": {
+        "replies": "Unlimited AI reply suggestions",
+        "challenges": "Challenges & lessons",
+        "scanner": "Profile analysis"
+      }
+    },
+    "success": {
+      "heading": "You're all set!",
+      "subheading": "Your subscription is active.",
+      "cta": "Get Started"
+    }
+  }
+}

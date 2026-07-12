@@ -1,0 +1,13 @@
+name                = "myapp-worker"
+main                = "src/index.ts"
+compatibility_date  = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ─── Secrets ──────────────────────────────────────────────────────────────────
+# Set secrets via the wrangler CLI (never commit secret values):
+#   wrangler secret put GEMINI_API_KEY
+
+# ─── Variables ────────────────────────────────────────────────────────────────
+# [vars]
+# GEMINI_API_KEY is set as a secret: `wrangler secret put GEMINI_API_KEY`
+# Add KV / Durable Object bindings here as your app needs them.
