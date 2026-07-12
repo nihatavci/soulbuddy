@@ -80,12 +80,18 @@ export function Button({
   const isGradient = variant === 'gradient' || variant === 'primary';
   const variantStyle = VARIANT_STYLES[isGradient ? 'primary' : variant];
   const iconSize = size === 'sm' ? 14 : size === 'md' ? 16 : 18;
-  const textColor = isGradient ? '#FFFFFF' : variantStyle.text.color;
+  // re:sense: primary/gradient are Signal Yellow → obsidian text (design.md);
+  // dark variant keeps white text; others use their variant text color.
+  const textColor = isGradient
+    ? AppColors.background
+    : variant === 'dark'
+      ? '#FFFFFF'
+      : variantStyle.text.color;
 
   const content = loading ? (
     <ActivityIndicator
       size="small"
-      color={variant === 'primary' || variant === 'dark' || variant === 'gradient' ? '#FFFFFF' : AppColors.accent}
+      color={isGradient ? AppColors.background : variant === 'dark' ? '#FFFFFF' : AppColors.accent}
     />
   ) : (
     <View style={styles.inner}>
