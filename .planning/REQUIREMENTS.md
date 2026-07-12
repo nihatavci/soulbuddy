@@ -77,17 +77,29 @@ Explicitly excluded. Documented to prevent scope creep.
 
 ## Traceability
 
-Populated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (to be filled by roadmapper) | | |
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Pending |
+| PROF-01 | Phase 1 | Pending |
+| PROF-02 | Phase 1 | Pending |
+| POST-01 | Phase 2 | Pending |
+| FEED-01 | Phase 2 | Pending |
+| FEED-02 | Phase 2 | Pending |
+| FEED-03 | Phase 3 | Pending |
+| REPLY-01 | Phase 3 | Pending |
+| REPLY-02 | Phase 3 | Pending |
+| REPLY-03 | Phase 3 | Pending |
+| THREAD-01 | Phase 4 | Pending |
+| THREAD-02 | Phase 4 | Pending |
+| THREAD-03 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 16 total
-- Mapped to phases: TBD (roadmapper)
-- Unmapped: TBD
+- v1 requirements: 15 total
+- Mapped to phases: 15/15
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-07-12*
-*Last updated: 2026-07-12 after initial definition*
+*Last updated: 2026-07-12 after roadmap creation (4 phases, full coverage)*
