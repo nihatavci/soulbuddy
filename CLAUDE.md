@@ -97,21 +97,23 @@ MyApp — React Native (Expo) boilerplate. Replace this with your app's descript
 <!-- GSD:project-start source:PROJECT.md -->
 ## Project
 
-**SoulBuddy**
+**re:sense**
 
-SoulBuddy is a mobile dating app where people find their soulmate through collaborative writing instead of swiping. You post an anonymous sentence to a shared timeline; others continue or complete it — building a poem, story, or thought together. When two people click through that co-creation, they move into a private thread, and can later mutually reveal their identities. It's connection-first romance: you fall for someone's words before you ever see their face.
+re:sense is a privacy-first, text-forward, intentionally non-addictive adult (18+) social discovery app. Instead of swiping profiles, a user drops a short anonymous **signal** (a half-sentence, a feeling, a place, a memory — max 120 characters) onto a daily-capped **Signal Board**. Others read it and **reply** by *adding* to it, not just reacting. When two people genuinely contribute to each other's signal, a **mutual resonance** unlocks and they move into a **private space** to keep talking. Identity stays behind a chosen **alias** — real name is never shown by default. The whole product optimizes for early-stage relational *quality*, not time-in-app.
 
-**Core Value:** Two strangers can build something beautiful together through words — and that shared creation is what makes them soulbuddies. If the write → feed → reply → private-thread loop feels alive and emotionally real, everything else is secondary.
+The product slug/package name is `resense`; the display brand is `re:sense`.
+
+**Core Value:** Two strangers move from **signal → response → mutual resonance → intentional private conversation** — feeling *heard* before being *judged*. If that arc feels alive, calm, and safe, everything else is secondary. The moat is behavioral design + privacy architecture, not a visual gimmick.
 
 ### Constraints
 
 - **Tech stack**: Expo SDK 54 / React Native 0.81 / React 19, expo-router 6 — locked by the boilerplate.
-- **UI**: NativeWind 4 (Tailwind 3) — locked. Do not introduce other UI libraries.
-- **Auth**: Supabase Auth (email OTP + Google + Apple) — locked. Do not introduce other auth providers.
-- **Database**: Supabase Postgres + RLS — the anonymous feed, threads, and reveal state live here; row-level security protects identity.
-- **Edge/Server**: Cloudflare Workers + teenybase for server-side logic.
-- **AI**: Gemini via Cloudflare Worker proxy only — API key must never ship in the client. (No AI in the human-to-human loop for v1.)
-- **Payments**: RevenueCat — the only source of subscription/payment status, when monetization is added.
+- **UI**: NativeWind 4 (Tailwind 3) — locked. Do not introduce other UI libraries. Apply the `re:sense` design tokens from `PRD/design.md`.
+- **Auth**: Supabase Auth (email + Google + Apple) — locked. Do not introduce other auth providers.
+- **Database**: Supabase Postgres + RLS on the remote `re:sense` project (eu-west-1). RLS + alias/trust-state separation is the anonymity enforcement point.
+- **Edge/Server**: Cloudflare Workers + teenybase available for server-side logic when needed.
+- **AI**: Gemini via Cloudflare Worker proxy only — key never ships in the client. Not used in the human-to-human loop for v1.
+- **Payments**: RevenueCat — the only source of payment status, when monetization is added (deferred).
 - **Platform**: iOS + Android from one Expo codebase.
 <!-- GSD:project-end -->
 

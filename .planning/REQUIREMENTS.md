@@ -93,11 +93,29 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| _(filled by roadmap)_ | — | Pending |
+| AGE-01 | Phase 1 | Pending |
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Pending |
+| IDEN-01 | Phase 1 | Pending |
+| IDEN-02 | Phase 1 | Pending |
+| IDEN-03 | Phase 1 | Pending |
+| IDEN-04 | Phase 1 | Pending |
+| SIG-01 | Phase 2 | Pending |
+| SIG-02 | Phase 2 | Pending |
+| BOARD-01 | Phase 2 | Pending |
+| REPLY-01 | Phase 3 | Pending |
+| REPLY-02 | Phase 3 | Pending |
+| RES-01 | Phase 3 | Pending |
+| PRIV-01 | Phase 4 | Pending |
+| PRIV-02 | Phase 4 | Pending |
+| SAFE-01 | Phase 5 | Pending |
+| SAFE-02 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 16 total
-- Mapped to phases: 0/16 (roadmap pending)
+- v1 requirements: 18 total (header previously stated 16 — reconciled to the 18 IDs actually listed above)
+- Mapped to phases: 18/18 ✓
 
 ---
 *Requirements defined: 2026-07-12 (re:sense re-alignment)*
+*Traceability updated: 2026-07-12 (roadmap — 5 vertical MVP slices)*
