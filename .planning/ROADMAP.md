@@ -30,7 +30,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. User can log out and is returned to the signed-out state
   4. User can set age, gender, and location signals during onboarding, without providing a real name
   5. No API response or screen ever exposes a user's real name/identity — only ASL signals are readable by other users (enforced via Supabase RLS/column exposure)
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 01-01-PLAN.md — Local Supabase + anonymous profiles schema (RLS owner-only + public_profiles ASL view)
+- [ ] 01-02-PLAN.md — Local boot guards + email auth flow (sign-up/login/session-persist/logout)
+- [ ] 01-03-PLAN.md — Anonymous ASL onboarding form + useProfile upsert + route gating
 
 ### Phase 2: Write & Browse the Timeline
 **Goal**: Users can write a sentence and post it to a shared, anonymous timeline, and browse others' sentences newest first with only ASL signals attached.
