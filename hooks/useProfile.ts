@@ -13,7 +13,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/services/supabase';
 import { queryKeys } from '@/store/queryClient';
-import type { Profile } from '@/services/supabase';
+import type { Profile, Tables } from '@/services/supabase';
+
+type ProfileInsert = Tables['profiles']['Insert'];
 
 // ─── Fetchers ──────────────────────────────────────────────────────────────
 
@@ -35,7 +37,7 @@ async function upsertProfile(
   const { data, error } = await supabase
     .from('profiles')
     .upsert(
-      { user_id: userId, ...updates, updated_at: new Date().toISOString() },
+      { user_id: userId, ...updates, updated_at: new Date().toISOString() } as ProfileInsert,
       { onConflict: 'user_id' },
     )
     .select()
