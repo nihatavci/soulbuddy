@@ -99,5 +99,7 @@ export function stopAutoRefresh(): void {
 
 // ─── Typed helpers ───────────────────────────────────────────────────────────
 
-export type Tables  = Database['public']['Tables'];
-export type Profile = Tables['profiles']['Row'];
+export type Tables        = Database['public']['Tables'];
+export type Views         = Database['public']['Views'];
+export type Profile       = Tables['profiles']['Row'];
+export type PublicProfile = Views['public_profiles']['Row']; // alias + intent + boundaries only (no identity)
