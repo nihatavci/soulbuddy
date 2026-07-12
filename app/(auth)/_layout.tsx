@@ -1,5 +1,9 @@
 import { Stack } from 'expo-router';
 
+// Pin welcome as the (auth) group's initial route so an unauthenticated user
+// always lands on Welcome → Age gate before sign-up (AGE-01 gate ordering).
+export const unstable_settings = { initialRouteName: 'welcome' };
+
 export default function AuthLayout() {
   return (
     <Stack
@@ -10,6 +14,8 @@ export default function AuthLayout() {
         contentStyle: { backgroundColor: 'transparent' },
       }}
     >
+      <Stack.Screen name="welcome" />
+      <Stack.Screen name="age-gate" />
       <Stack.Screen name="sign-in" />
       <Stack.Screen name="sign-up" />
       <Stack.Screen name="forgot-password" />
