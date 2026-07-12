@@ -30,7 +30,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. A user can sign up and log in with email, returns to the app still logged in after a full restart, and can log out.
   3. During onboarding a user sets a public alias plus at least one intent tag and one boundary tag, and that alias represents them in-app (no real name shown by default).
   4. No screen or API response exposes another user's real identity (auth email) — only alias + intent/boundary are readable, enforced by Supabase RLS + alias/trust-state separation on the remote re:sense project.
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 01-01-PLAN.md — Backbone: remote profiles schema + owner-only RLS + public_profiles view (IDEN-04), type regen, re:sense tokens/fonts/Wordmark, keyless boot
+- [ ] 01-02-PLAN.md — Auth entry slice: welcome + blocking age gate + email-only sign-in/sign-up + AppGate rewrite + logout (AGE-01, AUTH-01/02/03)
+- [ ] 01-03-PLAN.md — Onboarding slice: alias + intent + boundary chips writing a real profiles row, read back into app shell (IDEN-01/02/03, IDEN-04 re-verified)
 **UI hint**: yes
 
 ### Phase 2: Signal & Board
@@ -90,7 +94,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Identity Foundation | 0/TBD | Not started | - |
+| 1. Identity Foundation | 0/3 | Not started | - |
 | 2. Signal & Board | 0/TBD | Not started | - |
 | 3. Reply & Resonance | 0/TBD | Not started | - |
 | 4. Private Space | 0/TBD | Not started | - |
