@@ -7,21 +7,24 @@
  * streaks, no counters. Reads the profile via useProfile; sign-out via useAuth.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH, Space } from '@/constants/spacing';
 import { Wordmark } from '@/components/ui/Wordmark';
 import { PaperBackground } from '@/components/ui/PaperBackground';
 import { GoldDisc } from '@/components/ui/GoldDisc';
+import { IdentityCard } from '@/components/ui/IdentityCard';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/context/AuthContext';
 import { INTENT_OPTIONS, BOUNDARY_OPTIONS } from '@/constants/onboarding';
 import { useT } from '@/context/LanguageContext';
+import { Prefs } from '@/store/mmkv';
 
 type Row = {
   icon: React.ComponentProps<typeof Feather>['name'];
@@ -76,6 +79,23 @@ export default function YouScreen() {
     await signOut();
   };
 
+  // Blurred identity photo — stored locally (privacy), shown permanently blurred.
+  const [photoUri, setPhotoUri] = useState<string | undefined>(() => Prefs.get('identity_photo_uri'));
+  const pickPhoto = async () => {
+    Haptics.selectionAsync();
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [3, 4],
+      quality: 0.6,
+    });
+    if (!res.canceled && res.assets?.[0]) {
+      const uri = res.assets[0].uri;
+      setPhotoUri(uri);
+      Prefs.set('identity_photo_uri', uri);
+    }
+  };
+
   return (
     <PaperBackground style={styles.root}>
       <GoldDisc size={400} top={-160} right={-150} opacity={0.5} />
@@ -87,37 +107,39 @@ export default function YouScreen() {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <Text style={styles.title}>You</Text>
 
-          {/* Identity card */}
-          <View style={styles.card}>
-            <Text style={styles.cardLabel}>YOUR ALIAS</Text>
-            <Text style={styles.alias}>{profile?.alias ?? '—'}</Text>
-            <Text style={styles.aliasNote}>Real name is never shown.</Text>
+          {/* Reflective identity card — blurred photo backdrop + alias */}
+          <IdentityCard
+            alias={profile?.alias ?? '—'}
+            role={intentLabels[0]}
+            photoUri={photoUri}
+            onPress={pickPhoto}
+          />
+          <Text style={styles.aliasNote}>Real name is never shown. Your photo stays blurred.</Text>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Looking for</Text>
-              {intentLabels.length > 0 ? (
-                <View style={styles.chips}>
-                  {intentLabels.map((label) => (
-                    <Chip key={label} label={label} />
-                  ))}
-                </View>
-              ) : (
-                <Text style={styles.notSet}>Not set</Text>
-              )}
-            </View>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Looking for</Text>
+            {intentLabels.length > 0 ? (
+              <View style={styles.chips}>
+                {intentLabels.map((label) => (
+                  <Chip key={label} label={label} />
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.notSet}>Not set</Text>
+            )}
+          </View>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Boundaries</Text>
-              {boundaryLabels.length > 0 ? (
-                <View style={styles.chips}>
-                  {boundaryLabels.map((label) => (
-                    <Chip key={label} label={label} />
-                  ))}
-                </View>
-              ) : (
-                <Text style={styles.notSet}>Not set</Text>
-              )}
-            </View>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Boundaries</Text>
+            {boundaryLabels.length > 0 ? (
+              <View style={styles.chips}>
+                {boundaryLabels.map((label) => (
+                  <Chip key={label} label={label} />
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.notSet}>Not set</Text>
+            )}
           </View>
 
           {/* Settings rows */}
@@ -174,7 +196,7 @@ const styles = StyleSheet.create({
   },
   aliasNote: {
     fontFamily: Typography.fonts.body, fontSize: 12,
-    color: AppColors.textSecondary, marginTop: 4,
+    color: AppColors.textSecondary, marginTop: 14, textAlign: 'center',
   },
   section: { marginTop: Space.lg },
   sectionTitle: {
