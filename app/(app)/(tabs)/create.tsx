@@ -14,7 +14,7 @@
  * the ink-drop, the underline, the seal.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Pressable,
   Image, useWindowDimensions, type LayoutChangeEvent,
@@ -45,6 +45,8 @@ export default function CreateScreen() {
   const [wordW, setWordW] = useState(0);
   const [bloom, setBloom] = useState(0); // increment to fire the ink-bloom seal effect
   const [promptIdx, setPromptIdx] = useState(0); // rotating ghost placeholder
+  const zoneRef = useRef<View>(null);
+  const [frame, setFrame] = useState({ x: 76, y: 220, w: 260 }); // writing-zone screen frame
 
   const format = SIGNAL_FORMATS[formatIdx];
   const canLeave = text.trim().length >= 3;
@@ -155,7 +157,14 @@ export default function CreateScreen() {
           </Pressable>
 
           {/* The writing zone — paper only, one hand-drawn margin rule + travelling ink */}
-          <View style={styles.zone} onLayout={(e) => setZoneH(e.nativeEvent.layout.height)}>
+          <View
+            ref={zoneRef}
+            style={styles.zone}
+            onLayout={(e) => {
+              setZoneH(e.nativeEvent.layout.height);
+              zoneRef.current?.measureInWindow((mx, my, mw) => setFrame({ x: mx, y: my, w: mw }));
+            }}
+          >
             <Svg width={16} height={ruleH} style={styles.rule} pointerEvents="none">
               <Path d={rulePath} stroke={AppColors.text} strokeWidth={1} strokeOpacity={0.18} fill="none" strokeLinecap="round" />
             </Svg>
@@ -192,8 +201,17 @@ export default function CreateScreen() {
       </KeyboardAvoidingView>
       </SafeAreaView>
 
-      {/* GPU ink-bloom that strikes + wicks across the page when the seal presses */}
-      <InkBloom trigger={bloom} x={sealX} y={sealY} onDone={onBloomDone} />
+      {/* GPU ink-bloom: fiber-wicking blot + the written words dissolving into it */}
+      <InkBloom
+        trigger={bloom}
+        x={sealX}
+        y={sealY}
+        onDone={onBloomDone}
+        text={text}
+        textX={frame.x + GUTTER}
+        textY={frame.y}
+        textW={frame.w - GUTTER}
+      />
     </PaperBackground>
   );
 }
