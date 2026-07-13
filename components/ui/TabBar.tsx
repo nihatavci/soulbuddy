@@ -10,9 +10,10 @@ import { Space } from '../../constants/spacing';
 type FeatherIcon = React.ComponentProps<typeof Feather>['name'];
 
 const TAB_CONFIG: Record<string, { label: string; icon: FeatherIcon; activeIcon: FeatherIcon }> = {
-  'index/index': { label: 'Home',       icon: 'home',          activeIcon: 'home'          },
-  'messages/index': { label: 'Messages',   icon: 'message-circle', activeIcon: 'message-circle' },
-  'challenges/index': { label: 'Challenges', icon: 'award',         activeIcon: 'award'         },
+  index:     { label: 'Board',   icon: 'grid',   activeIcon: 'grid'   },
+  create:    { label: 'Create',  icon: 'edit-3', activeIcon: 'edit-3' },
+  'private': { label: 'Private', icon: 'lock',   activeIcon: 'lock'   },
+  you:       { label: 'You',     icon: 'user',   activeIcon: 'user'   },
 };
 
 function TabItem({
