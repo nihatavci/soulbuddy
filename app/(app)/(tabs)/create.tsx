@@ -25,7 +25,8 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Svg, { Path } from 'react-native-svg';
 import Animated, {
-  useSharedValue, useAnimatedStyle, withTiming, withRepeat, cancelAnimation, runOnJS, Easing,
+  useSharedValue, useAnimatedStyle, withTiming, withRepeat, cancelAnimation, runOnJS,
+  interpolateColor, Easing,
 } from 'react-native-reanimated';
 import { AppColors, Typography } from '@/constants/theme';
 import { PaperBackground } from '@/components/ui/PaperBackground';
@@ -36,7 +37,10 @@ import { SIGNAL_PROMPTS } from '@/constants/prompts';
 
 const GUTTER = 46;           // left margin where the pencil rule + ink-drop live
 const HOLD_MS = 1100;        // how long to press-and-hold the seal to commit
+const WET_INK = '#0D0D10';   // fresh ink while writing (deep, glossy)
+const DRY_INK = '#2A2A30';   // dried ink after sealing (lighter, matte)
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
 // A quiet poetic line that fades in while you hold the seal.
 const HOLD_LINES = [
@@ -77,6 +81,7 @@ export default function CreateScreen() {
   const fill = useSharedValue(0);
   const hold = useSharedValue(0);       // press-and-hold progress 0→1 (grows the ink)
   const spin = useSharedValue(0);       // seal dots orbit while holding (atom-like)
+  const dry = useSharedValue(0);        // 0 = wet ink (writing), 1 = dried (sealed)
   const pageFade = useSharedValue(1);
   const pageLift = useSharedValue(0);
   const ghostOpacity = useSharedValue(1);
@@ -118,20 +123,28 @@ export default function CreateScreen() {
     spin.value = withTiming(cur > Math.PI ? 2 * Math.PI : 0, { duration: 340 });
   };
 
-  // Held the seal long enough → the page drifts off toward the board, then resets.
+  // Held the seal long enough → the ink DRIES (wet→matte, ~1.1s) as the seal
+  // confirmation, then the page drifts off toward the board and resets.
   const commit = () => {
     holdingRef.current = false;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     settleSpin();
-    pageFade.value = withTiming(0, { duration: 480, easing: Easing.in(Easing.cubic) });
-    pageLift.value = withTiming(-46, { duration: 560, easing: Easing.out(Easing.cubic) });
+    setHoldLine('sealed — it’s on the board now.');
+    // fluid material, calm: slow sine drying
+    dry.value = withTiming(1, { duration: 1150, easing: Easing.inOut(Easing.sin) });
     setTimeout(() => {
-      setText('');
-      fill.value = withTiming(0, { duration: 1 });
-      hold.value = withTiming(0, { duration: 380 });
-      pageLift.value = 0;
-      pageFade.value = withTiming(1, { duration: 420 });
-    }, 560);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid); // the ink "sets"
+      pageFade.value = withTiming(0, { duration: 460, easing: Easing.in(Easing.cubic) });
+      pageLift.value = withTiming(-44, { duration: 540, easing: Easing.out(Easing.cubic) });
+      setTimeout(() => {
+        setText('');
+        fill.value = withTiming(0, { duration: 1 });
+        dry.value = 0;
+        hold.value = withTiming(0, { duration: 300 });
+        pageLift.value = 0;
+        pageFade.value = withTiming(1, { duration: 420 });
+      }, 520);
+    }, 1150);
   };
 
   const beginHold = () => {
@@ -165,7 +178,12 @@ export default function CreateScreen() {
     opacity: 0.35 + fill.value * 0.65,
   }));
   const sealStyle = useAnimatedStyle(() => ({ transform: [{ scale: 1 - hold.value * 0.12 }] }));
-  const holdLineStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, hold.value * 1.8) }));
+  const holdLineStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, Math.max(hold.value, dry.value) * 1.8) }));
+  // Wet ink while writing → dried matte on seal (fresh gloss fades to a set stain).
+  const inputAnimStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(dry.value, [0, 1], [WET_INK, DRY_INK]),
+    textShadowColor: interpolateColor(dry.value, [0, 1], ['rgba(255,255,255,0.45)', 'rgba(0,0,0,0)']),
+  }));
   const pageStyle = useAnimatedStyle(() => ({
     opacity: pageFade.value,
     transform: [{ translateY: pageLift.value }],
@@ -222,8 +240,8 @@ export default function CreateScreen() {
                 {SIGNAL_PROMPTS[promptIdx]}
               </Animated.Text>
             )}
-            <TextInput
-              style={styles.input}
+            <AnimatedTextInput
+              style={[styles.input, inputAnimStyle]}
               value={text}
               onChangeText={onChange}
               multiline
@@ -310,7 +328,8 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1, padding: 0, margin: 0,
-    fontFamily: 'SpecialElite', fontSize: 21, lineHeight: 32, color: AppColors.text,
+    fontFamily: 'SpecialElite', fontSize: 21, lineHeight: 32,
+    textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4, // wet gloss (color animated)
   },
 
   sealArea: { alignItems: 'center', paddingBottom: 14, paddingTop: 2 },

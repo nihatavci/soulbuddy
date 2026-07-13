@@ -44,9 +44,9 @@ export function InkBloom({ progress, x, y, ink = '#0D0D10' }: InkBloomProps) {
 
   const transform = useDerivedValue(() => [{ scale: 0.05 + progress.value * (MAXR / BASE) }]);
   const bodyOpacity = useDerivedValue(() => Math.min(0.85, 0.15 + progress.value * 0.85));
-  const disp = useDerivedValue(() => 8 + progress.value * 20); // irregular edge grows with the spread
+  const disp = useDerivedValue(() => 14 + progress.value * 34); // strong, ragged ink edge
   const rGrainMask = useDerivedValue(() => 10 + progress.value * (MAXR + 8));
-  const grainOpacity = useDerivedValue(() => Math.min(0.55, progress.value * 0.7));
+  const grainOpacity = useDerivedValue(() => Math.min(0.8, progress.value * 0.95));
 
   const g = MAXR + PAD;
 
@@ -58,9 +58,9 @@ export function InkBloom({ progress, x, y, ink = '#0D0D10' }: InkBloomProps) {
         layer={
           <Paint>
             <DisplacementMap channelX="r" channelY="g" scale={disp}>
-              <Turbulence freqX={0.022} freqY={0.028} octaves={3} seed={9} />
+              <Turbulence freqX={0.06} freqY={0.075} octaves={4} seed={9} />
             </DisplacementMap>
-            <Blur blur={2} />
+            <Blur blur={1} />
           </Paint>
         }
       >
