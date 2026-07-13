@@ -296,8 +296,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ── Sign Out ────────────────────────────────────────────────────────────
 
   const signOutFn = useCallback(async () => {
-    // 1. Clear Supabase session
-    await supabase.auth.signOut();
+    // 1. Clear Supabase session. scope:'local' clears the on-device session
+    //    WITHOUT a network revoke call — so sign-out works offline and never
+    //    throws "Network request failed". Wrapped defensively regardless.
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (err) {
+      if (__DEV__) console.warn('[Auth] signOut (local) failed:', err);
+    }
 
     // 2. Clear RevenueCat identity so next user doesn't inherit prev appUserID
     try {

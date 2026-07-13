@@ -17,28 +17,32 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Pressable,
-  Image, type LayoutChangeEvent,
+  Image, useWindowDimensions, type LayoutChangeEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Svg, { Path } from 'react-native-svg';
 import Animated, {
-  useSharedValue, useAnimatedStyle, withTiming, withSequence, withSpring, runOnJS, Easing,
+  useSharedValue, useAnimatedStyle, withTiming, withSequence, withSpring, Easing,
 } from 'react-native-reanimated';
 import { AppColors, Typography } from '@/constants/theme';
-import { SIGNAL_FORMATS, SIGNAL_MAX_CHARS, DAILY_SIGNAL_CAP, type SignalFormat } from '@/constants/mockSignals';
+import { PaperBackground } from '@/components/ui/PaperBackground';
+import { InkBloom } from '@/components/ui/InkBloom';
+import { SIGNAL_FORMATS, SIGNAL_MAX_CHARS, DAILY_SIGNAL_CAP } from '@/constants/mockSignals';
 
 const INK_SEAL = require('@/assets/textures/ink-seal.png');
 const GUTTER = 46;           // left margin where the pencil rule + ink-drop live
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export default function CreateScreen() {
+  const { width, height } = useWindowDimensions();
   const remaining = DAILY_SIGNAL_CAP - 1; // mock: one dropped today
 
   const [formatIdx, setFormatIdx] = useState(0);
   const [text, setText] = useState('');
   const [zoneH, setZoneH] = useState(0);
   const [wordW, setWordW] = useState(0);
+  const [bloom, setBloom] = useState(0); // increment to fire the ink-bloom seal effect
 
   const format = SIGNAL_FORMATS[formatIdx];
   const canLeave = text.trim().length >= 3;
@@ -46,7 +50,6 @@ export default function CreateScreen() {
   // Ink level: 0 (empty) → 1 (full). Drives the ink-drop's travel down the margin.
   const fill = useSharedValue(0);
   const sealScale = useSharedValue(1);
-  const pageShift = useSharedValue(0);
   const pageFade = useSharedValue(1);
 
   const onChange = (v: string) => {
@@ -59,11 +62,11 @@ export default function CreateScreen() {
     setFormatIdx((i) => (i + 1) % SIGNAL_FORMATS.length);
   };
 
-  const resetPage = () => {
+  // Fires once the ink has bloomed + dried: clear the page for a fresh sheet.
+  const onBloomDone = () => {
     setText('');
-    fill.value = withTiming(0, { duration: 200 });
-    pageShift.value = 0;
-    pageFade.value = withTiming(1, { duration: 320 });
+    fill.value = withTiming(0, { duration: 1 });
+    pageFade.value = withTiming(1, { duration: 420 });
   };
 
   const leave = () => {
@@ -71,16 +74,15 @@ export default function CreateScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
-    // The seal "presses" — a deliberate thunk — then the page lifts and drifts away.
+    // The seal presses — a deliberate thunk — the ink strikes and blooms across
+    // the page (InkBloom), the writing fades into it, then the sheet resets.
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     sealScale.value = withSequence(
-      withTiming(0.88, { duration: 90 }),
+      withTiming(0.86, { duration: 90 }),
       withSpring(1, { damping: 6, stiffness: 180 }),
     );
-    pageShift.value = withTiming(-34, { duration: 420, easing: Easing.in(Easing.cubic) });
-    pageFade.value = withTiming(0, { duration: 420, easing: Easing.in(Easing.cubic) }, (done) => {
-      if (done) runOnJS(resetPage)();
-    });
+    pageFade.value = withTiming(0, { duration: 760, easing: Easing.in(Easing.cubic) });
+    setBloom((b) => b + 1);
   };
 
   const dropStyle = useAnimatedStyle(() => ({
@@ -88,10 +90,11 @@ export default function CreateScreen() {
     opacity: 0.35 + fill.value * 0.65,
   }));
   const sealStyle = useAnimatedStyle(() => ({ transform: [{ scale: sealScale.value }] }));
-  const pageStyle = useAnimatedStyle(() => ({
-    opacity: pageFade.value,
-    transform: [{ translateY: pageShift.value }],
-  }));
+  const pageStyle = useAnimatedStyle(() => ({ opacity: pageFade.value }));
+
+  // The seal sits low-center; bloom originates there.
+  const sealX = width / 2;
+  const sealY = height - 96;
 
   // Hand-drawn geometry (deterministic — no runtime randomness).
   const ruleH = zoneH || 320;
@@ -101,7 +104,8 @@ export default function CreateScreen() {
     : '';
 
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+    <PaperBackground style={styles.root}>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <KeyboardAvoidingView style={styles.kav} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         {/* faint dateline / cap — like the corner of a page, no chrome */}
         <View style={styles.head}>
@@ -161,13 +165,18 @@ export default function CreateScreen() {
           </Text>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+      </SafeAreaView>
+
+      {/* GPU ink-bloom that strikes + wicks across the page when the seal presses */}
+      <InkBloom trigger={bloom} x={sealX} y={sealY} onDone={onBloomDone} />
+    </PaperBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  // Paper comes from the app surface; this screen deliberately keeps ZERO borders.
-  root: { flex: 1, backgroundColor: AppColors.background },
+  // Paper grain comes from PaperBackground; this screen deliberately keeps ZERO borders.
+  root: { flex: 1 },
+  safe: { flex: 1 },
   kav: { flex: 1, paddingHorizontal: 30 },
   head: { paddingTop: 6, paddingBottom: 4, alignItems: 'flex-end' },
   dateline: {
