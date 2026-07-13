@@ -32,6 +32,7 @@ import { AppColors, Typography } from '@/constants/theme';
 import { PaperBackground } from '@/components/ui/PaperBackground';
 import { InkBloom } from '@/components/ui/InkBloom';
 import { SealMark } from '@/components/ui/SealMark';
+import { Toast } from '@/components/glow';
 import { SIGNAL_FORMATS, SIGNAL_MAX_CHARS, DAILY_SIGNAL_CAP } from '@/constants/mockSignals';
 import { SIGNAL_PROMPTS } from '@/constants/prompts';
 
@@ -129,11 +130,21 @@ export default function CreateScreen() {
     holdingRef.current = false;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     settleSpin();
-    setHoldLine('sealed — it’s on the board now.');
+    setHoldLine('letting the ink dry…');
     // fluid material, calm: slow sine drying
     dry.value = withTiming(1, { duration: 1150, easing: Easing.inOut(Easing.sin) });
     setTimeout(() => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid); // the ink "sets"
+      // paper/ink float banner — the send confirmation
+      Toast.show(
+        (
+          <View style={styles.banner}>
+            <View style={styles.bannerDot} />
+            <Text style={styles.bannerText}>Your signal is on the board.</Text>
+          </View>
+        ),
+        { backgroundColor: AppColors.elevated, position: 'top', duration: 2400 },
+      );
       pageFade.value = withTiming(0, { duration: 460, easing: Easing.in(Easing.cubic) });
       pageLift.value = withTiming(-44, { duration: 540, easing: Easing.out(Easing.cubic) });
       setTimeout(() => {
@@ -330,6 +341,10 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4, // wet gloss (color animated)
   },
 
+  // paper/ink float banner content (rendered inside the toast pill)
+  banner: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 4 },
+  bannerDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: AppColors.accent },
+  bannerText: { fontFamily: Typography.fonts.body, fontSize: 14, color: AppColors.text, letterSpacing: 0.2 },
   sealArea: { alignItems: 'center', paddingBottom: 8, paddingTop: 2 },
   holdLine: {
     fontFamily: 'SpecialElite', fontSize: 15, lineHeight: 21, color: AppColors.text,
