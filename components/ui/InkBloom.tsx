@@ -1,185 +1,133 @@
 /**
- * InkBloom — the "seal press" moment, rendered with GPU Skia.
+ * InkBloom — the "seal press" moment, rendered with GPU Skia. CONTAINED by design.
  *
- * Pressing the seal strikes ink onto the paper and it wicks through the fibers:
- *   1. STRIKE     — a gold "signal" flash at the contact point.
- *   2. BLOOM      — a soft ink blot saturates outward. Its edge is warped by a
- *                   fractal-noise DisplacementMap (FIBER WICKING) so it spreads
- *                   along irregular paper fibers instead of as a clean circle.
- *   3. CAPILLARY  — thin ink tendrils draw outward (Path `end` 0→1).
- *   4. ABSORBED   — the words you wrote (rendered in Skia Special Elite) feather
- *                   and dissolve into the ink via ramping blur + displacement.
- *   5. DRY        — it all settles, then onDone fires.
+ * Pressing the seal stamps ink onto the paper — it does NOT wash the screen:
+ *   1. STRIKE   — a gold "signal" flash at the seal.
+ *   2. STAMP    — a small ink blot (~90px) blooms and settles into a faint stain.
+ *                 Its edge is warped by fractal-noise displacement (fiber wicking)
+ *                 so it spreads along paper fibers, not as a clean circle.
+ *   3. RING     — a single gold signal-ring pulses outward once, then fades.
+ *   4. CAPILLARY— short ink tendrils wick a little way out from the stamp.
  *
- * Deterministic geometry (no runtime randomness). Non-interactive overlay.
+ * The written words are lifted + faded by the composer (drift to the board), not
+ * dissolved here — keeps the moment calm and legible. Deterministic geometry.
  */
 
 import React, { useEffect, useMemo } from 'react';
-import { StyleSheet, useWindowDimensions } from 'react-native';
+import { StyleSheet } from 'react-native';
 import {
-  Canvas, Group, Circle, Path, Blur, Paint, DisplacementMap, Turbulence, Text as SkText,
-  vec, useFont,
+  Canvas, Group, Circle, Path, Blur, Paint, DisplacementMap, Turbulence, vec,
 } from '@shopify/react-native-skia';
 import {
   useSharedValue, useDerivedValue, withTiming, withDelay, Easing, runOnJS,
 } from 'react-native-reanimated';
 
-const SPECIAL_ELITE = require('@/assets/fonts/SpecialElite-Regular.ttf');
-
 interface InkBloomProps {
   /** Increment this to fire the effect. */
   trigger: number;
-  /** Contact point (screen coords). */
+  /** Seal contact point (screen coords). */
   x: number;
   y: number;
   onDone?: () => void;
   ink?: string;
   gold?: string;
-  /** The words to absorb into the ink (optional). */
-  text?: string;
-  textX?: number;
-  textY?: number;
-  textW?: number;
 }
 
-const BASE = 120;         // blot radius unit in the scaling group's local space
-const FONT_SIZE = 21;
-const LINE_H = 32;
+const BASE = 120;        // blot radius unit in the scaling group's local space
+const STAMP_R = 92;      // final stamp radius in px — small + contained
 
-function wrapLines(text: string, maxChars: number): string[] {
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  const lines: string[] = [];
-  let cur = '';
-  for (const w of words) {
-    const next = cur ? `${cur} ${w}` : w;
-    if (next.length > maxChars && cur) {
-      lines.push(cur);
-      cur = w;
-    } else {
-      cur = next;
-    }
-  }
-  if (cur) lines.push(cur);
-  return lines.slice(0, 5);
-}
-
-export function InkBloom({
-  trigger, x, y, onDone, ink = '#0D0D10', gold = '#FFD03A',
-  text = '', textX = 40, textY = 180, textW = 260,
-}: InkBloomProps) {
-  const { width, height } = useWindowDimensions();
-  const maxR = Math.hypot(width, height) * 0.85;
-  const font = useFont(SPECIAL_ELITE, FONT_SIZE);
-
-  const p = useSharedValue(0);   // bloom growth 0→1
+export function InkBloom({ trigger, x, y, onDone, ink = '#0D0D10', gold = '#FFD03A' }: InkBloomProps) {
+  const p = useSharedValue(0);   // stamp growth 0→1
   const dry = useSharedValue(0); // set/fade 0→1
 
   useEffect(() => {
     if (!trigger) return;
     p.value = 0;
     dry.value = 0;
-    p.value = withTiming(1, { duration: 1000, easing: Easing.out(Easing.cubic) });
+    p.value = withTiming(1, { duration: 520, easing: Easing.out(Easing.cubic) });
     dry.value = withDelay(
-      720,
-      withTiming(1, { duration: 780, easing: Easing.inOut(Easing.quad) }, (finished) => {
+      560,
+      withTiming(1, { duration: 620, easing: Easing.inOut(Easing.quad) }, (finished) => {
         'worklet';
         if (finished && onDone) runOnJS(onDone)();
       }),
     );
   }, [trigger]);
 
-  // ── Fiber-wicked ink blot ────────────────────────────────────────────────
-  const blotTransform = useDerivedValue(() => [{ scale: Math.max(0.0001, (p.value * maxR) / BASE) }]);
-  const blotOpacity = useDerivedValue(() => (1 - dry.value) * 0.94);
-  const wickScale = useDerivedValue(() => 6 + p.value * 26); // displacement grows as it spreads
+  // Ink stamp — a small blot that saturates then settles to a faint stain.
+  const stampTransform = useDerivedValue(() => [{ scale: Math.max(0.0001, (p.value * STAMP_R) / BASE) }]);
+  const stampOpacity = useDerivedValue(() => (0.4 + p.value * 0.32) * (1 - dry.value));
+  const wickScale = useDerivedValue(() => 3 + p.value * 7); // gentle fiber displacement
 
-  // ── Gold signal core ───────────────────────────────────────────────────────
-  const goldR = useDerivedValue(() => 8 + p.value * 52);
-  const goldOpacity = useDerivedValue(() => (1 - p.value) * (1 - dry.value) * 0.95);
+  // Gold signal-ring — one outward pulse.
+  const ringR = useDerivedValue(() => 18 + p.value * 128);
+  const ringWidth = useDerivedValue(() => Math.max(0.2, 3 * (1 - p.value)));
+  const ringOpacity = useDerivedValue(() => (1 - p.value) * (1 - dry.value) * 0.9);
 
-  // ── Capillary tendrils ──────────────────────────────────────────────────────
-  const veinEnd = useDerivedValue(() => Math.min(1, p.value * 1.18));
-  const veinOpacity = useDerivedValue(() => (1 - dry.value) * 0.8);
+  // Gold strike core.
+  const coreR = useDerivedValue(() => 6 + p.value * 20);
+  const coreOpacity = useDerivedValue(() => (1 - p.value) * (1 - dry.value) * 0.95);
 
-  // ── Words absorbed into the ink ──────────────────────────────────────────────
-  const wordsBlur = useDerivedValue(() => p.value * 13);
-  const wordsDisp = useDerivedValue(() => p.value * 20);
-  const wordsOpacity = useDerivedValue(() =>
-    p.value < 0.18 ? p.value / 0.18 : Math.max(0, 1 - (p.value - 0.18) / 0.6),
-  );
+  // Short capillary tendrils from the stamp.
+  const veinEnd = useDerivedValue(() => Math.min(1, p.value * 1.2));
+  const veinOpacity = useDerivedValue(() => (1 - dry.value) * 0.55);
 
   const veins = useMemo(() => {
-    const N = 9;
+    const N = 7;
     const out: string[] = [];
     for (let i = 0; i < N; i++) {
-      const a = (i / N) * Math.PI * 2 + 0.4;
-      const L = maxR * (0.4 + ((i * 37) % 22) / 100);
+      const a = (i / N) * Math.PI * 2 + 0.5;
+      const L = 60 + ((i * 29) % 34); // short, deterministic
       const perp = a + Math.PI / 2;
       const ex = x + Math.cos(a) * L;
       const ey = y + Math.sin(a) * L;
-      const c1x = x + Math.cos(a) * L * 0.35 + Math.cos(perp) * 28;
-      const c1y = y + Math.sin(a) * L * 0.35 + Math.sin(perp) * 28;
-      const c2x = x + Math.cos(a) * L * 0.7 + Math.cos(perp) * -22;
-      const c2y = y + Math.sin(a) * L * 0.7 + Math.sin(perp) * -22;
+      const c1x = x + Math.cos(a) * L * 0.4 + Math.cos(perp) * 12;
+      const c1y = y + Math.sin(a) * L * 0.4 + Math.sin(perp) * 12;
+      const c2x = x + Math.cos(a) * L * 0.75 + Math.cos(perp) * -9;
+      const c2y = y + Math.sin(a) * L * 0.75 + Math.sin(perp) * -9;
       out.push(`M${x} ${y} C ${c1x} ${c1y} ${c2x} ${c2y} ${ex} ${ey}`);
     }
     return out;
-  }, [x, y, maxR]);
-
-  const maxChars = Math.max(8, Math.floor((textW || 260) / 11));
-  const lines = useMemo(() => (text ? wrapLines(text, maxChars) : []), [text, maxChars]);
+  }, [x, y]);
 
   return (
     <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
-      {/* capillary tendrils wicking through the paper */}
+      {/* short capillary tendrils */}
       <Group opacity={veinOpacity}>
         {veins.map((d, i) => (
-          <Path key={i} path={d} color={ink} style="stroke" strokeWidth={1.5} strokeCap="round" end={veinEnd} />
+          <Path key={i} path={d} color={ink} style="stroke" strokeWidth={1.3} strokeCap="round" end={veinEnd} />
         ))}
       </Group>
 
-      {/* soft ink blot with a fractal-noise displaced (fibered) edge */}
+      {/* ink stamp with a fibered (displaced) edge */}
       <Group
         layer={
           <Paint>
             <DisplacementMap channelX="r" channelY="g" scale={wickScale}>
-              <Turbulence freqX={0.015} freqY={0.02} octaves={3} seed={7} />
+              <Turbulence freqX={0.02} freqY={0.025} octaves={2} seed={7} />
             </DisplacementMap>
           </Paint>
         }
       >
-        <Group origin={vec(x, y)} transform={blotTransform}>
-          <Group opacity={blotOpacity}>
-            <Circle cx={x} cy={y} r={BASE * 0.62} color={ink}><Blur blur={24} /></Circle>
-            <Circle cx={x + 34} cy={y - 22} r={BASE * 0.34} color={ink}><Blur blur={20} /></Circle>
-            <Circle cx={x - 38} cy={y - 14} r={BASE * 0.36} color={ink}><Blur blur={20} /></Circle>
-            <Circle cx={x + 18} cy={y + 30} r={BASE * 0.3} color={ink}><Blur blur={18} /></Circle>
-            <Circle cx={x - 22} cy={y + 28} r={BASE * 0.28} color={ink}><Blur blur={18} /></Circle>
+        <Group origin={vec(x, y)} transform={stampTransform}>
+          <Group opacity={stampOpacity}>
+            <Circle cx={x} cy={y} r={BASE * 0.6} color={ink}><Blur blur={14} /></Circle>
+            <Circle cx={x + 26} cy={y - 18} r={BASE * 0.3} color={ink}><Blur blur={12} /></Circle>
+            <Circle cx={x - 28} cy={y - 12} r={BASE * 0.32} color={ink}><Blur blur={12} /></Circle>
+            <Circle cx={x + 16} cy={y + 22} r={BASE * 0.26} color={ink}><Blur blur={10} /></Circle>
+            <Circle cx={x - 18} cy={y + 20} r={BASE * 0.24} color={ink}><Blur blur={10} /></Circle>
           </Group>
         </Group>
       </Group>
 
-      {/* the words feather + dissolve into the ink */}
-      {font && lines.length > 0 && (
-        <Group
-          layer={
-            <Paint opacity={wordsOpacity}>
-              <Blur blur={wordsBlur} />
-              <DisplacementMap channelX="r" channelY="g" scale={wordsDisp}>
-                <Turbulence freqX={0.02} freqY={0.03} octaves={2} seed={3} />
-              </DisplacementMap>
-            </Paint>
-          }
-        >
-          {lines.map((ln, i) => (
-            <SkText key={i} x={textX} y={textY + 18 + i * LINE_H} text={ln} font={font} color={ink} />
-          ))}
-        </Group>
-      )}
+      {/* gold signal ring pulse */}
+      <Group opacity={ringOpacity}>
+        <Circle cx={x} cy={y} r={ringR} color={gold} style="stroke" strokeWidth={ringWidth} />
+      </Group>
 
-      {/* gold signal core */}
-      <Group opacity={goldOpacity}>
-        <Circle cx={x} cy={y} r={goldR} color={gold}><Blur blur={10} /></Circle>
+      {/* gold strike core */}
+      <Group opacity={coreOpacity}>
+        <Circle cx={x} cy={y} r={coreR} color={gold}><Blur blur={6} /></Circle>
       </Group>
     </Canvas>
   );

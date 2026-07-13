@@ -17,11 +17,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Pressable,
-  Image, useWindowDimensions, type LayoutChangeEvent,
+  useWindowDimensions, type LayoutChangeEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Circle } from 'react-native-svg';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withSequence, withSpring, runOnJS, Easing,
 } from 'react-native-reanimated';
@@ -31,7 +31,6 @@ import { InkBloom } from '@/components/ui/InkBloom';
 import { SIGNAL_FORMATS, SIGNAL_MAX_CHARS, DAILY_SIGNAL_CAP } from '@/constants/mockSignals';
 import { SIGNAL_PROMPTS } from '@/constants/prompts';
 
-const INK_SEAL = require('@/assets/textures/ink-seal.png');
 const GUTTER = 46;           // left margin where the pencil rule + ink-drop live
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -45,8 +44,8 @@ export default function CreateScreen() {
   const [wordW, setWordW] = useState(0);
   const [bloom, setBloom] = useState(0); // increment to fire the ink-bloom seal effect
   const [promptIdx, setPromptIdx] = useState(0); // rotating ghost placeholder
-  const zoneRef = useRef<View>(null);
-  const [frame, setFrame] = useState({ x: 76, y: 220, w: 260 }); // writing-zone screen frame
+  const sealRef = useRef<View>(null);
+  const [sealPos, setSealPos] = useState({ x: width / 2, y: height * 0.6 });
 
   const format = SIGNAL_FORMATS[formatIdx];
   const canLeave = text.trim().length >= 3;
@@ -55,6 +54,7 @@ export default function CreateScreen() {
   const fill = useSharedValue(0);
   const sealScale = useSharedValue(1);
   const pageFade = useSharedValue(1);
+  const pageLift = useSharedValue(0);
   const ghostOpacity = useSharedValue(1);
 
   // Rotate the unfinished-sentence prompts while the page is empty. Gentle
@@ -86,10 +86,11 @@ export default function CreateScreen() {
     setFormatIdx((i) => (i + 1) % SIGNAL_FORMATS.length);
   };
 
-  // Fires once the ink has bloomed + dried: clear the page for a fresh sheet.
+  // Fires once the ink has set: clear the page for a fresh sheet.
   const onBloomDone = () => {
     setText('');
     fill.value = withTiming(0, { duration: 1 });
+    pageLift.value = 0;
     pageFade.value = withTiming(1, { duration: 420 });
   };
 
@@ -98,14 +99,15 @@ export default function CreateScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
-    // The seal presses — a deliberate thunk — the ink strikes and blooms across
-    // the page (InkBloom), the writing fades into it, then the sheet resets.
+    // The seal presses — a deliberate thunk. The ink stamps at the seal and the
+    // written words lift + drift off the page toward the board, then it resets.
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     sealScale.value = withSequence(
-      withTiming(0.86, { duration: 90 }),
+      withTiming(0.84, { duration: 90 }),
       withSpring(1, { damping: 6, stiffness: 180 }),
     );
-    pageFade.value = withTiming(0, { duration: 760, easing: Easing.in(Easing.cubic) });
+    pageFade.value = withTiming(0, { duration: 560, easing: Easing.in(Easing.cubic) });
+    pageLift.value = withTiming(-46, { duration: 620, easing: Easing.out(Easing.cubic) });
     setBloom((b) => b + 1);
   };
 
@@ -114,12 +116,11 @@ export default function CreateScreen() {
     opacity: 0.35 + fill.value * 0.65,
   }));
   const sealStyle = useAnimatedStyle(() => ({ transform: [{ scale: sealScale.value }] }));
-  const pageStyle = useAnimatedStyle(() => ({ opacity: pageFade.value }));
+  const pageStyle = useAnimatedStyle(() => ({
+    opacity: pageFade.value,
+    transform: [{ translateY: pageLift.value }],
+  }));
   const ghostStyle = useAnimatedStyle(() => ({ opacity: ghostOpacity.value * 0.5 }));
-
-  // The seal sits low-center; bloom originates there.
-  const sealX = width / 2;
-  const sealY = height - 96;
 
   // Hand-drawn geometry (deterministic — no runtime randomness).
   const ruleH = zoneH || 320;
@@ -157,14 +158,7 @@ export default function CreateScreen() {
           </Pressable>
 
           {/* The writing zone — paper only, one hand-drawn margin rule + travelling ink */}
-          <View
-            ref={zoneRef}
-            style={styles.zone}
-            onLayout={(e) => {
-              setZoneH(e.nativeEvent.layout.height);
-              zoneRef.current?.measureInWindow((mx, my, mw) => setFrame({ x: mx, y: my, w: mw }));
-            }}
-          >
+          <View style={styles.zone} onLayout={(e) => setZoneH(e.nativeEvent.layout.height)}>
             <Svg width={16} height={ruleH} style={styles.rule} pointerEvents="none">
               <Path d={rulePath} stroke={AppColors.text} strokeWidth={1} strokeOpacity={0.18} fill="none" strokeLinecap="round" />
             </Svg>
@@ -189,10 +183,22 @@ export default function CreateScreen() {
           </View>
         </Animated.View>
 
-        {/* Leave it — a seal, not a button */}
-        <View style={styles.sealArea}>
+        {/* Leave it — a wax/ink seal (the re: colon), not a button */}
+        <View
+          ref={sealRef}
+          style={styles.sealArea}
+          onLayout={() =>
+            sealRef.current?.measureInWindow((mx, my, mw) =>
+              setSealPos({ x: mx + mw / 2, y: my + 30 }),
+            )
+          }
+        >
           <AnimatedPressable onPress={leave} style={[styles.seal, sealStyle]} accessibilityRole="button" accessibilityLabel="Leave this signal on the board">
-            <Image source={INK_SEAL} style={[styles.sealImg, { opacity: canLeave ? 1 : 0.28 }]} resizeMode="contain" />
+            <Svg width={56} height={56} viewBox="0 0 56 56">
+              <Circle cx={28} cy={28} r={25} fill={AppColors.ink} opacity={canLeave ? 1 : 0.28} />
+              <Circle cx={28} cy={21} r={3} fill={AppColors.accent} opacity={canLeave ? 1 : 0.35} />
+              <Circle cx={28} cy={35} r={3} fill={AppColors.accent} opacity={canLeave ? 1 : 0.35} />
+            </Svg>
           </AnimatedPressable>
           <Text style={[styles.sealCaption, { opacity: canLeave ? 1 : 0.5 }]}>
             {canLeave ? 'press the seal to leave it on the board' : 'write a few words first'}
@@ -201,17 +207,8 @@ export default function CreateScreen() {
       </KeyboardAvoidingView>
       </SafeAreaView>
 
-      {/* GPU ink-bloom: fiber-wicking blot + the written words dissolving into it */}
-      <InkBloom
-        trigger={bloom}
-        x={sealX}
-        y={sealY}
-        onDone={onBloomDone}
-        text={text}
-        textX={frame.x + GUTTER}
-        textY={frame.y}
-        textW={frame.w - GUTTER}
-      />
+      {/* Contained GPU ink-stamp bloom, originating at the seal */}
+      <InkBloom trigger={bloom} x={sealPos.x} y={sealPos.y} onDone={onBloomDone} />
     </PaperBackground>
   );
 }
@@ -253,9 +250,8 @@ const styles = StyleSheet.create({
     fontFamily: 'SpecialElite', fontSize: 21, lineHeight: 32, color: AppColors.text,
   },
 
-  sealArea: { alignItems: 'center', paddingBottom: 10, paddingTop: 6 },
-  seal: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center' },
-  sealImg: { width: 64, height: 64 },
+  sealArea: { alignItems: 'center', paddingBottom: 14, paddingTop: 6 },
+  seal: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
   sealCaption: {
     fontFamily: Typography.fonts.body, fontSize: 12, letterSpacing: 0.3,
     color: AppColors.textSecondary, marginTop: 8,
