@@ -16,6 +16,8 @@ import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH, Space } from '@/constants/spacing';
 import { Wordmark } from '@/components/ui/Wordmark';
+import { PaperBackground } from '@/components/ui/PaperBackground';
+import { GoldDisc } from '@/components/ui/GoldDisc';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/context/AuthContext';
 import { INTENT_OPTIONS, BOUNDARY_OPTIONS } from '@/constants/onboarding';
@@ -75,8 +77,8 @@ export default function YouScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <View style={styles.disc} />
+    <PaperBackground style={styles.root}>
+      <GoldDisc size={400} top={-160} right={-150} opacity={0.5} />
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.header}>
           <Wordmark size={24} />
@@ -142,16 +144,12 @@ export default function YouScreen() {
           </Pressable>
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </PaperBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: AppColors.background, overflow: 'hidden' },
-  disc: {
-    position: 'absolute', top: -170, right: -150, width: 400, height: 400,
-    borderRadius: 200, backgroundColor: 'rgba(255,208,58,0.05)',
-  },
+  root: { flex: 1, overflow: 'hidden' },
   safe: { flex: 1, paddingHorizontal: ScreenPaddingH },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -168,7 +166,7 @@ const styles = StyleSheet.create({
   },
   cardLabel: {
     fontFamily: Typography.fonts.body, fontSize: 12, letterSpacing: 0.5,
-    textTransform: 'uppercase', color: AppColors.accent,
+    textTransform: 'uppercase', color: AppColors.textSecondary,
   },
   alias: {
     fontFamily: 'PlayfairDisplay', fontSize: 28, letterSpacing: -0.3,

@@ -14,12 +14,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { PaperBackground } from '@/components/ui/PaperBackground';
+import { GoldDisc } from '@/components/ui/GoldDisc';
 import { Wordmark } from '@/components/ui/Wordmark';
 import { Prefs } from '@/store/mmkv';
 import { useT } from '@/context/LanguageContext';
 
 // Paper-surface palette (inverse of the dark AppColors tokens); design tokens.
-const PAPER = '#F3EFE6';
 const INK = '#0D0D10';
 const INK_MUTED = '#3A3A40';
 const INK_FAINT = 'rgba(13,13,16,0.20)';
@@ -39,10 +40,10 @@ export default function AgeGateScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <View style={styles.disc} />
+    <PaperBackground style={styles.root}>
+      <GoldDisc size={380} top={-150} right={-150} opacity={0.5} />
       <SafeAreaView style={styles.safe}>
-        <Wordmark size={22} color={INK} accentColor={INK} />
+        <Wordmark size={22} />
 
         <View style={styles.titleWrap}>
           <Text style={styles.title}>{t('ageGate.title')}</Text>
@@ -86,16 +87,12 @@ export default function AgeGateScreen() {
           <Text style={styles.secondaryText}>{t('ageGate.privacy')}</Text>
         </Pressable>
       </SafeAreaView>
-    </View>
+    </PaperBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: PAPER, overflow: 'hidden' },
-  disc: {
-    position: 'absolute', top: -120, right: -140, width: 360, height: 360,
-    borderRadius: 180, backgroundColor: 'rgba(255,208,58,0.18)',
-  },
+  root: { flex: 1, overflow: 'hidden' },
   safe: { flex: 1, paddingHorizontal: 32, paddingBottom: 44, paddingTop: 26 },
   titleWrap: { alignSelf: 'flex-start', marginTop: 44 },
   title: { fontFamily: 'PlayfairDisplay', fontSize: 32, letterSpacing: -0.6, color: INK },

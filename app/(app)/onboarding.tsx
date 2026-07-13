@@ -16,6 +16,8 @@ import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH } from '@/constants/spacing';
 import { AnimatedInputWrapper } from '@/components/ui/AnimatedPressable';
+import { PaperBackground } from '@/components/ui/PaperBackground';
+import { GoldDisc } from '@/components/ui/GoldDisc';
 import { Button } from '@/components/ui/Button';
 import { Wordmark } from '@/components/ui/Wordmark';
 import { ChipGroup } from '@/components/ui/SelectableChip';
@@ -86,8 +88,8 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <View style={styles.disc} />
+    <PaperBackground style={styles.root}>
+      <GoldDisc size={380} top={-150} right={-150} opacity={0.5} />
       <SafeAreaView style={styles.safe}>
         <KeyboardAvoidingView style={styles.kav} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -155,16 +157,12 @@ export default function OnboardingScreen() {
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </View>
+    </PaperBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: AppColors.background, overflow: 'hidden' },
-  disc: {
-    position: 'absolute', top: -160, right: -140, width: 380, height: 380,
-    borderRadius: 190, backgroundColor: 'rgba(255,208,58,0.06)',
-  },
+  root: { flex: 1, overflow: 'hidden' },
   safe: { flex: 1, paddingHorizontal: ScreenPaddingH },
   kav: { flex: 1 },
   scroll: { paddingTop: 26, paddingBottom: 24 },

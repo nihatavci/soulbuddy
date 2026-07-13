@@ -27,6 +27,8 @@ import { AppColors, Typography } from '@/constants/theme';
 import { Space, Relation, ScreenPaddingH, ScreenPaddingTop, ScreenPaddingBottom } from '@/constants/spacing';
 import { supabase } from '@/services/supabase';
 import { Wordmark } from '@/components/ui/Wordmark';
+import { PaperBackground } from '@/components/ui/PaperBackground';
+import { GoldDisc } from '@/components/ui/GoldDisc';
 import { AppleSignInButton } from '@/components/ui/AppleSignInButton';
 import { useAuth } from '@/context/AuthContext';
 import { useT } from '@/context/LanguageContext';
@@ -85,7 +87,8 @@ export default function SignInScreen() {
   };
 
   return (
-    <View style={styles.root}>
+    <PaperBackground style={styles.root}>
+      <GoldDisc size={320} top={-130} right={-150} opacity={0.4} />
       <SafeAreaView style={styles.safe}>
         <KeyboardAvoidingView
           style={styles.kav}
@@ -188,12 +191,12 @@ export default function SignInScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </View>
+    </PaperBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: AppColors.background },
+  root:   { flex: 1 },
   safe:   { flex: 1, backgroundColor: 'transparent' },
   kav:    { flex: 1 },
   scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: ScreenPaddingH, paddingTop: ScreenPaddingTop, paddingBottom: ScreenPaddingBottom },

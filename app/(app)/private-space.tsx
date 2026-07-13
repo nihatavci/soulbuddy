@@ -26,6 +26,7 @@ import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH, Space } from '@/constants/spacing';
 import { AnimatedInputWrapper } from '@/components/ui/AnimatedPressable';
+import { PaperBackground } from '@/components/ui/PaperBackground';
 import {
   MOCK_PRIVATE_SPACES,
   MOCK_THREAD,
@@ -92,7 +93,7 @@ export default function PrivateSpaceScreen() {
   };
 
   return (
-    <View style={styles.root}>
+    <PaperBackground style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <KeyboardAvoidingView
           style={styles.kav}
@@ -182,12 +183,12 @@ export default function PrivateSpaceScreen() {
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </View>
+    </PaperBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: AppColors.background },
+  root: { flex: 1 },
   safe: { flex: 1 },
   kav: { flex: 1 },
 
@@ -257,7 +258,7 @@ const styles = StyleSheet.create({
   bubbleRowMine: { justifyContent: 'flex-end' },
   bubbleRowTheirs: { justifyContent: 'flex-start' },
   bubble: { maxWidth: '78%', borderRadius: 16, padding: 12 },
-  bubbleMine: { backgroundColor: AppColors.accent },
+  bubbleMine: { backgroundColor: AppColors.ink },
   bubbleTheirs: {
     backgroundColor: AppColors.surface,
     borderWidth: 1,

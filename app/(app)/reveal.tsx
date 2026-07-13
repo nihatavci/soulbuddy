@@ -18,6 +18,8 @@ import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH, Space } from '@/constants/spacing';
 import { Button } from '@/components/ui/Button';
+import { PaperBackground } from '@/components/ui/PaperBackground';
+import { GoldDisc } from '@/components/ui/GoldDisc';
 
 const SHARED_ITEMS = [
   'A verified 18+ status',
@@ -36,7 +38,8 @@ export default function RevealScreen() {
   };
 
   return (
-    <View style={styles.root}>
+    <PaperBackground style={styles.root}>
+      <GoldDisc size={320} top={-120} right={-150} opacity={0.4} />
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.topBar}>
           <Pressable
@@ -88,7 +91,7 @@ export default function RevealScreen() {
             accessibilityState={{ checked: agreed }}
           >
             <View style={[styles.checkbox, agreed && styles.checkboxOn]}>
-              {agreed && <Feather name="check" size={15} color={AppColors.background} />}
+              {agreed && <Feather name="check" size={15} color={AppColors.ink} />}
             </View>
             <Text style={styles.checkLabel}>
               I understand revealing is my choice, and I can stop here.
@@ -113,12 +116,12 @@ export default function RevealScreen() {
           </Pressable>
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </PaperBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: AppColors.background },
+  root: { flex: 1 },
   safe: { flex: 1, paddingHorizontal: ScreenPaddingH },
   topBar: {
     flexDirection: 'row',

@@ -14,6 +14,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { AppColors } from '@/constants/theme';
+import { PaperBackground } from '@/components/ui/PaperBackground';
+import { GoldDisc } from '@/components/ui/GoldDisc';
 import { Wordmark } from '@/components/ui/Wordmark';
 import { useT } from '@/context/LanguageContext';
 
@@ -27,10 +29,10 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      {/* Gold ink-disc wash (approximates the design's ink assets) */}
-      <View style={styles.discTop} />
-      <View style={styles.discBottom} />
+    <PaperBackground style={styles.root}>
+      {/* Gold pigment discs — the scarce "signal" accent (design art direction). */}
+      <GoldDisc size={380} top={-150} right={-150} opacity={0.5} />
+      <GoldDisc size={340} bottom={-120} left={-140} opacity={0.45} />
 
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
@@ -52,7 +54,7 @@ export default function WelcomeScreen() {
             accessibilityRole="button"
             accessibilityLabel={t('welcome.primary')}
           >
-            <Ionicons name="add" size={28} color={AppColors.background} />
+            <Ionicons name="add" size={28} color={AppColors.ink} />
           </Pressable>
           <Text style={styles.primaryLabel}>{t('welcome.primary')}</Text>
           <Pressable onPress={() => router.push('/(auth)/sign-in')} hitSlop={12}>
@@ -60,22 +62,14 @@ export default function WelcomeScreen() {
           </Pressable>
         </View>
       </SafeAreaView>
-    </View>
+    </PaperBackground>
   );
 }
 
 const GOLD = '#FFD03A';
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: AppColors.background, overflow: 'hidden' },
-  discTop: {
-    position: 'absolute', top: -180, right: -140, width: 420, height: 420,
-    borderRadius: 210, backgroundColor: 'rgba(255,208,58,0.08)',
-  },
-  discBottom: {
-    position: 'absolute', bottom: -220, left: -160, width: 460, height: 460,
-    borderRadius: 230, backgroundColor: 'rgba(255,208,58,0.05)',
-  },
+  root: { flex: 1, overflow: 'hidden' },
   safe: { flex: 1, paddingHorizontal: 32, paddingBottom: 44 },
   header: { marginTop: 34 },
   tagline: {

@@ -19,6 +19,8 @@ import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH } from '@/constants/spacing';
 import { AnimatedInputWrapper } from '@/components/ui/AnimatedPressable';
 import { Button } from '@/components/ui/Button';
+import { PaperBackground } from '@/components/ui/PaperBackground';
+import { GoldDisc } from '@/components/ui/GoldDisc';
 import { MOCK_SIGNALS, SIGNAL_MAX_CHARS } from '@/constants/mockSignals';
 
 const MIN_ADDITION = 3;
@@ -43,8 +45,8 @@ export default function ReplyComposerScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <View style={styles.disc} />
+    <PaperBackground style={styles.root}>
+      <GoldDisc size={320} top={-120} right={-150} opacity={0.4} />
       <SafeAreaView style={styles.safe}>
         <KeyboardAvoidingView style={styles.kav} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           {/* Top bar */}
@@ -114,16 +116,12 @@ export default function ReplyComposerScreen() {
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </View>
+    </PaperBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: AppColors.background, overflow: 'hidden' },
-  disc: {
-    position: 'absolute', top: -170, right: -150, width: 400, height: 400,
-    borderRadius: 200, backgroundColor: 'rgba(255,208,58,0.05)',
-  },
+  root: { flex: 1, overflow: 'hidden' },
   safe: { flex: 1, paddingHorizontal: ScreenPaddingH },
   kav: { flex: 1 },
   topBar: { flexDirection: 'row', alignItems: 'center', paddingTop: 8, paddingBottom: 4 },

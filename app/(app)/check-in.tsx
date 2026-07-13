@@ -17,6 +17,8 @@ import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH, Space } from '@/constants/spacing';
 import { Button } from '@/components/ui/Button';
+import { PaperBackground } from '@/components/ui/PaperBackground';
+import { GoldDisc } from '@/components/ui/GoldDisc';
 
 type FeatherIcon = keyof typeof Feather.glyphMap;
 
@@ -83,7 +85,8 @@ export default function CheckInScreen() {
   };
 
   return (
-    <View style={styles.root}>
+    <PaperBackground style={styles.root}>
+      <GoldDisc size={320} top={-120} right={-150} opacity={0.4} />
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.topBar}>
           <Pressable
@@ -140,12 +143,12 @@ export default function CheckInScreen() {
           </Text>
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </PaperBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: AppColors.background },
+  root: { flex: 1 },
   safe: { flex: 1, paddingHorizontal: ScreenPaddingH },
   topBar: { flexDirection: 'row', alignItems: 'center', paddingTop: 4, paddingBottom: 4 },
   closeBtn: { width: 40, height: 40, alignItems: 'flex-start', justifyContent: 'center' },

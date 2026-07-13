@@ -17,6 +17,8 @@ import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH } from '@/constants/spacing';
 import { Wordmark } from '@/components/ui/Wordmark';
+import { PaperBackground } from '@/components/ui/PaperBackground';
+import { GoldDisc } from '@/components/ui/GoldDisc';
 import { MOCK_SIGNALS, DAILY_SIGNAL_CAP, type MockSignal } from '@/constants/mockSignals';
 
 function SignalCard({ signal, onPress }: { signal: MockSignal; onPress: () => void }) {
@@ -47,8 +49,8 @@ export default function BoardScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <View style={styles.disc} />
+    <PaperBackground style={styles.root}>
+      <GoldDisc size={400} top={-160} right={-150} opacity={0.5} />
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.header}>
           <Wordmark size={24} />
@@ -69,16 +71,12 @@ export default function BoardScreen() {
           <Text style={styles.end}>You’ve reached the quiet at the end of the board.</Text>
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </PaperBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: AppColors.background, overflow: 'hidden' },
-  disc: {
-    position: 'absolute', top: -170, right: -150, width: 400, height: 400,
-    borderRadius: 200, backgroundColor: 'rgba(255,208,58,0.05)',
-  },
+  root: { flex: 1, overflow: 'hidden' },
   safe: { flex: 1, paddingHorizontal: ScreenPaddingH },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -98,7 +96,7 @@ const styles = StyleSheet.create({
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   alias: {
     fontFamily: Typography.fonts.body, fontSize: 12, letterSpacing: 0.4,
-    textTransform: 'uppercase', color: AppColors.accent,
+    textTransform: 'uppercase', color: AppColors.textSecondary,
   },
   meta: { fontFamily: Typography.fonts.body, fontSize: 12, color: AppColors.textSecondary },
   signalText: { fontFamily: 'SpecialElite', fontSize: 17, lineHeight: 25, color: AppColors.text },

@@ -27,6 +27,8 @@ import { Feather } from '@expo/vector-icons';
 import { AppColors, Typography } from '@/constants/theme';
 import { Space, Relation } from '@/constants/spacing';
 import { supabase } from '@/services/supabase';
+import { PaperBackground } from '@/components/ui/PaperBackground';
+import { GoldDisc } from '@/components/ui/GoldDisc';
 import { useT } from '@/context/LanguageContext';
 
 export default function ResetPasswordScreen() {
@@ -101,7 +103,9 @@ export default function ResetPasswordScreen() {
   // If no recovery event yet and no session, show waiting state
   if (!recoveryReady && !done) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <PaperBackground style={styles.root}>
+        <GoldDisc size={320} top={-130} right={-150} opacity={0.4} />
+        <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
           <Text style={styles.logo}>myapp</Text>
           <View style={styles.card}>
@@ -120,12 +124,15 @@ export default function ResetPasswordScreen() {
             />
           </View>
         </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </PaperBackground>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <PaperBackground style={styles.root}>
+      <GoldDisc size={320} top={-130} right={-150} opacity={0.4} />
+      <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
         style={styles.kav}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -220,12 +227,14 @@ export default function ResetPasswordScreen() {
           )}
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </PaperBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: AppColors.background },
+  root:    { flex: 1 },
+  safe:    { flex: 1 },
   kav:     { flex: 1, justifyContent: 'center', paddingHorizontal: Space.lg },
   center:  { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: Space.lg },
   // Logo ↔ card: weak(26)

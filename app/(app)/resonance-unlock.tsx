@@ -17,6 +17,8 @@ import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH, Space } from '@/constants/spacing';
 import { Button } from '@/components/ui/Button';
+import { PaperBackground } from '@/components/ui/PaperBackground';
+import { GoldDisc } from '@/components/ui/GoldDisc';
 
 export default function ResonanceUnlockScreen() {
   const router = useRouter();
@@ -27,9 +29,9 @@ export default function ResonanceUnlockScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      {/* Soft gold glow behind the hero */}
-      <View style={styles.glow} pointerEvents="none" />
+    <PaperBackground style={styles.root}>
+      {/* Soft gold pigment disc behind the hero */}
+      <GoldDisc size={460} top={120} opacity={0.6} />
 
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
@@ -67,23 +69,18 @@ export default function ResonanceUnlockScreen() {
           </Text>
         </View>
       </SafeAreaView>
-    </View>
+    </PaperBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: AppColors.background, overflow: 'hidden' },
-  glow: {
-    position: 'absolute', alignSelf: 'center', top: '22%',
-    width: 460, height: 460, borderRadius: 230,
-    backgroundColor: 'rgba(255,208,58,0.08)',
-  },
+  root: { flex: 1, overflow: 'hidden' },
   safe: { flex: 1, paddingHorizontal: ScreenPaddingH },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emblem: {
     width: 72, height: 72, borderRadius: 36,
-    backgroundColor: AppColors.surface,
-    borderWidth: 1, borderColor: 'rgba(255,208,58,0.30)',
+    backgroundColor: AppColors.ink,
+    borderWidth: 1, borderColor: AppColors.accentMuted,
     alignItems: 'center', justifyContent: 'center',
     marginBottom: Space.lg,
   },

@@ -18,6 +18,8 @@ import { ScreenPaddingH } from '@/constants/spacing';
 import { AnimatedInputWrapper } from '@/components/ui/AnimatedPressable';
 import { Button } from '@/components/ui/Button';
 import { Wordmark } from '@/components/ui/Wordmark';
+import { PaperBackground } from '@/components/ui/PaperBackground';
+import { GoldDisc } from '@/components/ui/GoldDisc';
 import {
   SIGNAL_FORMATS,
   SIGNAL_MAX_CHARS,
@@ -51,8 +53,8 @@ export default function CreateScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <View style={styles.disc} />
+    <PaperBackground style={styles.root}>
+      <GoldDisc size={400} top={-160} right={-150} opacity={0.5} />
       <SafeAreaView style={styles.safe} edges={['top']}>
         <KeyboardAvoidingView style={styles.kav} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.header}>
@@ -126,16 +128,12 @@ export default function CreateScreen() {
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </View>
+    </PaperBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: AppColors.background, overflow: 'hidden' },
-  disc: {
-    position: 'absolute', top: -170, right: -150, width: 400, height: 400,
-    borderRadius: 200, backgroundColor: 'rgba(255,208,58,0.05)',
-  },
+  root: { flex: 1, overflow: 'hidden' },
   safe: { flex: 1, paddingHorizontal: ScreenPaddingH },
   kav: { flex: 1 },
   header: {
@@ -162,7 +160,7 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: AppColors.accent, borderColor: AppColors.accent },
   pillText: { fontFamily: Typography.fonts.body, fontSize: 14 },
   pillTextIdle: { color: AppColors.text },
-  pillTextActive: { color: AppColors.background },
+  pillTextActive: { color: AppColors.ink },
   hint: { fontFamily: Typography.fonts.body, fontSize: 13, color: AppColors.textSecondary, marginTop: 12 },
   composer: { backgroundColor: AppColors.elevated, borderRadius: 16, borderWidth: 1, borderColor: AppColors.border },
   composerInner: {

@@ -23,6 +23,8 @@ import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { Space, Relation } from '@/constants/spacing';
 import { supabase } from '@/services/supabase';
+import { PaperBackground } from '@/components/ui/PaperBackground';
+import { GoldDisc } from '@/components/ui/GoldDisc';
 import { useT } from '@/context/LanguageContext';
 
 export default function ForgotPasswordScreen() {
@@ -74,7 +76,9 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <PaperBackground style={styles.root}>
+      <GoldDisc size={320} top={-130} right={-150} opacity={0.4} />
+      <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
         style={styles.kav}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -151,12 +155,14 @@ export default function ForgotPasswordScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </PaperBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:  { flex: 1, backgroundColor: AppColors.background },
+  root:  { flex: 1 },
+  safe:  { flex: 1 },
   kav:   { flex: 1, justifyContent: 'center', paddingHorizontal: Space.lg },
   back:  { position: 'absolute', top: Space.md, left: 0, padding: Space.xs + 2 },
   backText: { fontFamily: Typography.fonts.body, fontSize: 14, color: AppColors.textSecondary },
