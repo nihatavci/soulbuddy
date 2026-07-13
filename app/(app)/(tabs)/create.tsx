@@ -23,7 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Svg, { Path, Circle } from 'react-native-svg';
 import Animated, {
-  useSharedValue, useAnimatedStyle, withTiming, withSequence, withSpring, runOnJS, Easing,
+  useSharedValue, useAnimatedStyle, withTiming, runOnJS, Easing,
 } from 'react-native-reanimated';
 import { AppColors, Typography } from '@/constants/theme';
 import { PaperBackground } from '@/components/ui/PaperBackground';
@@ -32,7 +32,17 @@ import { SIGNAL_FORMATS, SIGNAL_MAX_CHARS, DAILY_SIGNAL_CAP } from '@/constants/
 import { SIGNAL_PROMPTS } from '@/constants/prompts';
 
 const GUTTER = 46;           // left margin where the pencil rule + ink-drop live
+const HOLD_MS = 1100;        // how long to press-and-hold the seal to commit
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+// A quiet poetic line that fades in while you hold the seal.
+const HOLD_LINES = [
+  'Hold it. Let the ink find the paper.',
+  'No rush — the true things soak in slowly.',
+  'Stay a breath longer.',
+  'Press, and let it become real.',
+  'Some things are truer when you don’t hurry them.',
+];
 
 export default function CreateScreen() {
   const { width, height } = useWindowDimensions();
@@ -42,9 +52,11 @@ export default function CreateScreen() {
   const [text, setText] = useState('');
   const [zoneH, setZoneH] = useState(0);
   const [wordW, setWordW] = useState(0);
-  const [bloom, setBloom] = useState(0); // increment to fire the ink-bloom seal effect
   const [promptIdx, setPromptIdx] = useState(0); // rotating ghost placeholder
+  const [holdLine, setHoldLine] = useState(HOLD_LINES[0]); // poetry shown while holding
   const sealRef = useRef<View>(null);
+  const holdingRef = useRef(false);
+  const lineIdxRef = useRef(0);
   const [sealPos, setSealPos] = useState({ x: width / 2, y: height * 0.6 });
 
   const format = SIGNAL_FORMATS[formatIdx];
@@ -52,7 +64,7 @@ export default function CreateScreen() {
 
   // Ink level: 0 (empty) → 1 (full). Drives the ink-drop's travel down the margin.
   const fill = useSharedValue(0);
-  const sealScale = useSharedValue(1);
+  const hold = useSharedValue(0);       // press-and-hold progress 0→1 (grows the ink)
   const pageFade = useSharedValue(1);
   const pageLift = useSharedValue(0);
   const ghostOpacity = useSharedValue(1);
@@ -86,36 +98,50 @@ export default function CreateScreen() {
     setFormatIdx((i) => (i + 1) % SIGNAL_FORMATS.length);
   };
 
-  // Fires once the ink has set: clear the page for a fresh sheet.
-  const onBloomDone = () => {
-    setText('');
-    fill.value = withTiming(0, { duration: 1 });
-    pageLift.value = 0;
-    pageFade.value = withTiming(1, { duration: 420 });
+  // Held the seal long enough → the page drifts off toward the board, then resets.
+  const commit = () => {
+    holdingRef.current = false;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    pageFade.value = withTiming(0, { duration: 480, easing: Easing.in(Easing.cubic) });
+    pageLift.value = withTiming(-46, { duration: 560, easing: Easing.out(Easing.cubic) });
+    setTimeout(() => {
+      setText('');
+      fill.value = withTiming(0, { duration: 1 });
+      hold.value = withTiming(0, { duration: 380 });
+      pageLift.value = 0;
+      pageFade.value = withTiming(1, { duration: 420 });
+    }, 560);
   };
 
-  const leave = () => {
+  const beginHold = () => {
     if (!canLeave) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
-    // The seal presses — a deliberate thunk. The ink stamps at the seal and the
-    // written words lift + drift off the page toward the board, then it resets.
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    sealScale.value = withSequence(
-      withTiming(0.84, { duration: 90 }),
-      withSpring(1, { damping: 6, stiffness: 180 }),
-    );
-    pageFade.value = withTiming(0, { duration: 560, easing: Easing.in(Easing.cubic) });
-    pageLift.value = withTiming(-46, { duration: 620, easing: Easing.out(Easing.cubic) });
-    setBloom((b) => b + 1);
+    holdingRef.current = true;
+    lineIdxRef.current = (lineIdxRef.current + 1) % HOLD_LINES.length;
+    setHoldLine(HOLD_LINES[lineIdxRef.current]);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // hold grows the ink; when it completes, commit.
+    hold.value = withTiming(1, { duration: HOLD_MS, easing: Easing.inOut(Easing.quad) }, (finished) => {
+      'worklet';
+      if (finished) runOnJS(commit)();
+    });
+  };
+
+  const endHold = () => {
+    if (!holdingRef.current) return;
+    holdingRef.current = false;
+    // released early → the ink recedes (no signal left)
+    hold.value = withTiming(0, { duration: 320 });
   };
 
   const dropStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: fill.value * Math.max(0, zoneH - 16) }],
     opacity: 0.35 + fill.value * 0.65,
   }));
-  const sealStyle = useAnimatedStyle(() => ({ transform: [{ scale: sealScale.value }] }));
+  const sealStyle = useAnimatedStyle(() => ({ transform: [{ scale: 1 - hold.value * 0.12 }] }));
+  const holdLineStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, hold.value * 1.8) }));
   const pageStyle = useAnimatedStyle(() => ({
     opacity: pageFade.value,
     transform: [{ translateY: pageLift.value }],
@@ -183,17 +209,27 @@ export default function CreateScreen() {
           </View>
         </Animated.View>
 
-        {/* Leave it — a wax/ink seal (the re: colon), not a button */}
+        {/* Leave it — press & hold the wax/ink seal (the re: colon) */}
         <View
           ref={sealRef}
           style={styles.sealArea}
           onLayout={() =>
             sealRef.current?.measureInWindow((mx, my, mw) =>
-              setSealPos({ x: mx + mw / 2, y: my + 30 }),
+              setSealPos({ x: mx + mw / 2, y: my + 46 }),
             )
           }
         >
-          <AnimatedPressable onPress={leave} style={[styles.seal, sealStyle]} accessibilityRole="button" accessibilityLabel="Leave this signal on the board">
+          <Animated.Text style={[styles.holdLine, holdLineStyle]} pointerEvents="none">
+            {holdLine}
+          </Animated.Text>
+          <AnimatedPressable
+            onPressIn={beginHold}
+            onPressOut={endHold}
+            delayLongPress={100000}
+            style={[styles.seal, sealStyle]}
+            accessibilityRole="button"
+            accessibilityLabel="Press and hold to leave this signal on the board"
+          >
             <Svg width={56} height={56} viewBox="0 0 56 56">
               <Circle cx={28} cy={28} r={25} fill={AppColors.ink} opacity={canLeave ? 1 : 0.28} />
               <Circle cx={28} cy={21} r={3} fill={AppColors.accent} opacity={canLeave ? 1 : 0.35} />
@@ -201,14 +237,14 @@ export default function CreateScreen() {
             </Svg>
           </AnimatedPressable>
           <Text style={[styles.sealCaption, { opacity: canLeave ? 1 : 0.5 }]}>
-            {canLeave ? 'press the seal to leave it on the board' : 'write a few words first'}
+            {canLeave ? 'press & hold the seal' : 'write a few words first'}
           </Text>
         </View>
       </KeyboardAvoidingView>
       </SafeAreaView>
 
-      {/* Contained GPU ink-stamp bloom, originating at the seal */}
-      <InkBloom trigger={bloom} x={sealPos.x} y={sealPos.y} onDone={onBloomDone} />
+      {/* Ink that grows while you hold the seal */}
+      <InkBloom progress={hold} x={sealPos.x} y={sealPos.y} />
     </PaperBackground>
   );
 }
@@ -250,7 +286,11 @@ const styles = StyleSheet.create({
     fontFamily: 'SpecialElite', fontSize: 21, lineHeight: 32, color: AppColors.text,
   },
 
-  sealArea: { alignItems: 'center', paddingBottom: 14, paddingTop: 6 },
+  sealArea: { alignItems: 'center', paddingBottom: 14, paddingTop: 2 },
+  holdLine: {
+    fontFamily: 'SpecialElite', fontSize: 15, lineHeight: 21, color: AppColors.text,
+    textAlign: 'center', height: 44, marginBottom: 4, paddingHorizontal: 24,
+  },
   seal: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
   sealCaption: {
     fontFamily: Typography.fonts.body, fontSize: 12, letterSpacing: 0.3,
