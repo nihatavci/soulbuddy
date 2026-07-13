@@ -27,7 +27,7 @@ LogBox.ignoreLogs([
   '[RevenueCat]',
 ]);
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Redirect, Stack, useSegments, useNavigationContainerRef } from 'expo-router';
+import { Stack, useSegments, useNavigationContainerRef, useRouter, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
@@ -56,27 +56,35 @@ initMixpanel();
 
 
 // ─── Auth Guard ────────────────────────────────────────────────────────────────
-// Declarative auth redirect using <Redirect>. No useEffect, no setTimeout,
-// no flash — Redirect navigates before the frame paints.
+// Redirects an authenticated user out of the (auth) group. Navigation runs in an
+// effect (NOT a render-phase <Redirect>): firing navigation during render while the
+// nested navigators are still mounting trips React's "Maximum update depth exceeded"
+// guard — this is the same class of bug the root index (app/index.tsx) and AppGate
+// ((app)/index.tsx) already avoid. We gate on useRootNavigationState().key so we only
+// navigate once the navigation tree is hydrated.
 
 function AuthGuard() {
   const { isAuthenticated, isLoading } = useAuth();
   const segments = useSegments();
+  const router = useRouter();
+  const rootState = useRootNavigationState();
 
   // Resume offline-queued mutations and refetch stale queries on reconnect
   useNetworkSync();
 
-  if (isLoading) return null;
-
   const inAuthGroup = segments[0] === '(auth)';
 
-  // Authenticated user in (auth) group → send them to (app)
-  if (isAuthenticated && inAuthGroup) {
-    return <Redirect href="/(app)" />;
-  }
+  useEffect(() => {
+    if (!rootState?.key) return;      // nav tree not hydrated yet
+    if (isLoading) return;
 
-  // Unauthenticated user in (app) group — no redirect here; AppGate redirects
-  // them to /(auth)/welcome (no anonymous session is auto-created in re:sense).
+    // Authenticated user in (auth) group → send them to (app)
+    if (isAuthenticated && inAuthGroup) {
+      router.replace('/(app)');
+    }
+    // Unauthenticated user in (app) group — no redirect here; AppGate sends them
+    // to /(auth)/welcome (no anonymous session is auto-created in re:sense).
+  }, [rootState?.key, isLoading, isAuthenticated, inAuthGroup]);
 
   return null;
 }
