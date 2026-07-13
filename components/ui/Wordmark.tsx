@@ -14,11 +14,14 @@ import { View, Text, StyleSheet, type StyleProp, type ViewStyle, type TextStyle 
 import { AppColors } from '@/constants/theme';
 
 interface WordmarkProps {
-  /** Font size for both spans, in px. Default 40 (Display XL). */
+  /** Font size for all spans, in px. Default 40 (Display XL). */
   size?: number;
-  /** Color of the `re:` span. Defaults to the Signal Yellow accent. */
+  /** Color of the colon (the scarce Signal-Yellow punctuation accent). */
   accentColor?: string;
-  /** Color of the `sense` span. Defaults to Paper text. */
+  /**
+   * Color of the `re` and `sense` letters. Defaults to the theme text color
+   * (ink on the paper theme). Pass paper.50 when placed on an ink surface.
+   */
   color?: string;
   style?: StyleProp<ViewStyle>;
 }
@@ -32,9 +35,13 @@ export function Wordmark({
   const lineHeight = Math.round(size * 1.08);
   const base: TextStyle = { fontSize: size, lineHeight, includeFontPadding: false };
 
+  // PAPER lockup: "re" + "sense" in ink for legibility, the colon carries the
+  // scarce signal-yellow (punctuation, not wallpaper). On an ink surface, pass
+  // color={paper.50} — the gold colon still reads.
   return (
     <View style={[styles.row, style]} accessibilityRole="header" accessibilityLabel="re:sense">
-      <Text style={[base, styles.re, { color: accentColor }]}>re:</Text>
+      <Text style={[base, styles.re, { color }]}>re</Text>
+      <Text style={[base, styles.re, { color: accentColor }]}>:</Text>
       <Text style={[base, styles.sense, { color }]}>sense</Text>
     </View>
   );

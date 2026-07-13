@@ -77,21 +77,22 @@ export function Button({
 
   const isDisabled = disabled || loading;
   const sizeStyle = SIZE_STYLES[size];
-  const isGradient = variant === 'gradient' || variant === 'primary';
-  const variantStyle = VARIANT_STYLES[isGradient ? 'primary' : variant];
+  const isGradient = variant === 'gradient';
+  const variantStyle = VARIANT_STYLES[variant];
   const iconSize = size === 'sm' ? 14 : size === 'md' ? 16 : 18;
-  // re:sense: primary/gradient are Signal Yellow → obsidian text (design.md);
-  // dark variant keeps white text; others use their variant text color.
-  const textColor = isGradient
-    ? AppColors.background
-    : variant === 'dark'
-      ? '#FFFFFF'
-      : variantStyle.text.color;
+  // re:sense: Signal-Yellow buttons (primary/gradient) take INK text (design.md);
+  // the dark island takes paper text; others use their variant text color.
+  const textColor =
+    variant === 'primary' || variant === 'gradient'
+      ? AppColors.ink
+      : variant === 'dark'
+        ? AppColors.background
+        : variantStyle.text.color;
 
   const content = loading ? (
     <ActivityIndicator
       size="small"
-      color={isGradient ? AppColors.background : variant === 'dark' ? '#FFFFFF' : AppColors.accent}
+      color={variant === 'primary' || variant === 'gradient' ? AppColors.ink : variant === 'dark' ? AppColors.background : AppColors.accent}
     />
   ) : (
     <View style={styles.inner}>
@@ -127,7 +128,7 @@ export function Button({
         testID={testID}
       >
         <LinearGradient
-          colors={[...AccentColors.ctaGradient]}
+          colors={[AppColors.accent, AppColors.accentDeep]}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={StyleSheet.absoluteFill}
@@ -173,7 +174,7 @@ const VARIANT_STYLES: Record<ButtonVariant, { container: ViewStyle; text: any }>
         android: { elevation: 4 },
       }),
     },
-    text: { color: '#FFFFFF' },
+    text: { color: AppColors.ink },
   },
   secondary: {
     container: {
@@ -200,7 +201,7 @@ const VARIANT_STYLES: Record<ButtonVariant, { container: ViewStyle; text: any }>
         android: { elevation: 4 },
       }),
     },
-    text: { color: '#FFFFFF' },
+    text: { color: AppColors.ink },
   },
   gradient: {
     container: {
@@ -215,7 +216,7 @@ const VARIANT_STYLES: Record<ButtonVariant, { container: ViewStyle; text: any }>
         android: { elevation: 6 },
       }),
     },
-    text: { color: '#FFFFFF' },
+    text: { color: AppColors.ink },
   },
 };
 

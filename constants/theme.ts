@@ -6,21 +6,29 @@ export { Space, Relation, opticalPadding, ScreenPaddingH, ScreenPaddingTop, Scre
 
 // ─── Colors ──────────────────────────────────────────────────────────────────
 // re:sense design system (claude.ai/design → resense.design-tokens.json).
-// Ink base + Paper text + Signal Yellow accent. Keep in sync with tailwind.config.js.
+// "Signal Paper" art direction — PAPER (light) theme: paper.50 surface, ink.950
+// text, Signal Yellow as scarce punctuation (5–10% max, never wallpaper).
+// surfaceTheme.paper from RESENSE_CLAUDE_DESIGN_SPEC_v1. Keep in sync with tailwind.config.js.
 export const AppColors = {
-  background:    '#0D0D10',                  // ink.950 / surfaceDark
-  surface:       '#151518',                  // ink.900
-  elevated:      '#212125',                  // ink.800 / surfaceElevatedDark
-  border:        'rgba(243,239,230,0.12)',   // borderOnDark (#F3EFE61F)
+  background:    '#F3EFE6',                  // paper.50  / surfaceLight
+  surface:       '#ECE5D9',                  // paper.100 / raised cards & bubbles
+  elevated:      '#E3DACD',                  // paper.200 / more-raised surface
+  sand:          '#D9D2C3',                  // sand.300  / quiet bg, separators, inactive
+  border:        'rgba(13,13,16,0.12)',      // borderOnLight (#0D0D101F)
 
-  text:          '#F3EFE6',                  // paper.50 / textOnDark
-  textSecondary: '#A5A5AD',                  // ink.300 / textMutedOnDark
+  text:          '#0D0D10',                  // ink.950 / textOnLight
+  textSecondary: '#5C5C64',                  // ink.500 / textMutedOnLight
 
-  // Signal Yellow accent (primary action bg; use ink text on it).
+  // Signal Yellow accent (primary action bg; ALWAYS ink text on it). Scarce.
   accent:        '#FFD03A',                  // signal.500
-  accentLight:   'rgba(255,208,58,0.14)',    // signal tint surface
-  accentMuted:   'rgba(255,208,58,0.30)',    // signal tint border
+  accentLight:   'rgba(255,208,58,0.20)',    // signal tint surface (on paper)
+  accentMuted:   'rgba(255,208,58,0.45)',    // signal tint border
   accentDeep:    '#E7B900',                  // signal.600 (accentPressed / focus)
+
+  // Ink islands — for the few deliberately-dark elements on paper (e.g. an ink
+  // button or the "mine" message bubble). Use paper text on these.
+  ink:           '#0D0D10',                  // ink.950
+  inkElevated:   '#212125',                  // ink.800
 
   premium:       '#7A7F5D',                  // moss.500
   success:       '#4F6A56',                  // status.success

@@ -9,15 +9,18 @@ module.exports = {
     extend: {
       // Keep in sync with constants/theme.ts AppColors (re:sense design tokens)
       colors: {
-        background:      '#0D0D10',                // ink.950
-        surface:         '#151518',                // ink.900
-        elevated:        '#212125',                // ink.800
-        border:          'rgba(243,239,230,0.12)', // borderOnDark
-        text:            '#F3EFE6',                // paper.50
-        'text-secondary': '#A5A5AD',               // ink.300
+        background:      '#F3EFE6',                // paper.50 (light surface)
+        surface:         '#ECE5D9',                // paper.100
+        elevated:        '#E3DACD',                // paper.200
+        sand:            '#D9D2C3',                // sand.300
+        border:          'rgba(13,13,16,0.12)',    // borderOnLight
+        text:            '#0D0D10',                // ink.950
+        'text-secondary': '#5C5C64',               // ink.500
         accent:          '#FFD03A',                // signal.500
-        'accent-light':  'rgba(255,208,58,0.14)',
+        'accent-light':  'rgba(255,208,58,0.20)',
         'accent-deep':   '#E7B900',                // signal.600
+        ink:             '#0D0D10',                // ink.950 (dark islands)
+        'ink-elevated':  '#212125',                // ink.800
         premium:         '#7A7F5D',                // moss.500
         success:         '#4F6A56',                // status.success
         error:           '#A6453D',                // status.danger
