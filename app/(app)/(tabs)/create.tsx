@@ -1,177 +1,211 @@
 /**
- * Create — the Signal Composer (create tab).
+ * Create — "a letter you leave on a page".
  *
- * Leaves one short anonymous signal on the board: choose a format (feeling/place/
- * memory/thought), then write a half-sentence others can add to (≤120 chars). Calm
- * by design — the daily-cap line frames scarcity as intention, never urgency. No
- * streaks, no "post now" pressure. UI shell: the CTA mocks the write (router.back())
- * and stands in for the future `signals` insert. Local state only.
+ * Not a form. The screen IS a sheet of paper: you write directly onto it in the
+ * typewriter face, borderless. The ONLY line is a hand-drawn pencil margin rule.
+ * A gold ink-drop travels DOWN that margin as you approach the 120-char limit —
+ * ambient, organic, no counter. The signal's "opening" (a feeling / a place / a
+ * memory / a thought) is a single tappable word with a hand-drawn underline, not
+ * a row of chips. You don't press "Send" — you press a wax/ink SEAL: a deliberate
+ * haptic thunk, the ink blooms, and the page resets (mock; future `signals` insert).
+ *
+ * Calm, unrushed, Kindle-minimal. Special Elite is the writing face (its correct
+ * use); everything chrome-like is Satoshi. Signal-yellow stays scarce: the caret,
+ * the ink-drop, the underline, the seal.
  */
 
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import { AppColors, Typography } from '@/constants/theme';
-import { ScreenPaddingH } from '@/constants/spacing';
-import { AnimatedInputWrapper } from '@/components/ui/AnimatedPressable';
-import { Button } from '@/components/ui/Button';
-import { Wordmark } from '@/components/ui/Wordmark';
-import { PaperBackground } from '@/components/ui/PaperBackground';
-import { GoldDisc } from '@/components/ui/GoldDisc';
 import {
-  SIGNAL_FORMATS,
-  SIGNAL_MAX_CHARS,
-  DAILY_SIGNAL_CAP,
-  type SignalFormat,
-} from '@/constants/mockSignals';
+  View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Pressable,
+  Image, type LayoutChangeEvent,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
+import Svg, { Path } from 'react-native-svg';
+import Animated, {
+  useSharedValue, useAnimatedStyle, withTiming, withSequence, withSpring, runOnJS, Easing,
+} from 'react-native-reanimated';
+import { AppColors, Typography } from '@/constants/theme';
+import { SIGNAL_FORMATS, SIGNAL_MAX_CHARS, DAILY_SIGNAL_CAP, type SignalFormat } from '@/constants/mockSignals';
+
+const INK_SEAL = require('@/assets/textures/ink-seal.png');
+const GUTTER = 46;           // left margin where the pencil rule + ink-drop live
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export default function CreateScreen() {
-  const router = useRouter();
   const remaining = DAILY_SIGNAL_CAP - 1; // mock: one dropped today
 
-  const [format, setFormat] = useState<SignalFormat | null>(null);
+  const [formatIdx, setFormatIdx] = useState(0);
   const [text, setText] = useState('');
-  const [focused, setFocused] = useState(false);
+  const [zoneH, setZoneH] = useState(0);
+  const [wordW, setWordW] = useState(0);
 
-  const selectedHint = SIGNAL_FORMATS.find((f) => f.value === format)?.hint;
-  const count = text.length;
-  const nearLimit = count >= SIGNAL_MAX_CHARS - 15;
-  const canLeave = format !== null && text.trim().length >= 3;
+  const format = SIGNAL_FORMATS[formatIdx];
+  const canLeave = text.trim().length >= 3;
 
-  const chooseFormat = (value: SignalFormat) => {
+  // Ink level: 0 (empty) → 1 (full). Drives the ink-drop's travel down the margin.
+  const fill = useSharedValue(0);
+  const sealScale = useSharedValue(1);
+  const pageShift = useSharedValue(0);
+  const pageFade = useSharedValue(1);
+
+  const onChange = (v: string) => {
+    setText(v);
+    fill.value = withTiming(Math.min(1, v.length / SIGNAL_MAX_CHARS), { duration: 220 });
+  };
+
+  const cycleFormat = () => {
     Haptics.selectionAsync();
-    setFormat(value);
+    setFormatIdx((i) => (i + 1) % SIGNAL_FORMATS.length);
   };
 
-  const handleLeave = () => {
-    if (!canLeave) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Mock: no write yet. Stands in for the future `signals` insert.
-    router.back();
+  const resetPage = () => {
+    setText('');
+    fill.value = withTiming(0, { duration: 200 });
+    pageShift.value = 0;
+    pageFade.value = withTiming(1, { duration: 320 });
   };
+
+  const leave = () => {
+    if (!canLeave) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      return;
+    }
+    // The seal "presses" — a deliberate thunk — then the page lifts and drifts away.
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    sealScale.value = withSequence(
+      withTiming(0.88, { duration: 90 }),
+      withSpring(1, { damping: 6, stiffness: 180 }),
+    );
+    pageShift.value = withTiming(-34, { duration: 420, easing: Easing.in(Easing.cubic) });
+    pageFade.value = withTiming(0, { duration: 420, easing: Easing.in(Easing.cubic) }, (done) => {
+      if (done) runOnJS(resetPage)();
+    });
+  };
+
+  const dropStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: fill.value * Math.max(0, zoneH - 16) }],
+    opacity: 0.35 + fill.value * 0.65,
+  }));
+  const sealStyle = useAnimatedStyle(() => ({ transform: [{ scale: sealScale.value }] }));
+  const pageStyle = useAnimatedStyle(() => ({
+    opacity: pageFade.value,
+    transform: [{ translateY: pageShift.value }],
+  }));
+
+  // Hand-drawn geometry (deterministic — no runtime randomness).
+  const ruleH = zoneH || 320;
+  const rulePath = `M8 2 Q4 ${ruleH * 0.28} 8 ${ruleH * 0.5} T8 ${ruleH - 2}`;
+  const underlinePath = wordW > 4
+    ? `M0 5 Q ${wordW * 0.28} 0 ${wordW * 0.52} 5 T ${wordW} 4`
+    : '';
 
   return (
-    <PaperBackground style={styles.root}>
-      <GoldDisc size={400} top={-160} right={-150} opacity={0.5} />
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <KeyboardAvoidingView style={styles.kav} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={styles.header}>
-            <Wordmark size={24} />
-            <Text style={styles.cap}>{remaining} of {DAILY_SIGNAL_CAP} signals left today</Text>
-          </View>
+    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView style={styles.kav} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        {/* faint dateline / cap — like the corner of a page, no chrome */}
+        <View style={styles.head}>
+          <Text style={styles.dateline}>today · {remaining} of {DAILY_SIGNAL_CAP} left</Text>
+        </View>
 
-          <ScrollView
-            contentContainerStyle={styles.scroll}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={styles.title}>Leave a signal</Text>
-            <Text style={styles.subtitle}>A half-sentence someone else can add to. Max 120 characters.</Text>
-
-            {/* Format chooser */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>What is it</Text>
-              <View style={styles.pills}>
-                {SIGNAL_FORMATS.map((f) => {
-                  const active = f.value === format;
-                  return (
-                    <Pressable
-                      key={f.value}
-                      onPress={() => chooseFormat(f.value)}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: active }}
-                      style={[styles.pill, active ? styles.pillActive : styles.pillIdle]}
-                    >
-                      <Text style={[styles.pillText, active ? styles.pillTextActive : styles.pillTextIdle]}>
-                        {f.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              {!!selectedHint && <Text style={styles.hint}>{selectedHint}</Text>}
-            </View>
-
-            {/* Composer */}
-            <View style={styles.fieldGroup}>
-              <AnimatedInputWrapper focused={focused} style={styles.composer}>
-                <TextInput
-                  style={styles.composerInner}
-                  placeholder="type your signal…"
-                  placeholderTextColor={AppColors.textSecondary}
-                  value={text}
-                  onChangeText={setText}
-                  multiline
-                  maxLength={SIGNAL_MAX_CHARS}
-                  textAlignVertical="top"
-                  onFocus={() => setFocused(true)}
-                  onBlur={() => setFocused(false)}
-                />
-              </AnimatedInputWrapper>
-              <Text style={[styles.counter, nearLimit && styles.counterNear]}>
-                {count}/{SIGNAL_MAX_CHARS}
+        <Animated.View style={[styles.page, pageStyle]}>
+          {/* The opening — a single tappable word with a hand-drawn underline */}
+          <Pressable onPress={cycleFormat} style={styles.opening} hitSlop={10}>
+            <View>
+              <Text
+                style={styles.openingWord}
+                onLayout={(e: LayoutChangeEvent) => setWordW(e.nativeEvent.layout.width)}
+              >
+                {format.label.toLowerCase()} —
               </Text>
+              {!!underlinePath && (
+                <Svg width={wordW} height={8} style={styles.underline}>
+                  <Path d={underlinePath} stroke={AppColors.accentDeep} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+                </Svg>
+              )}
             </View>
-          </ScrollView>
+            <Text style={styles.openingHint}>{format.hint}</Text>
+          </Pressable>
 
-          <View style={styles.footer}>
-            <Button
-              label="Leave it on the board"
-              variant="primary"
-              size="lg"
-              onPress={handleLeave}
-              disabled={!canLeave}
-              style={styles.cta}
+          {/* The writing zone — paper only, one hand-drawn margin rule + travelling ink */}
+          <View style={styles.zone} onLayout={(e) => setZoneH(e.nativeEvent.layout.height)}>
+            <Svg width={16} height={ruleH} style={styles.rule} pointerEvents="none">
+              <Path d={rulePath} stroke={AppColors.text} strokeWidth={1} strokeOpacity={0.18} fill="none" strokeLinecap="round" />
+            </Svg>
+            <Animated.View style={[styles.inkDrop, dropStyle]} pointerEvents="none" />
+
+            {text.length === 0 && (
+              <Text style={styles.ghost} pointerEvents="none">the half-sentence, when it finds you…</Text>
+            )}
+            <TextInput
+              style={styles.input}
+              value={text}
+              onChangeText={onChange}
+              multiline
+              maxLength={SIGNAL_MAX_CHARS}
+              textAlignVertical="top"
+              selectionColor={AppColors.accentDeep}
+              autoFocus
+              scrollEnabled={false}
             />
           </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </PaperBackground>
+        </Animated.View>
+
+        {/* Leave it — a seal, not a button */}
+        <View style={styles.sealArea}>
+          <AnimatedPressable onPress={leave} style={[styles.seal, sealStyle]} accessibilityRole="button" accessibilityLabel="Leave this signal on the board">
+            <Image source={INK_SEAL} style={[styles.sealImg, { opacity: canLeave ? 1 : 0.28 }]} resizeMode="contain" />
+          </AnimatedPressable>
+          <Text style={[styles.sealCaption, { opacity: canLeave ? 1 : 0.5 }]}>
+            {canLeave ? 'press the seal to leave it on the board' : 'write a few words first'}
+          </Text>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, overflow: 'hidden' },
-  safe: { flex: 1, paddingHorizontal: ScreenPaddingH },
-  kav: { flex: 1 },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 8, paddingBottom: 8,
+  // Paper comes from the app surface; this screen deliberately keeps ZERO borders.
+  root: { flex: 1, backgroundColor: AppColors.background },
+  kav: { flex: 1, paddingHorizontal: 30 },
+  head: { paddingTop: 6, paddingBottom: 4, alignItems: 'flex-end' },
+  dateline: {
+    fontFamily: Typography.fonts.body, fontSize: 11, letterSpacing: 0.5,
+    textTransform: 'uppercase', color: AppColors.textSecondary,
   },
-  cap: { fontFamily: Typography.fonts.body, fontSize: 12, color: AppColors.textSecondary },
-  scroll: { paddingTop: 12, paddingBottom: 24 },
-  title: { fontFamily: 'PlayfairDisplay', fontSize: 32, letterSpacing: -0.5, color: AppColors.text },
-  subtitle: {
-    fontFamily: Typography.fonts.body, fontSize: 15, lineHeight: 22,
-    color: AppColors.textSecondary, marginTop: 6, maxWidth: 320,
+
+  page: { flex: 1, paddingTop: 18 },
+
+  opening: { marginBottom: 22 },
+  openingWord: {
+    fontFamily: 'SpecialElite', fontSize: 22, color: AppColors.text, alignSelf: 'flex-start',
   },
-  fieldGroup: { marginTop: 28 },
-  label: {
-    fontFamily: Typography.fonts.body, fontSize: 12, color: AppColors.text,
-    letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 12,
+  underline: { position: 'absolute', bottom: -6, left: 0 },
+  openingHint: {
+    fontFamily: Typography.fonts.body, fontSize: 13, color: AppColors.textSecondary, marginTop: 12,
   },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  pill: {
-    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, borderWidth: 1,
+
+  zone: { flex: 1, position: 'relative', paddingLeft: GUTTER },
+  rule: { position: 'absolute', left: 16, top: 0 },
+  inkDrop: {
+    position: 'absolute', left: 18, top: 2, width: 11, height: 11, borderRadius: 6,
+    backgroundColor: AppColors.accent,
   },
-  pillIdle: { backgroundColor: AppColors.elevated, borderColor: AppColors.border },
-  pillActive: { backgroundColor: AppColors.accent, borderColor: AppColors.accent },
-  pillText: { fontFamily: Typography.fonts.body, fontSize: 14 },
-  pillTextIdle: { color: AppColors.text },
-  pillTextActive: { color: AppColors.ink },
-  hint: { fontFamily: Typography.fonts.body, fontSize: 13, color: AppColors.textSecondary, marginTop: 12 },
-  composer: { backgroundColor: AppColors.elevated, borderRadius: 16, borderWidth: 1, borderColor: AppColors.border },
-  composerInner: {
-    paddingHorizontal: 16, paddingVertical: 16, minHeight: 120,
-    fontFamily: 'SpecialElite', fontSize: 18, lineHeight: 26, color: AppColors.text,
+  ghost: {
+    position: 'absolute', left: GUTTER, top: 0, right: 0,
+    fontFamily: 'SpecialElite', fontSize: 21, lineHeight: 32, color: AppColors.textSecondary, opacity: 0.45,
   },
-  counter: {
-    fontFamily: Typography.fonts.body, fontSize: 12, color: AppColors.textSecondary,
-    textAlign: 'right', marginTop: 8,
+  input: {
+    flex: 1, padding: 0, margin: 0,
+    fontFamily: 'SpecialElite', fontSize: 21, lineHeight: 32, color: AppColors.text,
   },
-  counterNear: { color: AppColors.error },
-  footer: { paddingTop: 12, paddingBottom: 16 },
-  cta: { borderRadius: 999 },
+
+  sealArea: { alignItems: 'center', paddingBottom: 10, paddingTop: 6 },
+  seal: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center' },
+  sealImg: { width: 64, height: 64 },
+  sealCaption: {
+    fontFamily: Typography.fonts.body, fontSize: 12, letterSpacing: 0.3,
+    color: AppColors.textSecondary, marginTop: 8,
+  },
 });

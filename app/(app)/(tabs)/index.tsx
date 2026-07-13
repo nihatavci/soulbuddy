@@ -64,8 +64,11 @@ export default function BoardScreen() {
           <Text style={styles.title}>The board</Text>
           <Text style={styles.subtitle}>Short signals from others. Read, and add to one.</Text>
 
-          {MOCK_SIGNALS.map((s) => (
-            <SignalCard key={s.id} signal={s} onPress={() => openReply(s.id)} />
+          {MOCK_SIGNALS.map((s, i) => (
+            <React.Fragment key={s.id}>
+              {i > 0 && <View style={styles.rule} />}
+              <SignalCard signal={s} onPress={() => openReply(s.id)} />
+            </React.Fragment>
           ))}
 
           <Text style={styles.end}>You’ve reached the quiet at the end of the board.</Text>
@@ -89,10 +92,9 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fonts.body, fontSize: 15, lineHeight: 22,
     color: AppColors.textSecondary, marginTop: 6, marginBottom: 20, maxWidth: 320,
   },
-  card: {
-    backgroundColor: AppColors.surface, borderRadius: 16, borderWidth: 1,
-    borderColor: AppColors.border, padding: 18, marginBottom: 12,
-  },
+  // Borderless notebook entries — no boxes; separation is whitespace + a faint rule.
+  card: { paddingVertical: 18 },
+  rule: { height: 1, backgroundColor: AppColors.text, opacity: 0.07, marginVertical: 2 },
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   alias: {
     fontFamily: Typography.fonts.body, fontSize: 12, letterSpacing: 0.4,
