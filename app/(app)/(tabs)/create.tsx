@@ -69,7 +69,7 @@ export default function CreateScreen() {
   const [wordW, setWordW] = useState(0);
   const [promptIdx, setPromptIdx] = useState(0); // rotating ghost placeholder
   const [holdLine, setHoldLine] = useState(HOLD_LINES[0]); // poetry shown while holding
-  const sealRef = useRef<View>(null);
+  const sealRef = useRef<any>(null);
   const holdingRef = useRef(false);
   const lineIdxRef = useRef(0);
   const [sealPos, setSealPos] = useState({ x: width / 2, y: height * 0.6 });
@@ -255,27 +255,25 @@ export default function CreateScreen() {
         </Animated.View>
 
         {/* Leave it — press & hold the wax/ink seal (the re: colon) */}
-        <View
-          ref={sealRef}
-          style={styles.sealArea}
-          onLayout={() =>
-            sealRef.current?.measureInWindow((mx, my, mw) =>
-              setSealPos({ x: mx + mw / 2, y: my + 46 }),
-            )
-          }
-        >
+        <View style={styles.sealArea}>
           <Animated.Text style={[styles.holdLine, holdLineStyle]} pointerEvents="none">
             {holdLine}
           </Animated.Text>
           <AnimatedPressable
+            ref={sealRef}
             onPressIn={beginHold}
             onPressOut={endHold}
+            onLayout={() =>
+              sealRef.current?.measureInWindow((mx: number, my: number, mw: number, mh: number) =>
+                setSealPos({ x: mx + mw / 2, y: my + mh / 2 }),
+              )
+            }
             delayLongPress={100000}
             style={[styles.seal, sealStyle]}
             accessibilityRole="button"
             accessibilityLabel="Press and hold to leave this signal on the board"
           >
-            <SealMark hold={hold} spin={spin} enabled={canLeave} size={56} />
+            <SealMark hold={hold} spin={spin} enabled={canLeave} size={96} />
           </AnimatedPressable>
           <Text style={[styles.sealCaption, { opacity: canLeave ? 1 : 0.5 }]}>
             {canLeave ? 'press & hold the seal' : 'write a few words first'}
@@ -332,12 +330,12 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4, // wet gloss (color animated)
   },
 
-  sealArea: { alignItems: 'center', paddingBottom: 14, paddingTop: 2 },
+  sealArea: { alignItems: 'center', paddingBottom: 8, paddingTop: 2 },
   holdLine: {
     fontFamily: 'SpecialElite', fontSize: 15, lineHeight: 21, color: AppColors.text,
-    textAlign: 'center', height: 44, marginBottom: 4, paddingHorizontal: 24,
+    textAlign: 'center', height: 44, marginBottom: 2, paddingHorizontal: 24,
   },
-  seal: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
+  seal: { width: 96, height: 96, alignItems: 'center', justifyContent: 'center' },
   sealCaption: {
     fontFamily: Typography.fonts.body, fontSize: 12, letterSpacing: 0.3,
     color: AppColors.textSecondary, marginTop: 8,
