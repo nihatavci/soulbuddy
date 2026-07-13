@@ -5,40 +5,41 @@
 export { Space, Relation, opticalPadding, ScreenPaddingH, ScreenPaddingTop, ScreenPaddingBottom } from './spacing';
 
 // ─── Colors ──────────────────────────────────────────────────────────────────
-// re:sense dark palette (PRD/design.md). Obsidian base + Paper text + Signal
-// Yellow accent. Keep in sync with tailwind.config.js colors.
+// re:sense design system (claude.ai/design → resense.design-tokens.json).
+// Ink base + Paper text + Signal Yellow accent. Keep in sync with tailwind.config.js.
 export const AppColors = {
-  background:    '#0E0F12',                  // Obsidian
-  surface:       '#16181D',                  // Coal
-  elevated:      '#1D2026',                  // Surface Soft
-  border:        'rgba(246,241,232,0.10)',   // Divider
+  background:    '#0D0D10',                  // ink.950 / surfaceDark
+  surface:       '#151518',                  // ink.900
+  elevated:      '#212125',                  // ink.800 / surfaceElevatedDark
+  border:        'rgba(243,239,230,0.12)',   // borderOnDark (#F3EFE61F)
 
-  text:          '#F6F1E8',                  // Paper
-  textSecondary: '#B8B1A4',                  // Warm Grey
+  text:          '#F3EFE6',                  // paper.50 / textOnDark
+  textSecondary: '#A5A5AD',                  // ink.300 / textMutedOnDark
 
-  // Signal Yellow accent (primary action bg; use Obsidian text on it).
-  accent:        '#F2C94C',                  // Signal Yellow
-  accentLight:   'rgba(242,201,76,0.14)',    // yellow tint surface
-  accentMuted:   'rgba(242,201,76,0.30)',    // yellow tint border
-  accentDeep:    '#D9AB1F',                  // Signal Yellow Deep (focus ring)
+  // Signal Yellow accent (primary action bg; use ink text on it).
+  accent:        '#FFD03A',                  // signal.500
+  accentLight:   'rgba(255,208,58,0.14)',    // signal tint surface
+  accentMuted:   'rgba(255,208,58,0.30)',    // signal tint border
+  accentDeep:    '#E7B900',                  // signal.600 (accentPressed / focus)
 
-  premium:       '#69725F',                  // Muted Olive
-  success:       '#6E8F73',                  // Soft Success
-  error:         '#C85C5C',                  // Soft Error
+  premium:       '#7A7F5D',                  // moss.500
+  success:       '#4F6A56',                  // status.success
+  error:         '#A6453D',                  // status.danger
 } satisfies Record<string, string>;
 
 // ─── Typography ──────────────────────────────────────────────────────────────
 // System font placeholder — register a custom font in fonts.ts and update here.
 export const Typography = {
   fonts: {
-    // re:sense: display = serif-italic (wordmark/hero only), heading/body = grotesk.
-    // No brand ttf bundled yet → system fallbacks (keyless boot). The Wordmark
-    // applies fontStyle:'italic' on `display` so `re:` reads italic even on the
-    // system-serif fallback. Register Instrument Serif Italic + Inter Tight in
-    // constants/fonts.ts loadFonts() when the ttf assets land.
-    display: 'serif',
-    heading: 'System',
-    body:    'System',
+    // re:sense brand fonts (resense.design-tokens.json), bundled as .ttf in
+    // assets/fonts and registered in constants/fonts.ts. display = Playfair
+    // Display (brand/wordmark, italic applied in Wordmark), heading/body =
+    // Satoshi (UI), prompt = Special Elite (typewriter signal-composer face).
+    // Family names must match the keys registered in loadFonts().
+    display: 'PlayfairDisplay',
+    heading: 'Satoshi-Bold',
+    body:    'Satoshi',
+    prompt:  'SpecialElite',
   },
   scale: {
     caption:    { fontSize: 12, lineHeight: 16 },
@@ -50,8 +51,8 @@ export const Typography = {
 } as const;
 
 // ─── Border Radius ───────────────────────────────────────────────────────────
-// re:sense radii: cards 20, inputs 16, pills 999. Keep in sync with tailwind.config.js.
-export const BorderRadius = { sm: 8, md: 12, lg: 16, card: 20, input: 16, pill: 999, full: 9999 } as const;
+// re:sense radii (design tokens): card 16, input 16, pill 999. Keep in sync with tailwind.config.js.
+export const BorderRadius = { sm: 8, md: 12, lg: 16, xl: 24, card: 16, input: 16, pill: 999, full: 9999 } as const;
 
 // ─── Shadows ─────────────────────────────────────────────────────────────────
 export const Shadows = {

@@ -11,7 +11,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, type StyleProp, type ViewStyle, type TextStyle } from 'react-native';
-import { AppColors, Typography } from '@/constants/theme';
+import { AppColors } from '@/constants/theme';
 
 interface WordmarkProps {
   /** Font size for both spans, in px. Default 40 (Display XL). */
@@ -42,15 +42,14 @@ export function Wordmark({
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'baseline' },
-  // The ONLY sanctioned italic in the app (design rule).
+  // brandRe / brandSense tokens: Playfair Display italic (the ONLY italic surface).
+  // Italic comes from the bundled italic font faces, not a synthesized fontStyle.
   re: {
-    fontFamily: Typography.fonts.display,
-    fontStyle: 'italic',
-    letterSpacing: -0.5,
+    fontFamily: 'PlayfairDisplay-BlackItalic', // 900 italic
+    letterSpacing: -1.6,
   },
   sense: {
-    fontFamily: Typography.fonts.heading,
-    fontWeight: '600',
-    letterSpacing: -0.5,
+    fontFamily: 'PlayfairDisplay-Italic', // 400 italic
+    letterSpacing: -1.2,
   },
 });

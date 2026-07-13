@@ -7,24 +7,24 @@ module.exports = {
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
-      // Keep in sync with constants/theme.ts AppColors (re:sense dark palette)
+      // Keep in sync with constants/theme.ts AppColors (re:sense design tokens)
       colors: {
-        background:      '#0E0F12',                // Obsidian
-        surface:         '#16181D',                // Coal
-        elevated:        '#1D2026',                // Surface Soft
-        border:          'rgba(246,241,232,0.10)', // Divider
-        text:            '#F6F1E8',                // Paper
-        'text-secondary': '#B8B1A4',               // Warm Grey
-        accent:          '#F2C94C',                // Signal Yellow
-        'accent-light':  'rgba(242,201,76,0.14)',
-        'accent-deep':   '#D9AB1F',                // Signal Yellow Deep
-        premium:         '#69725F',                // Muted Olive
-        success:         '#6E8F73',                // Soft Success
-        error:           '#C85C5C',                // Soft Error
+        background:      '#0D0D10',                // ink.950
+        surface:         '#151518',                // ink.900
+        elevated:        '#212125',                // ink.800
+        border:          'rgba(243,239,230,0.12)', // borderOnDark
+        text:            '#F3EFE6',                // paper.50
+        'text-secondary': '#A5A5AD',               // ink.300
+        accent:          '#FFD03A',                // signal.500
+        'accent-light':  'rgba(255,208,58,0.14)',
+        'accent-deep':   '#E7B900',                // signal.600
+        premium:         '#7A7F5D',                // moss.500
+        success:         '#4F6A56',                // status.success
+        error:           '#A6453D',                // status.danger
       },
       // Keep in sync with constants/theme.ts BorderRadius
       borderRadius: {
-        card:      '20px',
+        card:      '16px',
         input:     '16px',
         'card-lg': '16px',
         pill:      '9999px',
@@ -41,10 +41,12 @@ module.exports = {
         '2xl': '68px',
         '3xl': '110px',
       },
-      // Keep in sync with constants/theme.ts Typography
+      // Keep in sync with constants/theme.ts Typography.fonts (re:sense brand fonts)
       fontFamily: {
-        body:    ['System'],
-        heading: ['System'],
+        brand:   ['PlayfairDisplay', 'serif'],
+        heading: ['Satoshi', 'system-ui', 'sans-serif'],
+        body:    ['Satoshi', 'system-ui', 'sans-serif'],
+        prompt:  ['SpecialElite', 'ui-monospace', 'monospace'],
       },
     },
   },
