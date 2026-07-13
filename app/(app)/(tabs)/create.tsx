@@ -17,9 +17,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Pressable,
-  useWindowDimensions, type LayoutChangeEvent,
+  Keyboard, useWindowDimensions, type LayoutChangeEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Svg, { Path, Circle } from 'react-native-svg';
 import Animated, {
@@ -45,8 +47,16 @@ const HOLD_LINES = [
 ];
 
 export default function CreateScreen() {
+  const router = useRouter();
   const { width, height } = useWindowDimensions();
   const remaining = DAILY_SIGNAL_CAP - 1; // mock: one dropped today
+
+  // Back to the Board. Dismiss the keyboard first so the tab bar is reachable too.
+  const goBack = () => {
+    Haptics.selectionAsync();
+    Keyboard.dismiss();
+    router.navigate('/(app)/(tabs)' as any);
+  };
 
   const [formatIdx, setFormatIdx] = useState(0);
   const [text, setText] = useState('');
@@ -159,8 +169,11 @@ export default function CreateScreen() {
     <PaperBackground style={styles.root}>
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <KeyboardAvoidingView style={styles.kav} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        {/* faint dateline / cap — like the corner of a page, no chrome */}
+        {/* back to the board + faint dateline — like the corner of a page */}
         <View style={styles.head}>
+          <Pressable onPress={goBack} hitSlop={14} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Back to the board">
+            <Feather name="chevron-left" size={22} color={AppColors.text} />
+          </Pressable>
           <Text style={styles.dateline}>today · {remaining} of {DAILY_SIGNAL_CAP} left</Text>
         </View>
 
@@ -254,7 +267,11 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   safe: { flex: 1 },
   kav: { flex: 1, paddingHorizontal: 30 },
-  head: { paddingTop: 6, paddingBottom: 4, alignItems: 'flex-end' },
+  head: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: 6, paddingBottom: 4,
+  },
+  backBtn: { padding: 4, marginLeft: -6 },
   dateline: {
     fontFamily: Typography.fonts.body, fontSize: 11, letterSpacing: 0.5,
     textTransform: 'uppercase', color: AppColors.textSecondary,
