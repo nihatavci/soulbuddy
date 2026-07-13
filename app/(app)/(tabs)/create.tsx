@@ -14,7 +14,7 @@
  * the ink-drop, the underline, the seal.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Pressable,
   Image, useWindowDimensions, type LayoutChangeEvent,
@@ -23,12 +23,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import Svg, { Path } from 'react-native-svg';
 import Animated, {
-  useSharedValue, useAnimatedStyle, withTiming, withSequence, withSpring, Easing,
+  useSharedValue, useAnimatedStyle, withTiming, withSequence, withSpring, runOnJS, Easing,
 } from 'react-native-reanimated';
 import { AppColors, Typography } from '@/constants/theme';
 import { PaperBackground } from '@/components/ui/PaperBackground';
 import { InkBloom } from '@/components/ui/InkBloom';
 import { SIGNAL_FORMATS, SIGNAL_MAX_CHARS, DAILY_SIGNAL_CAP } from '@/constants/mockSignals';
+import { SIGNAL_PROMPTS } from '@/constants/prompts';
 
 const INK_SEAL = require('@/assets/textures/ink-seal.png');
 const GUTTER = 46;           // left margin where the pencil rule + ink-drop live
@@ -43,6 +44,7 @@ export default function CreateScreen() {
   const [zoneH, setZoneH] = useState(0);
   const [wordW, setWordW] = useState(0);
   const [bloom, setBloom] = useState(0); // increment to fire the ink-bloom seal effect
+  const [promptIdx, setPromptIdx] = useState(0); // rotating ghost placeholder
 
   const format = SIGNAL_FORMATS[formatIdx];
   const canLeave = text.trim().length >= 3;
@@ -51,6 +53,26 @@ export default function CreateScreen() {
   const fill = useSharedValue(0);
   const sealScale = useSharedValue(1);
   const pageFade = useSharedValue(1);
+  const ghostOpacity = useSharedValue(1);
+
+  // Rotate the unfinished-sentence prompts while the page is empty. Gentle
+  // crossfade; pauses the moment you start writing.
+  const advancePrompt = () => {
+    setPromptIdx((i) => (i + 1) % SIGNAL_PROMPTS.length);
+    ghostOpacity.value = withTiming(1, { duration: 600 });
+  };
+  const isEmpty = text.length === 0;
+  useEffect(() => {
+    if (!isEmpty) return;
+    ghostOpacity.value = withTiming(1, { duration: 300 });
+    const id = setInterval(() => {
+      ghostOpacity.value = withTiming(0, { duration: 450 }, (finished) => {
+        'worklet';
+        if (finished) runOnJS(advancePrompt)();
+      });
+    }, 4800);
+    return () => clearInterval(id);
+  }, [isEmpty]);
 
   const onChange = (v: string) => {
     setText(v);
@@ -91,6 +113,7 @@ export default function CreateScreen() {
   }));
   const sealStyle = useAnimatedStyle(() => ({ transform: [{ scale: sealScale.value }] }));
   const pageStyle = useAnimatedStyle(() => ({ opacity: pageFade.value }));
+  const ghostStyle = useAnimatedStyle(() => ({ opacity: ghostOpacity.value * 0.5 }));
 
   // The seal sits low-center; bloom originates there.
   const sealX = width / 2;
@@ -138,8 +161,10 @@ export default function CreateScreen() {
             </Svg>
             <Animated.View style={[styles.inkDrop, dropStyle]} pointerEvents="none" />
 
-            {text.length === 0 && (
-              <Text style={styles.ghost} pointerEvents="none">the half-sentence, when it finds you…</Text>
+            {isEmpty && (
+              <Animated.Text style={[styles.ghost, ghostStyle]} pointerEvents="none">
+                {SIGNAL_PROMPTS[promptIdx]}
+              </Animated.Text>
             )}
             <TextInput
               style={styles.input}
@@ -203,7 +228,7 @@ const styles = StyleSheet.create({
   },
   ghost: {
     position: 'absolute', left: GUTTER, top: 0, right: 0,
-    fontFamily: 'SpecialElite', fontSize: 21, lineHeight: 32, color: AppColors.textSecondary, opacity: 0.45,
+    fontFamily: 'SpecialElite', fontSize: 21, lineHeight: 32, color: AppColors.textSecondary,
   },
   input: {
     flex: 1, padding: 0, margin: 0,
