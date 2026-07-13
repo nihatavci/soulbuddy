@@ -1,20 +1,35 @@
 /**
- * InkBloom — a grainy, misty ink circle that grows with a hold gesture.
+ * InkBloom — an ink DROP that spreads as you hold ("mürekkep damlamış gibi").
  *
- * "sisli, dağınık" — misty and scattered, not a solid blob. It's the real
- * charcoal grain texture masked into a soft-edged circle (so it reads as
- * scattered ink specks) over a very faint ink haze. Both grow with `progress`
- * and stay low-opacity so the ink never looks solid.
+ * Not a clean circle. The blob + its satellite spatter are warped by fractal-
+ * noise displacement so the edge is irregular and organic; a radial ink-density
+ * falloff makes the centre dense and the edge bleed; the real charcoal grain is
+ * masked over the top for speckle. Everything grows with `progress` (0→1).
  */
 
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { Canvas, Group, Circle, Blur, Mask, Image as SkiaImage, useImage } from '@shopify/react-native-skia';
+import {
+  Canvas, Group, Circle, Blur, Paint, DisplacementMap, Turbulence, RadialGradient,
+  Mask, Image as SkiaImage, useImage, vec,
+} from '@shopify/react-native-skia';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 
 const GRAIN = require('@/assets/textures/tex-charcoal.png');
-const MAXR = 104;
-const PAD = 24;
+const BASE = 100;   // main blob radius in the scaling group's local space
+const MAXR = 92;    // final blob radius in px
+const PAD = 60;     // extra room for satellites + displacement
+
+// Deterministic satellite spatter (offsets in local space around the centre).
+const SATELLITES = [
+  { dx: 66, dy: -36, r: 15 },
+  { dx: -60, dy: -22, r: 12 },
+  { dx: 32, dy: 58, r: 11 },
+  { dx: -42, dy: 50, r: 9 },
+  { dx: 82, dy: 22, r: 8 },
+  { dx: -78, dy: 10, r: 7 },
+  { dx: 8, dy: -70, r: 8 },
+];
 
 interface InkBloomProps {
   /** Hold progress 0→1. */
@@ -27,24 +42,47 @@ interface InkBloomProps {
 export function InkBloom({ progress, x, y, ink = '#0D0D10' }: InkBloomProps) {
   const grain = useImage(GRAIN);
 
-  const rBody = useDerivedValue(() => 8 + progress.value * MAXR);
-  const rMask = useDerivedValue(() => 8 + progress.value * (MAXR + 6));
-  const bodyOpacity = useDerivedValue(() => Math.min(0.2, progress.value * 0.28)); // faint haze
-  const grainOpacity = useDerivedValue(() => Math.min(0.5, progress.value * 0.62)); // scattered grain
+  const transform = useDerivedValue(() => [{ scale: 0.05 + progress.value * (MAXR / BASE) }]);
+  const bodyOpacity = useDerivedValue(() => Math.min(0.85, 0.15 + progress.value * 0.85));
+  const disp = useDerivedValue(() => 8 + progress.value * 20); // irregular edge grows with the spread
+  const rGrainMask = useDerivedValue(() => 10 + progress.value * (MAXR + 8));
+  const grainOpacity = useDerivedValue(() => Math.min(0.55, progress.value * 0.7));
 
   const g = MAXR + PAD;
 
   return (
     <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
-      {/* faint misty haze */}
-      <Group opacity={bodyOpacity}>
-        <Circle cx={x} cy={y} r={rBody} color={ink}><Blur blur={26} /></Circle>
+      {/* irregular ink drop + spatter, warped by fractal-noise displacement */}
+      <Group
+        opacity={bodyOpacity}
+        layer={
+          <Paint>
+            <DisplacementMap channelX="r" channelY="g" scale={disp}>
+              <Turbulence freqX={0.022} freqY={0.028} octaves={3} seed={9} />
+            </DisplacementMap>
+            <Blur blur={2} />
+          </Paint>
+        }
+      >
+        <Group origin={vec(x, y)} transform={transform}>
+          <Circle cx={x} cy={y} r={BASE}>
+            <RadialGradient
+              c={vec(x, y)}
+              r={BASE}
+              colors={[ink, ink, 'rgba(13,13,16,0)']}
+              positions={[0, 0.5, 1]}
+            />
+          </Circle>
+          {SATELLITES.map((s, i) => (
+            <Circle key={i} cx={x + s.dx} cy={y + s.dy} r={s.r} color={ink} />
+          ))}
+        </Group>
       </Group>
 
-      {/* scattered grain, masked to a soft (blurred) circle → misty, non-solid */}
+      {/* charcoal grain speckle over the drop */}
       {grain && (
         <Group opacity={grainOpacity}>
-          <Mask mode="alpha" mask={<Circle cx={x} cy={y} r={rMask} color="white"><Blur blur={16} /></Circle>}>
+          <Mask mode="alpha" mask={<Circle cx={x} cy={y} r={rGrainMask} color="white"><Blur blur={14} /></Circle>}>
             <SkiaImage image={grain} x={x - g} y={y - g} width={g * 2} height={g * 2} fit="cover" />
           </Mask>
         </Group>
