@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppColors, Typography } from '../../constants/theme';
@@ -72,11 +73,17 @@ function TabItem({
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
 
+  const liquid = isLiquidGlassAvailable();
+
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-      {/* native frosted glass */}
-      <BlurView intensity={36} tint="light" style={StyleSheet.absoluteFill} />
-      <View style={styles.tint} pointerEvents="none" />
+      {/* iOS 26 liquid glass when available, else frosted blur */}
+      {liquid ? (
+        <GlassView style={StyleSheet.absoluteFill} glassEffectStyle="regular" />
+      ) : (
+        <BlurView intensity={36} tint="light" style={StyleSheet.absoluteFill} />
+      )}
+      <View style={[styles.tint, liquid && styles.tintGlass]} pointerEvents="none" />
       <View style={styles.row}>
         {state.routes.map((route, index) => (
           <TabItem
@@ -109,6 +116,8 @@ const styles = StyleSheet.create({
   },
   // translucent paper tint over the blur so labels stay legible on light content
   tint: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(243,239,230,0.5)' },
+  // lighter tint over liquid glass so the glass still reads through
+  tintGlass: { backgroundColor: 'rgba(243,239,230,0.18)' },
   row: { flexDirection: 'row' },
   tabItem: {
     flex: 1,
