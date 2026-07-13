@@ -25,6 +25,8 @@ import React, {
 import { AppState, type AppStateStatus } from 'react-native';
 import type { Session, User } from '@supabase/supabase-js';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import { supabase, startAutoRefresh, stopAutoRefresh } from '@/services/supabase';
 import { queryClient } from '@/store/queryClient';
 import { loginRevenueCat, logoutRevenueCat } from '@/lib/revenuecat';
@@ -58,6 +60,8 @@ interface AuthState {
 interface AuthActions {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, name: string) => Promise<{ error: string | null }>;
+  /** Native Sign in with Apple → Supabase signInWithIdToken (iOS). */
+  signInWithApple: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   /** Creates an anonymous Supabase session (valid JWT, no real account). */
   signInAnonymously: () => Promise<void>;
@@ -243,6 +247,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  // ── Sign in with Apple ──────────────────────────────────────────────────
+  // Native Apple auth → Supabase signInWithIdToken. Nonce: the hashed nonce goes
+  // to Apple, the raw nonce to Supabase (replay protection). Requires the Apple
+  // provider to be enabled in the Supabase dashboard.
+
+  const signInWithApple = useCallback(
+    async (): Promise<{ error: string | null }> => {
+      try {
+        const rawNonce = Array.from(Crypto.getRandomBytes(16))
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
+        const hashedNonce = await Crypto.digestStringAsync(
+          Crypto.CryptoDigestAlgorithm.SHA256,
+          rawNonce,
+        );
+
+        const credential = await AppleAuthentication.signInAsync({
+          requestedScopes: [
+            AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+            AppleAuthentication.AppleAuthenticationScope.EMAIL,
+          ],
+          nonce: hashedNonce,
+        });
+
+        if (!credential.identityToken) {
+          return { error: 'No identity token returned from Apple.' };
+        }
+
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: 'apple',
+          token: credential.identityToken,
+          nonce: rawNonce,
+        });
+        if (error) return { error: error.message };
+
+        logAppsFlyerEvent(AFEvent.LOGIN, { method: 'apple' });
+        return { error: null };
+      } catch (err: any) {
+        // User cancelled the native sheet — not an error.
+        if (err?.code === 'ERR_REQUEST_CANCELED') return { error: null };
+        return { error: err?.message ?? 'Apple sign in failed.' };
+      }
+    },
+    [],
+  );
+
   // ── Sign Out ────────────────────────────────────────────────────────────
 
   const signOutFn = useCallback(async () => {
@@ -315,11 +365,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAnonymous,
       signIn,
       signUp,
+      signInWithApple,
       signOut: signOutFn,
       signInAnonymously,
       handleMagicLinkSession,
     }),
-    [user, authSession, isLoading, session, isAnonymous, signIn, signUp, signOutFn, signInAnonymously, handleMagicLinkSession],
+    [user, authSession, isLoading, session, isAnonymous, signIn, signUp, signInWithApple, signOutFn, signInAnonymously, handleMagicLinkSession],
   );
 
   return (

@@ -29,11 +29,14 @@ import { AppColors, Typography } from '@/constants/theme';
 import { Space, Relation, ScreenPaddingH, ScreenPaddingTop, ScreenPaddingBottom } from '@/constants/spacing';
 import { supabase } from '@/services/supabase';
 import { Wordmark } from '@/components/ui/Wordmark';
+import { AppleSignInButton } from '@/components/ui/AppleSignInButton';
+import { useAuth } from '@/context/AuthContext';
 import { useT } from '@/context/LanguageContext';
 
 export default function SignUpScreen() {
   const router = useRouter();
   const t = useT();
+  const { signInWithApple } = useAuth();
 
   const [name, setName]         = useState('');
   const [email, setEmail]       = useState('');
@@ -103,6 +106,16 @@ export default function SignUpScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleApple = async () => {
+    setError(null);
+    const { error: appleError } = await signInWithApple();
+    if (appleError) {
+      setError(appleError);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+    // Success → onAuthStateChange in AuthContext handles navigation
   };
 
   return (
@@ -225,6 +238,14 @@ export default function SignUpScreen() {
                 style={styles.cta}
               />
 
+              {/* Apple sign-in (iOS) */}
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>{t('auth.signUp.divider')}</Text>
+                <View style={styles.dividerLine} />
+              </View>
+              <AppleSignInButton onPress={handleApple} style={styles.appleBtn} />
+
               {/* Terms note */}
               <Text style={styles.terms}>
                 {t('auth.signUp.termsPrefix')}{' '}
@@ -285,6 +306,10 @@ const styles = StyleSheet.create({
   },
   errorText: { fontFamily: Typography.fonts.body, fontSize: 14, color: AppColors.text, lineHeight: 18 },
   cta: { borderRadius: 999, marginBottom: Space.md },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Space.md, gap: Space.sm },
+  dividerLine: { flex: 1, height: 1, backgroundColor: AppColors.border },
+  dividerText: { fontFamily: Typography.fonts.body, fontSize: 12, color: AppColors.textSecondary },
+  appleBtn: { marginBottom: Space.md },
   terms: {
     fontFamily: Typography.fonts.body, fontSize: 12, color: AppColors.textSecondary,
     textAlign: 'center', lineHeight: 17, marginBottom: Space.md,

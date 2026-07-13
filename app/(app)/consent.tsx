@@ -88,21 +88,21 @@ export default function ConsentScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     acceptAllConsent();
     trackMixpanelConsentAcceptedAll();
-    router.replace('/(app)/intro');
+    router.replace('/(app)/' as any);
   };
 
   const handleRejectNonEssential = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     rejectNonEssentialConsent();
     trackMixpanelConsentRejectedNonEssential();
-    router.replace('/(app)/intro');
+    router.replace('/(app)/' as any);
   };
 
   const handleSaveCustom = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     saveConsentPreferences(preferences);
     trackMixpanelConsentCustomized(preferences as unknown as Record<string, boolean>);
-    router.replace('/(app)/intro');
+    router.replace('/(app)/' as any);
   };
 
   const toggleCategory = (key: keyof ConsentPreferences) => {

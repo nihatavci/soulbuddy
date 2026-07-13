@@ -238,7 +238,7 @@ export default function ProfileScreen() {
                 style={styles.guestHeroCTA}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/(app)/signup');
+                  router.push('/(auth)/sign-up');
                 }}
               >
                 <Text style={styles.guestHeroCTAText}>{t('account.backUpWithEmail')}</Text>
