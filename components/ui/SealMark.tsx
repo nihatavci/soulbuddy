@@ -34,7 +34,7 @@ export function SealMark({ hold, spin, enabled, size = 56 }: SealMarkProps) {
   const d2y = useDerivedValue(() => c + Math.sin(a2.value) * orbit.value);
 
   return (
-    <Canvas style={{ width: size, height: size }}>
+    <Canvas style={{ width: size, height: size }} pointerEvents="none">
       <Group opacity={enabled ? 1 : 0.3}>
         <Circle cx={c} cy={c} r={c - 3} color={INK} />
         <Circle cx={d1x} cy={d1y} r={3} color={GOLD} />

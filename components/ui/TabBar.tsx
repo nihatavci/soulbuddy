@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Feather } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppColors, Typography } from '../../constants/theme';
@@ -73,35 +74,42 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
 
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-      {state.routes.map((route, index) => (
-        <TabItem
-          key={route.key}
-          routeName={route.name}
-          isFocused={state.index === index}
-          onPress={() => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (!event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
-          }}
-        />
-      ))}
+      {/* native frosted glass */}
+      <BlurView intensity={36} tint="light" style={StyleSheet.absoluteFill} />
+      <View style={styles.tint} pointerEvents="none" />
+      <View style={styles.row}>
+        {state.routes.map((route, index) => (
+          <TabItem
+            key={route.key}
+            routeName={route.name}
+            isFocused={state.index === index}
+            onPress={() => {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
+              if (!event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            }}
+          />
+        ))}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    backgroundColor: AppColors.background,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: AppColors.border,
     paddingTop: Space.sm,
+    overflow: 'hidden',
   },
+  // translucent paper tint over the blur so labels stay legible on light content
+  tint: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(243,239,230,0.5)' },
+  row: { flexDirection: 'row' },
   tabItem: {
     flex: 1,
     alignItems: 'center',
