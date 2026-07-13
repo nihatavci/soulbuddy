@@ -286,15 +286,19 @@
     }
   },
   "welcome": {
-    "tagline": "A quieter way to be found. Drop a signal, not a selfie.",
-    "continue": "Continue",
-    "haveAccount": "I already have an account"
+    "tagline": "a new emotional space.",
+    "headlineLead": "An unfinished thought,\na new ",
+    "headlineEmphasis": "possibility.",
+    "primary": "Leave a sentence",
+    "login": "Log in"
   },
   "ageGate": {
-    "title": "This is an 18+ space",
-    "body": "re:sense is for adults. Please confirm you're 18 or older to continue.",
-    "confirm": "I'm 18 or older",
-    "decline": "I'm under 18",
+    "title": "Boundaries first.",
+    "body": "re:sense is for adults only. Your intent is seen before your identity.",
+    "checkbox": "I'm over 18",
+    "confirm": "I understand — continue",
+    "privacy": "Privacy summary",
+    "privacyNote": "We never show your real name by default. You share a sentence and an intent — not a profile. Location is approximate; identity stays yours.",
     "underageMessage": "You must be 18 or older to use re:sense."
   }
 }
