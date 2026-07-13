@@ -23,13 +23,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import Svg, { Path, Circle } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import Animated, {
-  useSharedValue, useAnimatedStyle, withTiming, runOnJS, Easing,
+  useSharedValue, useAnimatedStyle, withTiming, withRepeat, cancelAnimation, runOnJS, Easing,
 } from 'react-native-reanimated';
 import { AppColors, Typography } from '@/constants/theme';
 import { PaperBackground } from '@/components/ui/PaperBackground';
 import { InkBloom } from '@/components/ui/InkBloom';
+import { SealMark } from '@/components/ui/SealMark';
 import { SIGNAL_FORMATS, SIGNAL_MAX_CHARS, DAILY_SIGNAL_CAP } from '@/constants/mockSignals';
 import { SIGNAL_PROMPTS } from '@/constants/prompts';
 
@@ -75,6 +76,7 @@ export default function CreateScreen() {
   // Ink level: 0 (empty) → 1 (full). Drives the ink-drop's travel down the margin.
   const fill = useSharedValue(0);
   const hold = useSharedValue(0);       // press-and-hold progress 0→1 (grows the ink)
+  const spin = useSharedValue(0);       // seal dots orbit while holding (atom-like)
   const pageFade = useSharedValue(1);
   const pageLift = useSharedValue(0);
   const ghostOpacity = useSharedValue(1);
@@ -108,10 +110,19 @@ export default function CreateScreen() {
     setFormatIdx((i) => (i + 1) % SIGNAL_FORMATS.length);
   };
 
+  // Settle the orbiting dots back to a calm vertical colon (shortest way).
+  const settleSpin = () => {
+    const cur = spin.value % (2 * Math.PI);
+    cancelAnimation(spin);
+    spin.value = cur;
+    spin.value = withTiming(cur > Math.PI ? 2 * Math.PI : 0, { duration: 340 });
+  };
+
   // Held the seal long enough → the page drifts off toward the board, then resets.
   const commit = () => {
     holdingRef.current = false;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    settleSpin();
     pageFade.value = withTiming(0, { duration: 480, easing: Easing.in(Easing.cubic) });
     pageLift.value = withTiming(-46, { duration: 560, easing: Easing.out(Easing.cubic) });
     setTimeout(() => {
@@ -132,11 +143,13 @@ export default function CreateScreen() {
     lineIdxRef.current = (lineIdxRef.current + 1) % HOLD_LINES.length;
     setHoldLine(HOLD_LINES[lineIdxRef.current]);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // hold grows the ink; when it completes, commit.
+    // hold grows the ink; the seal dots orbit (atom) and spiral in as it fills.
     hold.value = withTiming(1, { duration: HOLD_MS, easing: Easing.inOut(Easing.quad) }, (finished) => {
       'worklet';
       if (finished) runOnJS(commit)();
     });
+    spin.value = 0;
+    spin.value = withRepeat(withTiming(2 * Math.PI, { duration: 850, easing: Easing.linear }), -1, false);
   };
 
   const endHold = () => {
@@ -144,6 +157,7 @@ export default function CreateScreen() {
     holdingRef.current = false;
     // released early → the ink recedes (no signal left)
     hold.value = withTiming(0, { duration: 320 });
+    settleSpin();
   };
 
   const dropStyle = useAnimatedStyle(() => ({
@@ -243,11 +257,7 @@ export default function CreateScreen() {
             accessibilityRole="button"
             accessibilityLabel="Press and hold to leave this signal on the board"
           >
-            <Svg width={56} height={56} viewBox="0 0 56 56">
-              <Circle cx={28} cy={28} r={25} fill={AppColors.ink} opacity={canLeave ? 1 : 0.28} />
-              <Circle cx={28} cy={21} r={3} fill={AppColors.accent} opacity={canLeave ? 1 : 0.35} />
-              <Circle cx={28} cy={35} r={3} fill={AppColors.accent} opacity={canLeave ? 1 : 0.35} />
-            </Svg>
+            <SealMark hold={hold} spin={spin} enabled={canLeave} size={56} />
           </AnimatedPressable>
           <Text style={[styles.sealCaption, { opacity: canLeave ? 1 : 0.5 }]}>
             {canLeave ? 'press & hold the seal' : 'write a few words first'}
