@@ -38,12 +38,18 @@ export function useAddReply() {
         .single();
       if (error) throw new Error(error.message);
 
-      // the trigger opened a space with me (user_b) — read it back
-      const { data: space } = await supabase
+      // the trigger opened a space with me (user_b) — read it back. The reply
+      // already succeeded; if this read fails (network/transient) don't throw —
+      // that would tempt a retry that duplicates the reply. Just log and return
+      // null, the caller falls back to routing via the Private tab instead.
+      const { data: space, error: spaceErr } = await supabase
         .from('private_spaces').select('*')
         .eq('signal_id', input.signalId)
         .eq('user_b', user?.id ?? '')
         .maybeSingle();
+      if (spaceErr) {
+        console.warn('[useReplies] space read-back failed:', spaceErr.message);
+      }
 
       return { reply: reply as Reply, space: (space as PrivateSpace) ?? null };
     },

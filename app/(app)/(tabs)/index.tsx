@@ -20,8 +20,8 @@ import { Wordmark } from '@/components/ui/Wordmark';
 import { PaperBackground } from '@/components/ui/PaperBackground';
 import { GoldDisc } from '@/components/ui/GoldDisc';
 import { useSignals } from '@/hooks/useSignals';
+import { useAuth } from '@/context/AuthContext';
 import type { PublicSignal } from '@/services/supabase';
-import { DAILY_SIGNAL_CAP } from '@/constants/signals';
 
 function timeAgo(iso: string): string {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -31,10 +31,10 @@ function timeAgo(iso: string): string {
   return `${Math.floor(s / 86400)}d`;
 }
 
-function SignalCard({ signal, onPress }: { signal: PublicSignal; onPress: () => void }) {
+function SignalCard({ signal, onPress, isMine }: { signal: PublicSignal; onPress: () => void; isMine: boolean }) {
   const replyCount = signal.reply_count ?? 0;
   return (
-    <Pressable style={styles.card} onPress={onPress} accessibilityRole="button">
+    <Pressable style={styles.card} onPress={isMine ? undefined : onPress} accessibilityRole="button" disabled={isMine}>
       <View style={styles.cardHead}>
         <Text style={styles.alias}>{signal.alias}</Text>
         <Text style={styles.meta}>{signal.created_at ? timeAgo(signal.created_at) : ''}</Text>
@@ -43,7 +43,7 @@ function SignalCard({ signal, onPress }: { signal: PublicSignal; onPress: () => 
       <View style={styles.cardFoot}>
         <Feather name="corner-up-left" size={14} color={AppColors.textSecondary} />
         <Text style={styles.footText}>
-          {replyCount === 0 ? 'add to this' : `${replyCount} added`}
+          {isMine ? 'your signal' : replyCount === 0 ? 'add to this' : `${replyCount} added`}
         </Text>
       </View>
     </Pressable>
@@ -52,8 +52,8 @@ function SignalCard({ signal, onPress }: { signal: PublicSignal; onPress: () => 
 
 export default function BoardScreen() {
   const router = useRouter();
-  const { data: signals = [], isLoading, refetch } = useSignals();
-  const remaining = DAILY_SIGNAL_CAP - 1; // mock: one dropped today
+  const { user } = useAuth();
+  const { data: signals = [], isFetching, refetch } = useSignals();
 
   const openReply = (id: string) => {
     Haptics.selectionAsync();
@@ -66,25 +66,27 @@ export default function BoardScreen() {
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.header}>
           <Wordmark size={24} />
-          <Text style={styles.cap}>{remaining} of {DAILY_SIGNAL_CAP} signals left today</Text>
         </View>
 
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={AppColors.textSecondary} />
+            <RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={AppColors.textSecondary} />
           }
         >
           <Text style={styles.title}>The board</Text>
           <Text style={styles.subtitle}>Short signals from others. Read, and add to one.</Text>
 
-          {signals.map((s, i) => (
-            <React.Fragment key={s.id ?? i}>
-              {i > 0 && <View style={styles.rule} />}
-              <SignalCard signal={s} onPress={() => s.id && openReply(s.id)} />
-            </React.Fragment>
-          ))}
+          {signals.map((s, i) => {
+            const isMine = !!user?.id && s.author_id === user.id;
+            return (
+              <React.Fragment key={s.id ?? i}>
+                {i > 0 && <View style={styles.rule} />}
+                <SignalCard signal={s} onPress={() => s.id && openReply(s.id)} isMine={isMine} />
+              </React.Fragment>
+            );
+          })}
 
           <Text style={styles.end}>You’ve reached the quiet at the end of the board.</Text>
         </ScrollView>

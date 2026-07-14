@@ -66,7 +66,7 @@ function SpaceCard({ space, onPress }: { space: SpaceCardData; onPress: () => vo
 export default function PrivateScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { data: spaces = [], isLoading, refetch } = usePrivateSpaces();
+  const { data: spaces = [], isFetching, refetch } = usePrivateSpaces();
 
   const openSpace = (id: string) => {
     Haptics.selectionAsync();
@@ -97,7 +97,7 @@ export default function PrivateScreen() {
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={AppColors.textSecondary} />
+            <RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={AppColors.textSecondary} />
           }
         >
           <Text style={styles.title}>Private</Text>

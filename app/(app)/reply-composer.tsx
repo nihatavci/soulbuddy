@@ -48,8 +48,15 @@ export default function ReplyComposerScreen() {
     setSubmitError(null);
     try {
       const { space } = await addReply({ signalId, text: addition });
-      // Showcase the resonance arc: signal → response → mutual resonance.
-      router.replace({ pathname: '/(app)/resonance-unlock', params: { spaceId: space?.id ?? '' } });
+      if (space?.id) {
+        // Showcase the resonance arc: signal → response → mutual resonance.
+        router.replace({ pathname: '/(app)/resonance-unlock', params: { spaceId: space.id } });
+      } else {
+        // Reply succeeded but the space read-back failed — don't push a broken
+        // private-space with an empty id. The spaces query is already
+        // invalidated, so the Private tab will show it once it settles.
+        router.replace('/(app)/(tabs)/private');
+      }
     } catch (e: any) {
       setSubmitError(e?.message ?? 'Something went wrong. Try again.');
     }

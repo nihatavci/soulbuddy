@@ -74,6 +74,7 @@ export default function PrivateSpaceScreen() {
 
   const [text, setText] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -84,12 +85,15 @@ export default function PrivateSpaceScreen() {
     const trimmed = text.trim();
     if (!trimmed || !spaceId) return;
     Haptics.selectionAsync();
+    setSendError(null);
     setText('');
     try {
       await send(trimmed);
     } catch (e: any) {
-      // Surface the error inline; keep the draft cleared per optimistic-clear UX.
+      // Send failed — restore the draft so it isn't lost, and surface the error inline.
       console.warn('[private-space] send failed', e?.message ?? e);
+      setText(trimmed);
+      setSendError(e?.message ?? 'Could not send. Try again.');
     }
   };
 
@@ -171,6 +175,9 @@ export default function PrivateSpaceScreen() {
 
           {/* Input bar */}
           <View style={styles.inputBar}>
+            {sendError != null && (
+              <Text style={styles.errorText}>{sendError}</Text>
+            )}
             <AnimatedInputWrapper focused={inputFocused} style={styles.input}>
               <View style={styles.inputInnerRow}>
                 <TextInput
@@ -319,5 +326,11 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  errorText: {
+    fontFamily: Typography.fonts.body,
+    fontSize: 13,
+    color: AppColors.error,
+    marginBottom: 8,
   },
 });

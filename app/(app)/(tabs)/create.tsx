@@ -33,7 +33,7 @@ import { PaperBackground } from '@/components/ui/PaperBackground';
 import { InkBloom } from '@/components/ui/InkBloom';
 import { SealMark } from '@/components/ui/SealMark';
 import { Toast } from '@/components/glow';
-import { SIGNAL_FORMATS, SIGNAL_MAX_CHARS, DAILY_SIGNAL_CAP } from '@/constants/signals';
+import { SIGNAL_FORMATS, SIGNAL_MAX_CHARS } from '@/constants/signals';
 import { SIGNAL_PROMPTS } from '@/constants/prompts';
 import { useCreateSignal } from '@/hooks/useSignals';
 
@@ -56,7 +56,6 @@ const HOLD_LINES = [
 export default function CreateScreen() {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
-  const remaining = DAILY_SIGNAL_CAP - 1; // mock: one dropped today
   const { mutateAsync: createSignal, isPending } = useCreateSignal();
 
   // Back to the Board. Dismiss the keyboard first so the tab bar is reachable too.
@@ -138,6 +137,10 @@ export default function CreateScreen() {
     // Fire the insert now — it overlaps with the drying animation so the network
     // round-trip is (mostly) hidden behind the ritual, not a separate spinner.
     const pending = createSignal({ text, format: format.value });
+    // Defensive: the real error is handled below via `await pending` in the
+    // try/catch after the ritual delay. This just prevents an unhandled-
+    // rejection warning if retry/timeout config ever fires before that await.
+    pending.catch(() => {});
     setTimeout(async () => {
       try {
         await pending;
@@ -240,7 +243,7 @@ export default function CreateScreen() {
           <Pressable onPress={goBack} hitSlop={14} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Back to the board">
             <Feather name="chevron-left" size={22} color={AppColors.text} />
           </Pressable>
-          <Text style={styles.dateline}>today · {remaining} of {DAILY_SIGNAL_CAP} left</Text>
+          <Text style={styles.dateline}>today</Text>
         </View>
 
         <Animated.View style={[styles.page, pageStyle]}>
