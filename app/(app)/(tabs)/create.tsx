@@ -35,6 +35,7 @@ import { SealMark } from '@/components/ui/SealMark';
 import { Toast } from '@/components/glow';
 import { SIGNAL_FORMATS, SIGNAL_MAX_CHARS, DAILY_SIGNAL_CAP } from '@/constants/signals';
 import { SIGNAL_PROMPTS } from '@/constants/prompts';
+import { useCreateSignal } from '@/hooks/useSignals';
 
 const GUTTER = 46;           // left margin where the pencil rule + ink-drop live
 const HOLD_MS = 1100;        // how long to press-and-hold the seal to commit
@@ -56,6 +57,7 @@ export default function CreateScreen() {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
   const remaining = DAILY_SIGNAL_CAP - 1; // mock: one dropped today
+  const { mutateAsync: createSignal, isPending } = useCreateSignal();
 
   // Back to the Board. Dismiss the keyboard first so the tab bar is reachable too.
   const goBack = () => {
@@ -133,33 +135,54 @@ export default function CreateScreen() {
     setHoldLine('letting the ink dry…');
     // fluid material, calm: slow sine drying
     dry.value = withTiming(1, { duration: 1150, easing: Easing.inOut(Easing.sin) });
-    setTimeout(() => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid); // the ink "sets"
-      // paper/ink float banner — the send confirmation
-      Toast.show(
-        (
-          <View style={styles.banner}>
-            <View style={styles.bannerDot} />
-            <Text style={styles.bannerText}>Your signal is on the board.</Text>
-          </View>
-        ),
-        { backgroundColor: AppColors.elevated, position: 'top', duration: 2400 },
-      );
-      pageFade.value = withTiming(0, { duration: 460, easing: Easing.in(Easing.cubic) });
-      pageLift.value = withTiming(-44, { duration: 540, easing: Easing.out(Easing.cubic) });
-      setTimeout(() => {
-        setText('');
-        fill.value = withTiming(0, { duration: 1 });
-        dry.value = 0;
+    // Fire the insert now — it overlaps with the drying animation so the network
+    // round-trip is (mostly) hidden behind the ritual, not a separate spinner.
+    const pending = createSignal({ text, format: format.value });
+    setTimeout(async () => {
+      try {
+        await pending;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid); // the ink "sets"
+        // paper/ink float banner — the send confirmation
+        Toast.show(
+          (
+            <View style={styles.banner}>
+              <View style={styles.bannerDot} />
+              <Text style={styles.bannerText}>Your signal is on the board.</Text>
+            </View>
+          ),
+          { backgroundColor: AppColors.elevated, position: 'top', duration: 2400 },
+        );
+        pageFade.value = withTiming(0, { duration: 460, easing: Easing.in(Easing.cubic) });
+        pageLift.value = withTiming(-44, { duration: 540, easing: Easing.out(Easing.cubic) });
+        setTimeout(() => {
+          setText('');
+          fill.value = withTiming(0, { duration: 1 });
+          dry.value = 0;
+          hold.value = withTiming(0, { duration: 300 });
+          pageLift.value = 0;
+          pageFade.value = withTiming(1, { duration: 420 });
+        }, 520);
+      } catch (e: any) {
+        // The seal failed — undo the "set" ink so the writer can try again,
+        // and surface the error via the same paper/ink toast.
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Toast.show(
+          (
+            <View style={styles.banner}>
+              <View style={[styles.bannerDot, { backgroundColor: AppColors.error }]} />
+              <Text style={styles.bannerText}>{e?.message || 'Could not leave your signal. Try again.'}</Text>
+            </View>
+          ),
+          { backgroundColor: AppColors.elevated, position: 'top', duration: 3200 },
+        );
+        dry.value = withTiming(0, { duration: 300 });
         hold.value = withTiming(0, { duration: 300 });
-        pageLift.value = 0;
-        pageFade.value = withTiming(1, { duration: 420 });
-      }, 520);
+      }
     }, 1150);
   };
 
   const beginHold = () => {
-    if (!canLeave) {
+    if (!canLeave || isPending) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       return;
     }
@@ -280,6 +303,7 @@ export default function CreateScreen() {
               )
             }
             delayLongPress={100000}
+            disabled={isPending}
             style={[styles.seal, sealStyle]}
             accessibilityRole="button"
             accessibilityLabel="Press and hold to leave this signal on the board"

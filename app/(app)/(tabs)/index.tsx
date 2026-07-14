@@ -4,12 +4,12 @@
  * Reads short anonymous signals others have left and lets you add to one (→ reply
  * composer). Calm by design: a daily-cap line frames scarcity as intention, never
  * urgency ("2 signals left today", not "hurry"). No counters of likes/views, no
- * streaks. Tapping a card opens the reply composer. UI shell — MOCK_SIGNALS stands
- * in for the future `signals` table.
+ * streaks. Tapping a card opens the reply composer. Reads live from the
+ * alias-only `public_signals` view via useSignals().
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -19,21 +19,31 @@ import { ScreenPaddingH } from '@/constants/spacing';
 import { Wordmark } from '@/components/ui/Wordmark';
 import { PaperBackground } from '@/components/ui/PaperBackground';
 import { GoldDisc } from '@/components/ui/GoldDisc';
-import { MOCK_SIGNALS, type MockSignal } from '@/constants/mockSignals';
+import { useSignals } from '@/hooks/useSignals';
+import type { PublicSignal } from '@/services/supabase';
 import { DAILY_SIGNAL_CAP } from '@/constants/signals';
 
-function SignalCard({ signal, onPress }: { signal: MockSignal; onPress: () => void }) {
+function timeAgo(iso: string): string {
+  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return 'now';
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  return `${Math.floor(s / 86400)}d`;
+}
+
+function SignalCard({ signal, onPress }: { signal: PublicSignal; onPress: () => void }) {
+  const replyCount = signal.reply_count ?? 0;
   return (
     <Pressable style={styles.card} onPress={onPress} accessibilityRole="button">
       <View style={styles.cardHead}>
         <Text style={styles.alias}>{signal.alias}</Text>
-        <Text style={styles.meta}>{signal.postedAgo}</Text>
+        <Text style={styles.meta}>{signal.created_at ? timeAgo(signal.created_at) : ''}</Text>
       </View>
       <Text style={styles.signalText}>{signal.text}</Text>
       <View style={styles.cardFoot}>
         <Feather name="corner-up-left" size={14} color={AppColors.textSecondary} />
         <Text style={styles.footText}>
-          {signal.replies === 0 ? 'add to this' : `${signal.replies} added`}
+          {replyCount === 0 ? 'add to this' : `${replyCount} added`}
         </Text>
       </View>
     </Pressable>
@@ -42,6 +52,7 @@ function SignalCard({ signal, onPress }: { signal: MockSignal; onPress: () => vo
 
 export default function BoardScreen() {
   const router = useRouter();
+  const { data: signals = [], isLoading, refetch } = useSignals();
   const remaining = DAILY_SIGNAL_CAP - 1; // mock: one dropped today
 
   const openReply = (id: string) => {
@@ -61,14 +72,17 @@ export default function BoardScreen() {
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={AppColors.textSecondary} />
+          }
         >
           <Text style={styles.title}>The board</Text>
           <Text style={styles.subtitle}>Short signals from others. Read, and add to one.</Text>
 
-          {MOCK_SIGNALS.map((s, i) => (
-            <React.Fragment key={s.id}>
+          {signals.map((s, i) => (
+            <React.Fragment key={s.id ?? i}>
               {i > 0 && <View style={styles.rule} />}
-              <SignalCard signal={s} onPress={() => openReply(s.id)} />
+              <SignalCard signal={s} onPress={() => s.id && openReply(s.id)} />
             </React.Fragment>
           ))}
 
