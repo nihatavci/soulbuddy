@@ -20,7 +20,6 @@ import { Feather } from '@expo/vector-icons';
 
 const CHARCOAL = '#151518';
 const PAPER = '#F3EFE6';
-const GOLD = '#FFD03A';
 const NOISE = require('@/assets/textures/tex-charcoal.png');
 
 // Partial-desaturation color matrix (keeps ~35% saturation).
