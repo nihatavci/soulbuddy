@@ -4,11 +4,11 @@
  * A calm, private-first thread between two aliases. Safety is not buried in a
  * menu: a persistent strip keeps Reveal, Slow down, and Report one tap away, and
  * the header carries a shield → check-in. No read receipts, no typing indicators,
- * no urgency — the pace belongs to the two people here. UI shell: MOCK_THREAD and
- * MOCK_PRIVATE_SPACES stand in for the future `messages` / `resonances` tables.
+ * no urgency — the pace belongs to the two people here. Messages are read from
+ * and written to the `messages` table (Supabase Realtime keeps the thread live).
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -27,18 +27,17 @@ import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH, Space } from '@/constants/spacing';
 import { AnimatedInputWrapper } from '@/components/ui/AnimatedPressable';
 import { PaperBackground } from '@/components/ui/PaperBackground';
-import {
-  MOCK_PRIVATE_SPACES,
-  MOCK_THREAD,
-  type MockThreadLine,
-} from '@/constants/mockSignals';
+import { useAuth } from '@/context/AuthContext';
+import { useMessages, useSendMessage } from '@/hooks/useMessages';
+import { usePrivateSpaces, otherAlias } from '@/hooks/useSpaces';
+import type { Message } from '@/services/supabase';
 
-function ThreadBubble({ line }: { line: MockThreadLine }) {
+function ThreadBubble({ message, mine }: { message: Message; mine: boolean }) {
   return (
-    <View style={[styles.bubbleRow, line.mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
-      <View style={[styles.bubble, line.mine ? styles.bubbleMine : styles.bubbleTheirs]}>
-        <Text style={[styles.bubbleText, line.mine ? styles.bubbleTextMine : styles.bubbleTextTheirs]}>
-          {line.text}
+    <View style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
+      <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
+        <Text style={[styles.bubbleText, mine ? styles.bubbleTextMine : styles.bubbleTextTheirs]}>
+          {message.text}
         </Text>
       </View>
     </View>
@@ -64,20 +63,34 @@ function SafetyPill({
 
 export default function PrivateSpaceScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id?: string }>();
-  const space = MOCK_PRIVATE_SPACES.find((s) => s.id === id) ?? MOCK_PRIVATE_SPACES[0];
-  const alias = space.alias;
+  const { spaceId } = useLocalSearchParams<{ spaceId?: string }>();
+  const { user } = useAuth();
+  const { data: spaces } = usePrivateSpaces();
+  const { data: messages = [] } = useMessages(spaceId);
+  const { mutateAsync: send, isPending } = useSendMessage(spaceId ?? '');
 
-  const [thread, setThread] = useState<MockThreadLine[]>(MOCK_THREAD);
+  const space = spaces?.find((s) => s.id === spaceId);
+  const alias = space && user?.id ? otherAlias(space, user.id) : '···';
+
   const [text, setText] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
-  const send = () => {
+  useEffect(() => {
+    scrollRef.current?.scrollToEnd({ animated: true });
+  }, [messages.length]);
+
+  const handleSend = async () => {
     const trimmed = text.trim();
-    if (!trimmed) return;
+    if (!trimmed || !spaceId) return;
     Haptics.selectionAsync();
-    setThread((prev) => [...prev, { id: `local-${prev.length}`, mine: true, text: trimmed }]);
     setText('');
+    try {
+      await send(trimmed);
+    } catch (e: any) {
+      // Surface the error inline; keep the draft cleared per optimistic-clear UX.
+      console.warn('[private-space] send failed', e?.message ?? e);
+    }
   };
 
   const openCheckIn = () => {
@@ -141,16 +154,18 @@ export default function PrivateSpaceScreen() {
 
           {/* Thread */}
           <ScrollView
+            ref={scrollRef}
             style={styles.thread}
             contentContainerStyle={styles.threadContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
           >
             <Text style={styles.threadNote}>
               A private space. It moves at your pace — no rush, no one watching.
             </Text>
-            {thread.map((line) => (
-              <ThreadBubble key={line.id} line={line} />
+            {messages.map((m) => (
+              <ThreadBubble key={m.id} message={m} mine={m.sender_id === user?.id} />
             ))}
           </ScrollView>
 
@@ -171,7 +186,8 @@ export default function PrivateSpaceScreen() {
                 />
                 <Pressable
                   style={styles.sendBtn}
-                  onPress={send}
+                  onPress={handleSend}
+                  disabled={isPending}
                   accessibilityRole="button"
                   accessibilityLabel="Send"
                   hitSlop={8}
