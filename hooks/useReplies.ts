@@ -38,20 +38,26 @@ export function useAddReply() {
         .single();
       if (error) throw new Error(error.message);
 
-      // the trigger opened a space with me (user_b) — read it back. The reply
-      // already succeeded; if this read fails (network/transient) don't throw —
-      // that would tempt a retry that duplicates the reply. Just log and return
-      // null, the caller falls back to routing via the Private tab instead.
-      const { data: space, error: spaceErr } = await supabase
-        .from('private_spaces').select('*')
-        .eq('signal_id', input.signalId)
-        .eq('user_b', user?.id ?? '')
-        .maybeSingle();
-      if (spaceErr) {
-        console.warn('[useReplies] space read-back failed:', spaceErr.message);
+      // Find the ONE private space between me and this signal's author (one space
+      // per pair, either direction — a reply to an already-connected person reuses
+      // the existing space rather than keying on this signal_id). The reply already
+      // succeeded; if this read fails don't throw (a retry would duplicate the
+      // reply) — return null and let the caller route via the Private tab.
+      const me = user?.id ?? '';
+      let space: PrivateSpace | null = null;
+      const { data: sig } = await supabase
+        .from('public_signals').select('author_id').eq('id', input.signalId).maybeSingle();
+      const authorId = (sig as { author_id?: string } | null)?.author_id ?? '';
+      if (me && authorId) {
+        const { data: sp, error: spaceErr } = await supabase
+          .from('private_spaces').select('*')
+          .or(`and(user_a.eq.${authorId},user_b.eq.${me}),and(user_a.eq.${me},user_b.eq.${authorId})`)
+          .maybeSingle();
+        if (spaceErr) console.warn('[useReplies] space read-back failed:', spaceErr.message);
+        space = (sp as PrivateSpace) ?? null;
       }
 
-      return { reply: reply as Reply, space: (space as PrivateSpace) ?? null };
+      return { reply: reply as Reply, space };
     },
     onSuccess: (_res, vars) => {
       qc.invalidateQueries({ queryKey: queryKeys.replies(vars.signalId) });
