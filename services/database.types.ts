@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      messages: {
+        Row: {
+          created_at: string
+          id: string
+          sender_id: string
+          space_id: string
+          text: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          sender_id?: string
+          space_id: string
+          text: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          sender_id?: string
+          space_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "private_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "space_overview"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      private_spaces: {
+        Row: {
+          created_at: string
+          id: string
+          signal_id: string
+          user_a: string
+          user_b: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          signal_id: string
+          user_a: string
+          user_b: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          signal_id?: string
+          user_a?: string
+          user_b?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_spaces_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "public_signals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_spaces_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           age_confirmed_at: string | null
@@ -50,6 +128,78 @@ export type Database = {
         }
         Relationships: []
       }
+      replies: {
+        Row: {
+          author_id: string
+          created_at: string
+          id: string
+          moderation_state: string
+          signal_id: string
+          text: string
+        }
+        Insert: {
+          author_id?: string
+          created_at?: string
+          id?: string
+          moderation_state?: string
+          signal_id: string
+          text: string
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          id?: string
+          moderation_state?: string
+          signal_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replies_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "public_signals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replies_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signals: {
+        Row: {
+          author_id: string
+          created_at: string
+          expires_at: string | null
+          format: string
+          id: string
+          moderation_state: string
+          text: string
+        }
+        Insert: {
+          author_id?: string
+          created_at?: string
+          expires_at?: string | null
+          format: string
+          id?: string
+          moderation_state?: string
+          text: string
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          expires_at?: string | null
+          format?: string
+          id?: string
+          moderation_state?: string
+          text?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       public_profiles: {
@@ -73,9 +223,52 @@ export type Database = {
         }
         Relationships: []
       }
+      public_signals: {
+        Row: {
+          alias: string | null
+          author_id: string | null
+          created_at: string | null
+          format: string | null
+          id: string | null
+          reply_count: number | null
+          text: string | null
+        }
+        Relationships: []
+      }
+      space_overview: {
+        Row: {
+          alias_a: string | null
+          alias_b: string | null
+          created_at: string | null
+          id: string | null
+          last_message: string | null
+          last_message_at: string | null
+          signal_id: string | null
+          signal_text: string | null
+          user_a: string | null
+          user_b: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_spaces_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "public_signals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_spaces_signal_id_fkey"
+            columns: ["signal_id"]
+            isOneToOne: false
+            referencedRelation: "signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      is_space_member: { Args: { p_space_id: string }; Returns: boolean }
+      signal_author: { Args: { p_signal_id: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
