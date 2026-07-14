@@ -284,5 +284,46 @@
       "subheading": "Your subscription is active.",
       "cta": "Get Started"
     }
+  },
+  "welcome": {
+    "tagline": "a new emotional space.",
+    "headlineLead": "An unfinished thought,\na new ",
+    "headlineEmphasis": "possibility.",
+    "primary": "Leave a sentence",
+    "login": "Log in"
+  },
+  "ageGate": {
+    "title": "Boundaries first.",
+    "body": "re:sense is for adults only. Your intent is seen before your identity.",
+    "checkbox": "I'm over 18",
+    "confirm": "I understand — continue",
+    "privacy": "Privacy summary",
+    "privacyNote": "We never show your real name by default. You share a sentence and an intent — not a profile. Location is approximate; identity stays yours.",
+    "underageMessage": "You must be 18 or older to use re:sense."
+  },
+  "onboarding": {
+    "title": "Set your alias",
+    "subtitle": "This is how you'll appear. Your real name isn't needed.",
+    "aliasLabel": "Alias",
+    "aliasPlaceholder": "e.g. luna",
+    "aliasHelper": "Your real name isn't needed.",
+    "aliasTaken": "That alias is taken — try another.",
+    "intentTitle": "What are you here for?",
+    "intentHelper": "Pick at least one.",
+    "boundaryTitle": "Your boundaries",
+    "boundaryHelper": "Pick at least one. You can change these later.",
+    "cta": "Enter re:sense",
+    "intent": {
+      "date": "A date",
+      "slow_burn": "Slow burn",
+      "conversation": "Just conversation",
+      "maybe": "Maybe / open"
+    },
+    "boundary": {
+      "no_explicit_content": "No explicit content",
+      "not_looking_to_meet_yet": "Not looking to meet yet",
+      "go_slow": "Go slow",
+      "text_only": "Text only"
+    }
   }
 }

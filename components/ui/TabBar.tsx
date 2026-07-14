@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Feather } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppColors, Typography } from '../../constants/theme';
@@ -10,9 +12,10 @@ import { Space } from '../../constants/spacing';
 type FeatherIcon = React.ComponentProps<typeof Feather>['name'];
 
 const TAB_CONFIG: Record<string, { label: string; icon: FeatherIcon; activeIcon: FeatherIcon }> = {
-  'index/index': { label: 'Home',       icon: 'home',          activeIcon: 'home'          },
-  'messages/index': { label: 'Messages',   icon: 'message-circle', activeIcon: 'message-circle' },
-  'challenges/index': { label: 'Challenges', icon: 'award',         activeIcon: 'award'         },
+  index:     { label: 'Board',   icon: 'grid',   activeIcon: 'grid'   },
+  create:    { label: 'Create',  icon: 'edit-3', activeIcon: 'edit-3' },
+  'private': { label: 'Private', icon: 'lock',   activeIcon: 'lock'   },
+  you:       { label: 'You',     icon: 'user',   activeIcon: 'user'   },
 };
 
 function TabItem({
@@ -70,37 +73,52 @@ function TabItem({
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
 
+  const liquid = isLiquidGlassAvailable();
+
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-      {state.routes.map((route, index) => (
-        <TabItem
-          key={route.key}
-          routeName={route.name}
-          isFocused={state.index === index}
-          onPress={() => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (!event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
-          }}
-        />
-      ))}
+      {/* iOS 26 liquid glass when available, else frosted blur */}
+      {liquid ? (
+        <GlassView style={StyleSheet.absoluteFill} glassEffectStyle="regular" />
+      ) : (
+        <BlurView intensity={36} tint="light" style={StyleSheet.absoluteFill} />
+      )}
+      <View style={[styles.tint, liquid && styles.tintGlass]} pointerEvents="none" />
+      <View style={styles.row}>
+        {state.routes.map((route, index) => (
+          <TabItem
+            key={route.key}
+            routeName={route.name}
+            isFocused={state.index === index}
+            onPress={() => {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
+              if (!event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            }}
+          />
+        ))}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    backgroundColor: AppColors.background,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: AppColors.border,
     paddingTop: Space.sm,
+    overflow: 'hidden',
   },
+  // translucent paper tint over the blur so labels stay legible on light content
+  tint: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(243,239,230,0.5)' },
+  // lighter tint over liquid glass so the glass still reads through
+  tintGlass: { backgroundColor: 'rgba(243,239,230,0.18)' },
+  row: { flexDirection: 'row' },
   tabItem: {
     flex: 1,
     alignItems: 'center',

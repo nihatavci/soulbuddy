@@ -5,32 +5,49 @@
 export { Space, Relation, opticalPadding, ScreenPaddingH, ScreenPaddingTop, ScreenPaddingBottom } from './spacing';
 
 // ─── Colors ──────────────────────────────────────────────────────────────────
+// re:sense design system (claude.ai/design → resense.design-tokens.json).
+// "Signal Paper" art direction — PAPER (light) theme: paper.50 surface, ink.950
+// text, Signal Yellow as scarce punctuation (5–10% max, never wallpaper).
+// surfaceTheme.paper from RESENSE_CLAUDE_DESIGN_SPEC_v1. Keep in sync with tailwind.config.js.
 export const AppColors = {
-  background:    '#FFFFFF',
-  surface:       '#F7F7F8',
-  elevated:      '#FFFFFF',
-  border:        '#E6E6E9',
+  background:    '#F3EFE6',                  // paper.50  / surfaceLight
+  surface:       '#ECE5D9',                  // paper.100 / raised cards & bubbles
+  elevated:      '#E3DACD',                  // paper.200 / more-raised surface
+  sand:          '#D9D2C3',                  // sand.300  / quiet bg, separators, inactive
+  border:        'rgba(13,13,16,0.12)',      // borderOnLight (#0D0D101F)
 
-  text:          '#0D0D14',
-  textSecondary: '#6B6B7B',
+  text:          '#0D0D10',                  // ink.950 / textOnLight
+  textSecondary: '#5C5C64',                  // ink.500 / textMutedOnLight
 
-  // Single swappable accent — replace these four with your brand color scale.
-  accent:        '#3B82F6',
-  accentLight:   '#EFF5FF',
-  accentMuted:   '#DBE8FF',
-  accentDeep:    '#1E40AF',
+  // Signal Yellow accent (primary action bg; ALWAYS ink text on it). Scarce.
+  accent:        '#FFD03A',                  // signal.500
+  accentLight:   'rgba(255,208,58,0.20)',    // signal tint surface (on paper)
+  accentMuted:   'rgba(255,208,58,0.45)',    // signal tint border
+  accentDeep:    '#E7B900',                  // signal.600 (accentPressed / focus)
 
-  premium:       '#9B59B6',
-  success:       '#22C55E',
-  error:         '#EF4444',
+  // Ink islands — for the few deliberately-dark elements on paper (e.g. an ink
+  // button or the "mine" message bubble). Use paper text on these.
+  ink:           '#0D0D10',                  // ink.950
+  inkElevated:   '#212125',                  // ink.800
+
+  premium:       '#7A7F5D',                  // moss.500
+  success:       '#4F6A56',                  // status.success
+  error:         '#A6453D',                  // status.danger
 } satisfies Record<string, string>;
 
 // ─── Typography ──────────────────────────────────────────────────────────────
 // System font placeholder — register a custom font in fonts.ts and update here.
 export const Typography = {
   fonts: {
-    body:    'System',
-    heading: 'System',
+    // re:sense brand fonts (resense.design-tokens.json), bundled as .ttf in
+    // assets/fonts and registered in constants/fonts.ts. display = Playfair
+    // Display (brand/wordmark, italic applied in Wordmark), heading/body =
+    // Satoshi (UI), prompt = Special Elite (typewriter signal-composer face).
+    // Family names must match the keys registered in loadFonts().
+    display: 'PlayfairDisplay',
+    heading: 'Satoshi-Bold',
+    body:    'Satoshi',
+    prompt:  'SpecialElite',
   },
   scale: {
     caption:    { fontSize: 12, lineHeight: 16 },
@@ -42,7 +59,8 @@ export const Typography = {
 } as const;
 
 // ─── Border Radius ───────────────────────────────────────────────────────────
-export const BorderRadius = { sm: 8, md: 12, lg: 16, full: 9999 } as const;
+// re:sense radii (design tokens): card 16, input 16, pill 999. Keep in sync with tailwind.config.js.
+export const BorderRadius = { sm: 8, md: 12, lg: 16, xl: 24, card: 16, input: 16, pill: 999, full: 9999 } as const;
 
 // ─── Shadows ─────────────────────────────────────────────────────────────────
 export const Shadows = {

@@ -7,22 +7,28 @@ module.exports = {
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
-      // Keep in sync with constants/theme.ts AppColors
+      // Keep in sync with constants/theme.ts AppColors (re:sense design tokens)
       colors: {
-        background:      '#FFFFFF',
-        surface:         '#F7F7F8',
-        elevated:        '#FFFFFF',
-        border:          '#E6E6E9',
-        text:            '#0D0D14',
-        'text-secondary': '#6B6B7B',
-        accent:          '#3B82F6',
-        'accent-light':  '#EFF5FF',
-        premium:         '#9B59B6',
-        success:         '#22C55E',
+        background:      '#F3EFE6',                // paper.50 (light surface)
+        surface:         '#ECE5D9',                // paper.100
+        elevated:        '#E3DACD',                // paper.200
+        sand:            '#D9D2C3',                // sand.300
+        border:          'rgba(13,13,16,0.12)',    // borderOnLight
+        text:            '#0D0D10',                // ink.950
+        'text-secondary': '#5C5C64',               // ink.500
+        accent:          '#FFD03A',                // signal.500
+        'accent-light':  'rgba(255,208,58,0.20)',
+        'accent-deep':   '#E7B900',                // signal.600
+        ink:             '#0D0D10',                // ink.950 (dark islands)
+        'ink-elevated':  '#212125',                // ink.800
+        premium:         '#7A7F5D',                // moss.500
+        success:         '#4F6A56',                // status.success
+        error:           '#A6453D',                // status.danger
       },
       // Keep in sync with constants/theme.ts BorderRadius
       borderRadius: {
-        card:      '12px',
+        card:      '16px',
+        input:     '16px',
         'card-lg': '16px',
         pill:      '9999px',
       },
@@ -38,10 +44,12 @@ module.exports = {
         '2xl': '68px',
         '3xl': '110px',
       },
-      // Keep in sync with constants/theme.ts Typography
+      // Keep in sync with constants/theme.ts Typography.fonts (re:sense brand fonts)
       fontFamily: {
-        body:    ['System'],
-        heading: ['System'],
+        brand:   ['PlayfairDisplay', 'serif'],
+        heading: ['Satoshi', 'system-ui', 'sans-serif'],
+        body:    ['Satoshi', 'system-ui', 'sans-serif'],
+        prompt:  ['SpecialElite', 'ui-monospace', 'monospace'],
       },
     },
   },

@@ -259,6 +259,13 @@ export default function AppLayout() {
           gestureEnabled: true,
         }}
       />
+
+      {/* ── re:sense product screens (UI shell) ───────────────────────────── */}
+      <Stack.Screen name="reply-composer"    options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
+      <Stack.Screen name="resonance-unlock"  options={{ animation: 'fade', gestureEnabled: false }} />
+      <Stack.Screen name="private-space"     options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="reveal"            options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
+      <Stack.Screen name="check-in"          options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
     </Stack>
   );
 }

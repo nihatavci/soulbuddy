@@ -48,7 +48,6 @@ import {
   setCcpaDoNotSell,
   type ConsentPreferences,
 } from '@/lib/consent';
-import { exportUserData } from '@/lib/dataExport';
 import { useAccountDeletion } from '@/hooks/useAccountDeletion';
 
 
@@ -152,22 +151,6 @@ export default function ProfileScreen() {
     );
   }, [consent]);
 
-  // ─── Data export (GDPR Article 20) ──────────────────────────────────────
-  const [exporting, setExporting] = useState(false);
-
-  const handleExportData = useCallback(async () => {
-    if (!user?.id) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setExporting(true);
-    const result = await exportUserData(user.id);
-    setExporting(false);
-    if (result.success) {
-      Toast.show(t('profile.toasts.dataExported'), { type: 'success', duration: 2000, position: 'top' });
-    } else {
-      Toast.show(result.error ?? t('profile.toasts.exportFailed'), { type: 'error', duration: 3000, position: 'top' });
-    }
-  }, [user?.id]);
-
   // ─── Name editing ─────────────────────────────────────────────────────────
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput]     = useState(displayName);
@@ -255,7 +238,7 @@ export default function ProfileScreen() {
                 style={styles.guestHeroCTA}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push('/(app)/signup');
+                  router.push('/(auth)/sign-up');
                 }}
               >
                 <Text style={styles.guestHeroCTAText}>{t('account.backUpWithEmail')}</Text>
@@ -516,34 +499,6 @@ export default function ProfileScreen() {
               thumbColor="#fff"
             />
           </View>
-        </Animated.View>
-
-        {/* Data Portability */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t('profile.yourData')}</Text>
-        </View>
-
-        <Animated.View entering={FadeInDown.duration(300).delay(240).springify()} style={[styles.card, styles.premiumCard]}>
-          <Pressable
-            style={styles.menuRow}
-            onPress={handleExportData}
-            disabled={exporting}
-          >
-            <View style={styles.menuRowLeft}>
-              <View style={styles.menuIcon}>
-                <Feather name="download" size={18} color="#FFFFFF" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.menuLabel}>{t('profile.exportData')}</Text>
-                <Text style={styles.menuSub}>{t('profile.exportDataSubtitle')}</Text>
-              </View>
-            </View>
-            {exporting ? (
-              <ActivityIndicator size="small" color={AppColors.accent} />
-            ) : (
-              <Ionicons name="chevron-forward" size={16} color={AppColors.textSecondary} />
-            )}
-          </Pressable>
         </Animated.View>
 
         {/* Subscription */}

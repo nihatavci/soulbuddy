@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "MyApp",
-    "slug": "myapp",
+    "name": "re:sense",
+    "slug": "resense",
     "version": "1.0.0",
     "orientation": "portrait",
     "platforms": [
@@ -33,26 +33,37 @@
     "jsEngine": "hermes",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.yourorg.myapp",
-      "buildNumber": "1",
+      "bundleIdentifier": "com.nihtavci.resense",
+      "buildNumber": "2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSUserTrackingUsageDescription": "We use this data to improve your experience and show you more relevant content.",
         "NSAdvertisingAttributionReportEndpoint": "https://appsflyer-skadnetwork.com/",
-        "NSLocationWhenInUseUsageDescription": "This app does not use your location. This string is required by a third-party SDK."
-      }
+        "NSLocationWhenInUseUsageDescription": "This app does not use your location. This string is required by a third-party SDK.",
+        "SKAdNetworkItems": [
+          {
+            "SKAdNetworkIdentifier": "v9wttpbfk9.skadnetwork"
+          },
+          {
+            "SKAdNetworkIdentifier": "n38lu8286q.skadnetwork"
+          }
+        ]
+      },
+      "appleTeamId": "DN6Q7MMM66"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.yourorg.myapp",
+      "package": "com.nihtavci.resense",
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "com.google.android.gms.permission.AD_ID",
+        "android.permission.INTERNET"
       ],
       "versionCode": 1
     },
@@ -61,7 +72,7 @@
         "projectId": "REPLACE_ME"
       }
     },
-    "scheme": "myapp",
+    "scheme": "resense",
     "plugins": [
       "./plugins/withAndroidKotlinFix",
       "./plugins/withGradleMemory",
@@ -87,12 +98,6 @@
           "note": "Use SENTRY_AUTH_TOKEN env to authenticate with Sentry for source map uploads.",
           "project": "REPLACE_ME",
           "organization": "REPLACE_ME"
-        }
-      ],
-      [
-        "onesignal-expo-plugin",
-        {
-          "mode": "production"
         }
       ],
       [

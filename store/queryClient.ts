@@ -113,4 +113,11 @@ export const queryKeys = {
 
   // aggregated AI context (profile + moods + love maps + sessions)
   userContext:     (userId: string)             => ['userContext', userId] as const,
+
+  // re:sense connection loop
+  signals:       ()                 => ['signals'] as const,
+  signal:        (signalId: string) => ['signal', signalId] as const,
+  replies:       (signalId: string) => ['replies', signalId] as const,
+  spaces:        (userId: string)   => ['spaces', userId] as const,
+  spaceMessages: (spaceId: string)  => ['spaceMessages', spaceId] as const,
 } as const;

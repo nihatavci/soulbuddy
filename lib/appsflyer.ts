@@ -20,10 +20,11 @@
 import { Platform } from 'react-native';
 import { trackMixpanelInstallAttributed } from '@/lib/mixpanel';
 
-// Dev key is the same across platforms — set in .env.local as EXPO_PUBLIC_AF_DEV_KEY
-const DEV_KEY = process.env.EXPO_PUBLIC_AF_DEV_KEY ?? 'ypBuSzum4P9qUWqFDPYazB';
-const IOS_APP_ID     = '6761127556';          // App Store numeric ID
-const ANDROID_APP_ID = 'com.example.myapp'; // Google Play package name
+// Dev key + app IDs are set in .env.local — no hardcoded fallbacks (keyless-boot:
+// a blank .env.local must no-op AppsFlyer, never send events with stale credentials).
+const DEV_KEY = process.env.EXPO_PUBLIC_AF_DEV_KEY ?? '';
+const IOS_APP_ID     = process.env.EXPO_PUBLIC_AF_IOS_APP_ID ?? '';     // App Store numeric ID
+const ANDROID_APP_ID = process.env.EXPO_PUBLIC_AF_ANDROID_APP_ID ?? ''; // Google Play package name
 
 // Lazy-load native module — crashes in Expo Go since it requires a native build.
 // The SDK uses `export default` (ES module) — Metro resolves this correctly when
@@ -72,6 +73,12 @@ export type DeepLinkHandler = (result: AFDeepLinkResult) => void;
 export function initAppsFlyer(onDeepLink?: DeepLinkHandler): void {
   console.log('[AppsFlyer] initAppsFlyer called | platform:', Platform.OS, '| module ready:', !!appsflyer);
 
+  // Keyless-boot guard (mirror lib/sentry.ts): no dev key → no-op, don't init.
+  if (!DEV_KEY) {
+    if (__DEV__) console.warn('[AppsFlyer] No dev key found — attribution disabled. Add EXPO_PUBLIC_AF_DEV_KEY to .env.local');
+    return;
+  }
+
   if (!appsflyer) {
     console.warn('[AppsFlyer] Native module not available — make sure you ran: npx expo run:ios (not Expo Go)');
     return;
@@ -95,7 +102,9 @@ export function initAppsFlyer(onDeepLink?: DeepLinkHandler): void {
           result.scheme = url.protocol.replace(':', '');
           result.host = url.hostname;
           result.path = url.pathname;
-          result.parameters = Object.fromEntries(url.searchParams.entries());
+          const params: Record<string, string> = {};
+          url.searchParams.forEach((value, key) => { params[key] = value; });
+          result.parameters = params;
         } catch {
           // Not a full URL — treat as a path/slug directly
           result.path = dlValue;

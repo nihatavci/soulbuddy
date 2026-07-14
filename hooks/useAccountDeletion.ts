@@ -2,16 +2,17 @@
  * useAccountDeletion — shared deletion hook used by Profile and Account screens.
  *
  * Apple guideline 5.1.1(v) requires permanent account deletion (not just
- * deactivation). For authenticated users we:
- *   1. Clean up app DB rows (FK order: messages → conversation_sessions →
- *      mood_entries → love_maps → profiles).
- *   2. POST to the `delete-user` Edge Function which removes the auth.users row
- *      via the service-role admin API.
- *   3. Best-effort RC logout (swallow errors — RC may not be initialized).
- *   4. Clear local prefs and signOut.
+ * deactivation). For re:sense we:
+ *   1. POST to the `delete-user` Edge Function, which removes the auth.users row
+ *      via the service-role admin API. Deleting auth.users cascades to the
+ *      `public.profiles` row (FK `on delete cascade`), so there is no separate
+ *      table cleanup — re:sense stores no per-user rows outside `profiles` in v1.
+ *   2. Best-effort RevenueCat logout (swallow errors — RC may not be initialized).
+ *   3. signOut → AppGate re-routes to sign-in.
  *
- * For anonymous users there is no server account; we only clear local state
- * and signOut, which routes back through AppGate to a fresh onboarding.
+ * NOTE: re:sense has no anonymous sessions (removed in Phase 1), so there is no
+ * local-only reset path. If later phases add user-owned tables outside profiles,
+ * the delete-user Edge Function (service role) is where that cleanup belongs.
  */
 
 import { useState } from 'react';
@@ -23,12 +24,11 @@ import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/services/supabase';
 import { logoutRevenueCat } from '@/lib/revenuecat';
-import { Prefs } from '@/store/mmkv';
 
 export function useAccountDeletion() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { user, signOut, isAnonymous } = useAuth();
+  const { user, signOut } = useAuth();
 
   const [loading, setLoading] = useState(false);
 
@@ -36,35 +36,12 @@ export function useAccountDeletion() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setLoading(true);
     try {
-      if (isAnonymous) {
-        // Local-only reset. No server account exists for anonymous users.
-        Prefs.remove('onboarding_v3_complete');
-        await signOut();
-        router.replace('/(app)/' as any);
-        return;
-      }
-
       const uid = user?.id;
       if (!uid) {
         throw new Error('no_user');
       }
 
-      // 1. Clean up app DB rows in FK order (children before parents).
-      const sessions = await supabase
-        .from('conversation_sessions')
-        .select('id')
-        .eq('user_id', uid);
-      const sessionIds = (sessions.data ?? []).map((s: { id: string }) => s.id);
-
-      if (sessionIds.length > 0) {
-        await supabase.from('messages').delete().in('session_id', sessionIds);
-      }
-      await supabase.from('conversation_sessions').delete().eq('user_id', uid);
-      await supabase.from('mood_entries').delete().eq('user_id', uid);
-      await supabase.from('love_maps').delete().eq('user_id', uid);
-      await supabase.from('profiles').delete().eq('user_id', uid);
-
-      // 2. Permanently delete auth.users via Edge Function.
+      // Permanently delete auth.users via Edge Function (cascades to profiles).
       // Fetch the live session directly — AuthContext's mapped session only
       // exposes `token` and may be stale if a refresh happened mid-flow.
       const { data: { session: liveSession } } = await supabase.auth.getSession();
@@ -82,20 +59,18 @@ export function useAccountDeletion() {
         throw new Error(`delete-user failed: ${res.status}`);
       }
 
-      // 3. Best-effort RC logout (anon users may not have an RC session).
+      // Best-effort RC logout (RC may not be initialized in keyless builds).
       try {
         await logoutRevenueCat();
       } catch {
         // ignore — RC not critical for deletion
       }
 
-      // 4. Local cleanup + sign out → AppGate re-routes to onboarding.
-      Prefs.remove('onboarding_v3_complete');
+      // Sign out → AppGate re-routes to sign-in.
       await signOut();
       router.replace('/(app)/' as any);
-    } catch (err: any) {
-      const fallback = t('account.deleteFailed');
-      Alert.alert('Error', err?.message ? `${fallback}` : fallback);
+    } catch {
+      Alert.alert('Error', t('account.deleteFailed'));
     } finally {
       setLoading(false);
     }
