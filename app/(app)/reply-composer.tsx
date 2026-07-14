@@ -21,7 +21,8 @@ import { AnimatedInputWrapper } from '@/components/ui/AnimatedPressable';
 import { Button } from '@/components/ui/Button';
 import { PaperBackground } from '@/components/ui/PaperBackground';
 import { GoldDisc } from '@/components/ui/GoldDisc';
-import { MOCK_SIGNALS, SIGNAL_MAX_CHARS } from '@/constants/mockSignals';
+import { MOCK_SIGNALS } from '@/constants/mockSignals';
+import { SIGNAL_MAX_CHARS } from '@/constants/signals';
 
 const MIN_ADDITION = 3;
 const NEAR_LIMIT = SIGNAL_MAX_CHARS - 15;

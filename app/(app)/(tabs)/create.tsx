@@ -33,7 +33,7 @@ import { PaperBackground } from '@/components/ui/PaperBackground';
 import { InkBloom } from '@/components/ui/InkBloom';
 import { SealMark } from '@/components/ui/SealMark';
 import { Toast } from '@/components/glow';
-import { SIGNAL_FORMATS, SIGNAL_MAX_CHARS, DAILY_SIGNAL_CAP } from '@/constants/mockSignals';
+import { SIGNAL_FORMATS, SIGNAL_MAX_CHARS, DAILY_SIGNAL_CAP } from '@/constants/signals';
 import { SIGNAL_PROMPTS } from '@/constants/prompts';
 
 const GUTTER = 46;           // left margin where the pencil rule + ink-drop live

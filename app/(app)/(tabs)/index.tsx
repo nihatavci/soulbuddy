@@ -19,7 +19,8 @@ import { ScreenPaddingH } from '@/constants/spacing';
 import { Wordmark } from '@/components/ui/Wordmark';
 import { PaperBackground } from '@/components/ui/PaperBackground';
 import { GoldDisc } from '@/components/ui/GoldDisc';
-import { MOCK_SIGNALS, DAILY_SIGNAL_CAP, type MockSignal } from '@/constants/mockSignals';
+import { MOCK_SIGNALS, type MockSignal } from '@/constants/mockSignals';
+import { DAILY_SIGNAL_CAP } from '@/constants/signals';
 
 function SignalCard({ signal, onPress }: { signal: MockSignal; onPress: () => void }) {
   return (

@@ -7,6 +7,10 @@
  * the backend phase lands. Aliases only — never real names (privacy-first).
  */
 
+export { SIGNAL_FORMATS, SIGNAL_MAX_CHARS, DAILY_SIGNAL_CAP } from '@/constants/signals';
+export type { SignalFormat } from '@/constants/signals';
+import type { SignalFormat } from '@/constants/signals';
+
 export interface MockSignal {
   id: string;
   alias: string;
@@ -15,18 +19,6 @@ export interface MockSignal {
   postedAgo: string;     // human string, e.g. "2h"
   replies: number;
 }
-
-export type SignalFormat = 'feeling' | 'place' | 'memory' | 'thought';
-
-export const SIGNAL_FORMATS: { value: SignalFormat; label: string; hint: string }[] = [
-  { value: 'feeling', label: 'A feeling', hint: 'something you can’t quite name yet' },
-  { value: 'place',   label: 'A place',   hint: 'somewhere that stayed with you' },
-  { value: 'memory',  label: 'A memory',  hint: 'a moment you keep returning to' },
-  { value: 'thought', label: 'A thought', hint: 'a half-sentence, left open' },
-];
-
-export const SIGNAL_MAX_CHARS = 120;
-export const DAILY_SIGNAL_CAP = 3;
 
 export const MOCK_SIGNALS: MockSignal[] = [
   { id: 's1', alias: 'quietfox',   text: 'the last warm evening before everything got busy again', format: 'memory',  postedAgo: '1h', replies: 2 },
