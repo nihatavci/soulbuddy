@@ -113,3 +113,50 @@ end $$;
 
 -- Reached only if the DO block above did not RAISE.
 select true as ok, 'IDEN-04: 4-col view, no leaked cols, RLS owner-only, no anon grant, cross-user read=2' as detail;
+
+-- ============================================================================
+-- Connection-loop anonymity proof (signals / replies / private_spaces / messages)
+-- Run each query below individually via Supabase MCP `execute_sql` (or psql) and
+-- diff the actual result against the "Expected" comment. These are read-only
+-- introspection queries (information_schema / pg_policies) — no data is written
+-- or rolled back.
+-- ============================================================================
+
+-- public_signals must NOT expose any email/identity column
+select column_name from information_schema.columns
+where table_schema='public' and table_name='public_signals'
+order by ordinal_position;
+-- Expected (exact set, no email): id, author_id, alias, format, text, created_at, reply_count
+
+-- space_overview must expose aliases only, never email
+select column_name from information_schema.columns
+where table_schema='public' and table_name='space_overview'
+order by ordinal_position;
+-- Expected (exact set, no email): id, signal_id, user_a, user_b, alias_a, alias_b,
+--           signal_text, created_at, last_message, last_message_at
+
+-- no policy on any new table joins auth.users — all must gate on auth.uid() /
+-- the signal_author() / is_space_member() SECURITY DEFINER helpers, never a
+-- direct read of auth.users
+select tablename, policyname, cmd, qual, with_check from pg_policies
+where schemaname='public' and tablename in ('signals','replies','private_spaces','messages')
+order by tablename, policyname;
+-- Expected: every `qual`/`with_check` expression is built only from
+--           auth.uid(), column comparisons, signal_author(...), or
+--           is_space_member(...) — manual read confirms no `auth.users` join.
+--   messages.messages_insert_member   (INSERT) with_check: auth.uid() = sender_id AND is_space_member(space_id)
+--   messages.messages_select_member   (SELECT) qual: is_space_member(space_id)
+--   private_spaces.private_spaces_select_member (SELECT) qual: auth.uid() = user_a OR auth.uid() = user_b
+--   replies.replies_insert_own        (INSERT) with_check: auth.uid() = author_id AND auth.uid() <> signal_author(signal_id)
+--   replies.replies_select_participant (SELECT) qual: auth.uid() = author_id OR auth.uid() = signal_author(signal_id)
+--   signals.signals_insert_own        (INSERT) with_check: auth.uid() = author_id
+--   signals.signals_select_own        (SELECT) qual: auth.uid() = author_id
+
+-- Security advisor (run via MCP get_advisors, type='security', project qzaieykseghxufjfgsmf):
+-- Expected: no NEW ERROR-level findings on signals/replies/private_spaces/messages
+-- themselves (RLS enabled on all four). The `security_definer_view` ERROR fires
+-- for public_signals and space_overview (in addition to the pre-existing
+-- public_profiles) — this is an ACCEPTED design decision: these views
+-- intentionally run as definer to expose only alias-safe columns across users,
+-- matching the existing public_profiles pattern. Do not "fix" by flipping to
+-- security_invoker=true (that would break cross-user visibility of aliases).
