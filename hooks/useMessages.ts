@@ -14,7 +14,9 @@ import { supabase } from '@/services/supabase';
 import { queryKeys } from '@/store/queryClient';
 import type { Message } from '@/services/supabase';
 
-const POLL_MS = 2500;
+// Realtime (authed socket) delivers new messages instantly; this poll is only a
+// safety net for a dropped socket, so it can be brisk without being the main path.
+const POLL_MS = 1500;
 
 async function fetchMessages(spaceId: string): Promise<Message[]> {
   const { data, error } = await supabase

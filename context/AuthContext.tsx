@@ -114,6 +114,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
       setSession(initialSession);
       setIsLoading(false);
+      // Authorize the realtime socket so RLS-gated postgres_changes (messages,
+      // etc.) are delivered instantly instead of falling back to polling.
+      if (initialSession?.access_token) {
+        try { supabase.realtime.setAuth(initialSession.access_token); } catch { /* non-fatal */ }
+      }
       if (initialSession?.user && !initialSession.user.is_anonymous) {
         lastRcUserIdRef.current = initialSession.user.id;
         loginRevenueCat(initialSession.user.id).catch(() => {});
@@ -125,6 +130,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
+      // Keep the realtime socket authed on every token refresh / sign-in so
+      // live message delivery never silently degrades.
+      if (newSession?.access_token) {
+        try { supabase.realtime.setAuth(newSession.access_token); } catch { /* non-fatal */ }
+      }
 
       // Keep RevenueCat identity in lock-step with Supabase identity so any
       // sign-in path (Google, Apple, email OTP, signUp/signIn) automatically

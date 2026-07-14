@@ -8,6 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppColors, Typography } from '../../constants/theme';
 import { Space } from '../../constants/spacing';
+import { useUnread } from '../../context/UnreadContext';
 
 type FeatherIcon = React.ComponentProps<typeof Feather>['name'];
 
@@ -22,10 +23,12 @@ function TabItem({
   routeName,
   isFocused,
   onPress,
+  badge = false,
 }: {
   routeName: string;
   isFocused: boolean;
   onPress: () => void;
+  badge?: boolean;
 }) {
   const config = TAB_CONFIG[routeName];
 
@@ -55,6 +58,7 @@ function TabItem({
             size={20}
             color={isFocused ? AppColors.accent : AppColors.textSecondary}
           />
+          {badge && <View style={styles.badgeDot} />}
         </View>
         <Text
           style={[
@@ -72,6 +76,7 @@ function TabItem({
 
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { total: unreadTotal } = useUnread();
 
   const liquid = isLiquidGlassAvailable();
 
@@ -90,6 +95,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
             key={route.key}
             routeName={route.name}
             isFocused={state.index === index}
+            badge={route.name === 'private' && unreadTotal > 0}
             onPress={() => {
               const event = navigation.emit({
                 type: 'tabPress',
@@ -137,6 +143,17 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: AppColors.accentLight,
     borderRadius: 14,
+  },
+  badgeDot: {
+    position: 'absolute',
+    top: -3,
+    right: -7,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: '#E5484D',
+    borderWidth: 1.5,
+    borderColor: 'rgba(243,239,230,0.9)',
   },
   iconWrap: {
     zIndex: 1,

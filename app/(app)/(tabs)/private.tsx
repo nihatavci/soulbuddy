@@ -21,6 +21,7 @@ import { Wordmark } from '@/components/ui/Wordmark';
 import { PaperBackground } from '@/components/ui/PaperBackground';
 import { GoldDisc } from '@/components/ui/GoldDisc';
 import { usePrivateSpaces, otherAlias } from '@/hooks/useSpaces';
+import { useUnread } from '@/context/UnreadContext';
 import { useAuth } from '@/context/AuthContext';
 import type { SpaceOverview } from '@/services/supabase';
 
@@ -38,6 +39,7 @@ type SpaceCardData = {
   lastLine: string;
   updatedAgo: string;
   fromSignal: string;
+  unread: boolean;
 };
 
 function SpaceCard({ space, onPress }: { space: SpaceCardData; onPress: () => void }) {
@@ -47,6 +49,7 @@ function SpaceCard({ space, onPress }: { space: SpaceCardData; onPress: () => vo
         <View style={styles.headLeft}>
           <Feather name="lock" size={12} color={AppColors.textSecondary} />
           <Text style={styles.alias}>{space.alias}</Text>
+          {space.unread && <View style={styles.unreadDot} />}
         </View>
         <Text style={styles.meta}>{space.updatedAgo}</Text>
       </View>
@@ -67,9 +70,11 @@ export default function PrivateScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { data: spaces = [], isFetching, refetch } = usePrivateSpaces();
+  const { unreadSpaceIds, markSpaceRead } = useUnread();
 
   const openSpace = (id: string) => {
     Haptics.selectionAsync();
+    markSpaceRead(id);
     router.push({ pathname: '/(app)/private-space', params: { spaceId: id } } as any);
   };
 
@@ -82,6 +87,7 @@ export default function PrivateScreen() {
           lastLine: s.last_message ?? 'no messages yet',
           updatedAgo: timeAgo(s.last_message_at ?? s.created_at ?? new Date().toISOString()),
           fromSignal: s.signal_text ?? '',
+          unread: unreadSpaceIds.has(s.id),
         }))
     : [];
 
@@ -144,6 +150,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase', color: AppColors.textSecondary,
   },
   meta: { fontFamily: Typography.fonts.body, fontSize: 12, color: AppColors.textSecondary },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#E5484D', marginLeft: 2 },
   lastLine: { fontFamily: 'SpecialElite', fontSize: 16, lineHeight: 24, color: AppColors.text },
   cardFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 14 },
   footText: { flex: 1, fontFamily: Typography.fonts.body, fontSize: 12, color: AppColors.textSecondary },

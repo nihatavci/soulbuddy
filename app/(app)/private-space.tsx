@@ -30,6 +30,7 @@ import { PaperBackground } from '@/components/ui/PaperBackground';
 import { useAuth } from '@/context/AuthContext';
 import { useMessages, useSendMessage } from '@/hooks/useMessages';
 import { usePrivateSpaces, otherAlias } from '@/hooks/useSpaces';
+import { useUnreadContext } from '@/context/UnreadContext';
 import type { Message } from '@/services/supabase';
 
 function ThreadBubble({ message, mine }: { message: Message; mine: boolean }) {
@@ -69,6 +70,7 @@ export default function PrivateSpaceScreen() {
   const { data: messages = [] } = useMessages(spaceId);
   const { mutateAsync: send, isPending } = useSendMessage(spaceId ?? '');
 
+  const { markSpaceRead } = useUnreadContext();
   const space = spaces?.find((s) => s.id === spaceId);
   const alias = space && user?.id ? otherAlias(space, user.id) : '···';
 
@@ -80,6 +82,12 @@ export default function PrivateSpaceScreen() {
   useEffect(() => {
     scrollRef.current?.scrollToEnd({ animated: true });
   }, [messages.length]);
+
+  // Reading the thread clears its unread state — on open and on each new message
+  // that arrives while it's on screen.
+  useEffect(() => {
+    if (spaceId) markSpaceRead(spaceId);
+  }, [spaceId, messages.length, markSpaceRead]);
 
   const handleSend = async () => {
     const trimmed = text.trim();

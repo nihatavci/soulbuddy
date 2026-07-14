@@ -38,6 +38,7 @@ import {
 } from '@/lib/mixpanel';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { Prefs } from '@/store/mmkv';
+import { UnreadProvider } from '@/context/UnreadContext';
 
 export default function AppLayout() {
   const { user } = useAuth();
@@ -221,6 +222,7 @@ export default function AppLayout() {
   }, []);
 
   return (
+    <UnreadProvider>
     <Stack screenOptions={{ headerShown: false }}>
       {/* Gate screen — initial route, shows splash and redirects */}
       <Stack.Screen name="index" options={{ animation: 'none' }} />
@@ -267,5 +269,6 @@ export default function AppLayout() {
       <Stack.Screen name="reveal"            options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
       <Stack.Screen name="check-in"          options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
     </Stack>
+    </UnreadProvider>
   );
 }
