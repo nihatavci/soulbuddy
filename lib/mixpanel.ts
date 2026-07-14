@@ -20,8 +20,35 @@ const TOKEN = process.env.EXPO_PUBLIC_MIXPANEL_TOKEN ?? '';
 
 // ─── Instance ────────────────────────────────────────────────────────────────
 
+/**
+ * No-op stand-in used when no token is configured. The Mixpanel SDK throws
+ * "token is not a valid string" if constructed with an empty token, and that
+ * throw happens at module import — before the Root Layout mounts — which crashes
+ * the app on launch. When analytics is unconfigured we substitute a stub with
+ * the same method surface so every track* helper below silently does nothing.
+ */
+function createNoopMixpanel(): Mixpanel {
+  const people = {
+    set() {}, setOnce() {}, increment() {}, trackCharge() {},
+  };
+  const stub = {
+    init: async () => {},
+    registerSuperProperties() {},
+    identify() {},
+    reset() {},
+    track() {},
+    getPeople: () => people,
+    getDistinctId: async () => '',
+    optInTracking() {},
+    optOutTracking() {},
+  };
+  return stub as unknown as Mixpanel;
+}
+
 // trackAutomaticEvents: false — we control every event ourselves (no auto-capture)
-const mixpanel = new Mixpanel(TOKEN, /* trackAutomaticEvents */ false);
+const mixpanel: Mixpanel = TOKEN
+  ? new Mixpanel(TOKEN, /* trackAutomaticEvents */ false)
+  : createNoopMixpanel();
 
 // ─── Initialize ──────────────────────────────────────────────────────────────
 
