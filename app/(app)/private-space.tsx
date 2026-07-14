@@ -280,16 +280,30 @@ const styles = StyleSheet.create({
   bubbleRow: { flexDirection: 'row', marginBottom: 10 },
   bubbleRowMine: { justifyContent: 'flex-end' },
   bubbleRowTheirs: { justifyContent: 'flex-start' },
-  bubble: { maxWidth: '78%', borderRadius: 16, padding: 12 },
-  bubbleMine: { backgroundColor: AppColors.ink },
-  bubbleTheirs: {
-    backgroundColor: AppColors.surface,
+  bubble: {
+    maxWidth: '88%',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  // Mine → right, paper with a subtle ink hairline, tail at bottom-right.
+  bubbleMine: {
+    backgroundColor: '#ECE5D9',
     borderWidth: 1,
-    borderColor: AppColors.border,
+    borderColor: 'rgba(13,13,16,0.1)',
+    borderBottomRightRadius: 6,
+    borderBottomLeftRadius: 16,
+  },
+  // Theirs → left, dark ink, tail at bottom-left.
+  bubbleTheirs: {
+    backgroundColor: '#212125',
+    borderBottomRightRadius: 16,
+    borderBottomLeftRadius: 6,
   },
   bubbleText: { fontFamily: Typography.fonts.body, fontSize: 15, lineHeight: 22 },
-  bubbleTextMine: { color: AppColors.background },
-  bubbleTextTheirs: { color: AppColors.text },
+  bubbleTextMine: { color: '#0D0D10' },
+  bubbleTextTheirs: { color: '#F3EFE6' },
 
   // Input bar
   inputBar: {
