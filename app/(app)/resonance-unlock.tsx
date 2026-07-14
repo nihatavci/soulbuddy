@@ -11,7 +11,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
@@ -22,10 +22,11 @@ import { GoldDisc } from '@/components/ui/GoldDisc';
 
 export default function ResonanceUnlockScreen() {
   const router = useRouter();
+  const { spaceId } = useLocalSearchParams<{ spaceId?: string }>();
 
   const openPrivateSpace = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.replace('/(app)/private-space' as any);
+    router.replace({ pathname: '/(app)/private-space', params: { spaceId: spaceId ?? '' } });
   };
 
   return (

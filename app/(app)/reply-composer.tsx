@@ -4,13 +4,14 @@
  * A re:sense reply is an ADD, not a reaction: you continue the thought rather than
  * judge it. Reads the original signal (read-only card) and lets you compose an
  * addition in the same typewriter face. On submit we jump to the resonance-unlock
- * screen to showcase the mutual-resonance arc. UI shell — MOCK_SIGNALS stands in
- * for the future `signals` table; local useState only, no backend yet. Calm by
- * design: no urgency, no "reply before it disappears".
+ * screen to showcase the mutual-resonance arc. Reads the live signal via
+ * useSignal and inserts the reply via useAddReply — the DB trigger auto-opens a
+ * private space, whose id we carry into resonance-unlock. Calm by design: no
+ * urgency, no "reply before it disappears".
  */
 
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Pressable, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -21,8 +22,9 @@ import { AnimatedInputWrapper } from '@/components/ui/AnimatedPressable';
 import { Button } from '@/components/ui/Button';
 import { PaperBackground } from '@/components/ui/PaperBackground';
 import { GoldDisc } from '@/components/ui/GoldDisc';
-import { MOCK_SIGNALS } from '@/constants/mockSignals';
 import { SIGNAL_MAX_CHARS } from '@/constants/signals';
+import { useSignal } from '@/hooks/useSignals';
+import { useAddReply } from '@/hooks/useReplies';
 
 const MIN_ADDITION = 3;
 const NEAR_LIMIT = SIGNAL_MAX_CHARS - 15;
@@ -30,19 +32,27 @@ const NEAR_LIMIT = SIGNAL_MAX_CHARS - 15;
 export default function ReplyComposerScreen() {
   const router = useRouter();
   const { signalId } = useLocalSearchParams<{ signalId?: string }>();
-  const original = MOCK_SIGNALS.find((s) => s.id === signalId) ?? MOCK_SIGNALS[0];
+  const { data: original } = useSignal(signalId);
+  const { mutateAsync: addReply, isPending } = useAddReply();
 
   const [addition, setAddition] = useState('');
   const [focused, setFocused] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const canSubmit = addition.trim().length >= MIN_ADDITION;
+  const canSubmit = addition.trim().length >= MIN_ADDITION && !isPending;
   const nearLimit = addition.length >= NEAR_LIMIT;
 
-  const handleSubmit = () => {
-    if (!canSubmit) return;
+  const handleSubmit = async () => {
+    if (!canSubmit || !signalId) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Showcase the resonance arc: signal → response → mutual resonance.
-    router.replace('/(app)/resonance-unlock' as any);
+    setSubmitError(null);
+    try {
+      const { space } = await addReply({ signalId, text: addition });
+      // Showcase the resonance arc: signal → response → mutual resonance.
+      router.replace({ pathname: '/(app)/resonance-unlock', params: { spaceId: space?.id ?? '' } });
+    } catch (e: any) {
+      setSubmitError(e?.message ?? 'Something went wrong. Try again.');
+    }
   };
 
   return (
@@ -71,10 +81,16 @@ export default function ReplyComposerScreen() {
             <Text style={styles.title}>Add to this</Text>
 
             {/* Original signal — read-only */}
-            <View style={styles.card}>
-              <Text style={styles.alias}>{original.alias}</Text>
-              <Text style={styles.originalText}>{original.text}</Text>
-            </View>
+            {original == null ? (
+              <View style={[styles.card, styles.cardLoading]}>
+                <ActivityIndicator color={AppColors.accent} />
+              </View>
+            ) : (
+              <View style={styles.card}>
+                <Text style={styles.alias}>{original.alias}</Text>
+                <Text style={styles.originalText}>{original.text}</Text>
+              </View>
+            )}
 
             {/* Composer */}
             <View style={styles.fieldGroup}>
@@ -102,16 +118,20 @@ export default function ReplyComposerScreen() {
               <Text style={[styles.counter, nearLimit && styles.counterNear]}>
                 {addition.length}/{SIGNAL_MAX_CHARS}
               </Text>
+
+              {submitError != null && (
+                <Text style={styles.errorText}>{submitError}</Text>
+              )}
             </View>
           </ScrollView>
 
           <View style={styles.footer}>
             <Button
-              label="Add to the signal"
+              label={isPending ? 'Adding…' : 'Add to the signal'}
               variant="primary"
               size="lg"
               onPress={handleSubmit}
-              disabled={!canSubmit}
+              disabled={!canSubmit || original == null}
               style={styles.cta}
             />
           </View>
@@ -136,6 +156,7 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.surface, borderRadius: 16, borderWidth: 1,
     borderColor: AppColors.border, padding: 18,
   },
+  cardLoading: { alignItems: 'center', paddingVertical: 28 },
   alias: {
     fontFamily: Typography.fonts.body, fontSize: 12, letterSpacing: 0.4,
     textTransform: 'uppercase', color: AppColors.accent, marginBottom: 10,
@@ -161,6 +182,10 @@ const styles = StyleSheet.create({
     textAlign: 'right', marginTop: 8,
   },
   counterNear: { color: AppColors.error },
+  errorText: {
+    fontFamily: Typography.fonts.body, fontSize: 13, color: AppColors.error,
+    marginTop: 8,
+  },
   footer: { paddingTop: 12, paddingBottom: 16 },
   cta: { borderRadius: 999 },
 });
