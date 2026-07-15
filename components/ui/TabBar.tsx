@@ -120,10 +120,10 @@ const styles = StyleSheet.create({
     paddingTop: Space.sm,
     overflow: 'hidden',
   },
-  // translucent paper tint over the blur so labels stay legible on light content
-  tint: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(243,239,230,0.5)' },
-  // lighter tint over liquid glass so the glass still reads through
-  tintGlass: { backgroundColor: 'rgba(243,239,230,0.18)' },
+  // Solid paper so the bar reads as a seamless continuation of the screen
+  // background (matches AppColors.background) rather than a distinct glass capsule.
+  tint: { ...StyleSheet.absoluteFillObject, backgroundColor: AppColors.background },
+  tintGlass: { backgroundColor: AppColors.background },
   row: { flexDirection: 'row' },
   tabItem: {
     flex: 1,
@@ -146,14 +146,12 @@ const styles = StyleSheet.create({
   },
   badgeDot: {
     position: 'absolute',
-    top: -3,
-    right: -7,
-    width: 9,
-    height: 9,
-    borderRadius: 5,
+    top: -1,
+    right: -6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#E5484D',
-    borderWidth: 1.5,
-    borderColor: 'rgba(243,239,230,0.9)',
   },
   iconWrap: {
     zIndex: 1,
