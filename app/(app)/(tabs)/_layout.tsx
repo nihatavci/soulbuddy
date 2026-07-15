@@ -20,9 +20,10 @@ import { AppColors } from '@/constants/theme';
 
 export default function TabsLayout() {
   const { total } = useUnread();
-  // Paper-ink unread indicator: a small INK dot (empty string = dot, not a count) —
-  // calmer + on-brand vs the loud system-red numbered circle. Non-addictive by design.
-  const badge = total > 0 ? '' : undefined;
+  // Native badge: an empty string renders as an oversized dot (uncontrollable size),
+  // so use the actual count → iOS draws a proper small numbered pill. Recoloured to
+  // INK (not system red) via badgeBackgroundColor below, to stay on-brand.
+  const badge = total > 0 ? String(total) : undefined;
 
   return (
     <NativeTabs
