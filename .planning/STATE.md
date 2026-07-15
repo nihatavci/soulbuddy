@@ -73,6 +73,12 @@ None yet.
 
 - REQUIREMENTS.md header states "16 total" but actually lists 18 distinct requirement IDs. Roadmap maps all 18. Requirements count should be reconciled to 18 in REQUIREMENTS.md.
 
+## Quick Tasks Completed
+
+| Date | Slug | Description | Status |
+|------|------|-------------|--------|
+| 2026-07-15 | harden-messaging-db | Remediate Supabase advisors on messaging DB (RLS initplan, search_path, SECURITY DEFINER RPC surface) | complete ✓ |
+
 ## Deferred Items
 
 Items acknowledged and carried forward from previous milestone close:
