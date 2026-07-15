@@ -79,6 +79,7 @@
       "./plugins/withGradleMemory",
       "expo-router",
       "expo-apple-authentication",
+      "expo-notifications",
       "expo-font",
       [
         "expo-image-picker",

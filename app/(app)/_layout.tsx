@@ -39,7 +39,7 @@ import {
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { Prefs } from '@/store/mmkv';
 import { UnreadProvider } from '@/context/UnreadContext';
-import { registerPushToken } from '@/lib/push';
+import { registerPushToken, configureNotifications, addPushResponseListener } from '@/lib/push';
 
 export default function AppLayout() {
   const { user } = useAuth();
@@ -163,6 +163,16 @@ export default function AppLayout() {
   useEffect(() => {
     if (user?.id) registerPushToken(user.id);
   }, [user?.id]);
+
+  // Message-notification behavior: suppress foreground banners (in-app update +
+  // tab dot handle it), and route notification taps to the private-space thread.
+  useEffect(() => {
+    configureNotifications();
+    const unsubscribe = addPushResponseListener((spaceId) => {
+      router.push({ pathname: '/(app)/private-space', params: { spaceId } } as any);
+    });
+    return unsubscribe;
+  }, [router]);
 
   // Sync subscription tier as a OneSignal tag
   useEffect(() => {

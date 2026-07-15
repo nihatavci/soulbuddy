@@ -20,7 +20,23 @@ import { supabase } from '@/services/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { queryKeys } from '@/store/queryClient';
 import { usePrivateSpaces } from '@/hooks/useSpaces';
+import { setAppBadge } from '@/lib/push';
 import { Prefs } from '@/store/mmkv';
+
+/** True if any space has a message newer than its stored last-read time. */
+function hasUnread(
+  spaces: { id?: string | null; last_message_at?: string | null }[],
+  lastRead: Record<string, string>,
+): boolean {
+  for (const s of spaces) {
+    if (!s.id || !s.last_message_at) continue;
+    const read = lastRead[s.id];
+    if (!read || new Date(s.last_message_at).getTime() > new Date(read).getTime()) {
+      return true;
+    }
+  }
+  return false;
+}
 
 const LAST_READ_KEY = 'unread_last_read_v1';
 
@@ -45,6 +61,8 @@ export function UnreadProvider({ children }: { children: React.ReactNode }) {
   const qc = useQueryClient();
   const [lastRead, setLastRead] = useState<Record<string, string>>(() => loadLastRead());
 
+  const { data: spaces = [] } = usePrivateSpaces();
+
   const markSpaceRead = useCallback((spaceId: string) => {
     if (!spaceId) return;
     setLastRead((prev) => {
@@ -53,6 +71,13 @@ export function UnreadProvider({ children }: { children: React.ReactNode }) {
       return next;
     });
   }, []);
+
+  // App-icon badge (presence model): 1 when anything is unread, 0 otherwise.
+  // Kept in sync as spaces update (realtime/poll) and as threads are marked read.
+  useEffect(() => {
+    if (!user?.id) { void setAppBadge(0); return; }
+    void setAppBadge(hasUnread(spaces, lastRead) ? 1 : 0);
+  }, [user?.id, spaces, lastRead]);
 
   // One global realtime subscription. RLS ensures we only receive INSERTs for
   // messages in spaces we're a member of. A message from the other person

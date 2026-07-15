@@ -32,6 +32,66 @@ function resolveProjectId(): string | null {
   return id && id !== 'REPLACE_ME' ? id : null;
 }
 
+/**
+ * Configure how notifications behave while the app is FOREGROUNDED.
+ * Product decision: no OS banner when the app is open — the live in-app update +
+ * tab dot already surface the message. We still let the badge update. Call once.
+ */
+export function configureNotifications(): void {
+  if (!Notifications) return;
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: false,
+        shouldShowList: false,
+        shouldPlaySound: false,
+        shouldSetBadge: true,
+      }),
+    });
+  } catch (e) {
+    if (__DEV__) console.warn('[push] configureNotifications failed', e);
+  }
+}
+
+/** Set the app-icon badge (presence model: pass 1 for "has unread", 0 for none). */
+export async function setAppBadge(count: number): Promise<void> {
+  if (!Notifications || Platform.OS === 'web') return;
+  try {
+    await Notifications.setBadgeCountAsync(Math.max(0, count));
+  } catch (e) {
+    if (__DEV__) console.warn('[push] setAppBadge failed', e);
+  }
+}
+
+/**
+ * Deep-link on notification tap. Fires the handler with the `spaceId` from the
+ * push `data` payload — both for taps while running and for a cold start launched
+ * from a notification. Returns an unsubscribe fn.
+ */
+export function addPushResponseListener(
+  handler: (spaceId: string) => void,
+): () => void {
+  if (!Notifications) return () => {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const extract = (resp: any): string | undefined =>
+    resp?.notification?.request?.content?.data?.spaceId;
+  try {
+    // Cold start: app opened by tapping a notification.
+    Notifications.getLastNotificationResponseAsync?.().then((resp: unknown) => {
+      const spaceId = extract(resp);
+      if (spaceId) handler(String(spaceId));
+    });
+    const sub = Notifications.addNotificationResponseReceivedListener((resp: unknown) => {
+      const spaceId = extract(resp);
+      if (spaceId) handler(String(spaceId));
+    });
+    return () => { try { sub?.remove?.(); } catch { /* non-fatal */ } };
+  } catch (e) {
+    if (__DEV__) console.warn('[push] addPushResponseListener failed', e);
+    return () => {};
+  }
+}
+
 /** Request permission, get the Expo push token, and upsert it for this user. */
 export async function registerPushToken(userId: string): Promise<void> {
   if (!Notifications || Platform.OS === 'web' || !userId) return;

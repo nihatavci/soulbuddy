@@ -78,6 +78,7 @@ None yet.
 | Date | Slug | Description | Status |
 |------|------|-------------|--------|
 | 2026-07-15 | harden-messaging-db | Remediate Supabase advisors on messaging DB (RLS initplan, search_path, SECURITY DEFINER RPC surface) | complete ✓ |
+| 2026-07-15 | wire-message-push | Wire live message push (expo-notifications plugin, foreground handler, presence badge, tap deep-link, alias push trigger) — needs native rebuild | complete ✓ |
 
 ## Deferred Items
 

@@ -21,7 +21,9 @@ const POLL_MS = 1500;
 async function fetchMessages(spaceId: string): Promise<Message[]> {
   const { data, error } = await supabase
     .from('messages').select('*').eq('space_id', spaceId)
-    .order('created_at', { ascending: true });
+    // id as a stable tiebreaker so two messages in the same instant never reorder.
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []) as Message[];
 }
@@ -29,7 +31,14 @@ async function fetchMessages(spaceId: string): Promise<Message[]> {
 function upsertMessage(list: Message[] | undefined, msg: Message): Message[] {
   const cur = list ?? [];
   if (cur.some((m) => m.id === msg.id)) return cur;
-  return [...cur, msg];
+  // Insert then sort by (created_at, id): a realtime INSERT may arrive after a
+  // later-polled message, so appending blindly could show it out of order.
+  const next = [...cur, msg];
+  next.sort((a, b) => {
+    const t = a.created_at.localeCompare(b.created_at);
+    return t !== 0 ? t : a.id.localeCompare(b.id);
+  });
+  return next;
 }
 
 export function useMessages(spaceId: string | undefined) {
