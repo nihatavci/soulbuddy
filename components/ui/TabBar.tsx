@@ -7,11 +7,8 @@ import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppColors, Typography } from '../../constants/theme';
+import { Space } from '../../constants/spacing';
 import { useUnread } from '../../context/UnreadContext';
-
-// Paper tint laid over the glass so the capsule reads warm/cream instead of the
-// OS's cool white. Higher alpha = warmer & more solid; lower = glassier.
-const PAPER_TINT = 'rgba(243,239,230,0.6)';
 
 type FeatherIcon = React.ComponentProps<typeof Feather>['name'];
 
@@ -52,7 +49,9 @@ function TabItem({
       accessibilityLabel={config.label}
     >
       <View style={styles.tabInner}>
+        {/* Active pill background */}
         {isFocused && <View style={styles.activePill} />}
+
         <View style={styles.iconWrap}>
           <Feather
             name={isFocused ? config.activeIcon : config.icon}
@@ -75,71 +74,61 @@ function TabItem({
   );
 }
 
-/**
- * re:sense tab bar — a floating rounded capsule of real glass (iOS 26 liquid glass
- * via GlassView, frosted blur fallback) warmed with a paper tint so it reads cream,
- * NOT the OS's white. Custom view = we control the tint (the native tab bar can't
- * be recolored). Active tab gets the signal-yellow pill; small unread dot.
- */
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { total: unreadTotal } = useUnread();
+
   const liquid = isLiquidGlassAvailable();
 
   return (
-    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-      <View style={styles.capsule}>
-        {liquid ? (
-          <GlassView style={StyleSheet.absoluteFill} glassEffectStyle="regular" />
-        ) : (
-          <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
-        )}
-        {/* warm the glass toward paper so it isn't white */}
-        <View style={[StyleSheet.absoluteFill, styles.paperTint]} pointerEvents="none" />
-        <View style={styles.row}>
-          {state.routes.map((route, index) => (
-            <TabItem
-              key={route.key}
-              routeName={route.name}
-              isFocused={state.index === index}
-              badge={route.name === 'private' && unreadTotal > 0}
-              onPress={() => {
-                const event = navigation.emit({
-                  type: 'tabPress',
-                  target: route.key,
-                  canPreventDefault: true,
-                });
-                if (!event.defaultPrevented) {
-                  navigation.navigate(route.name);
-                }
-              }}
-            />
-          ))}
-        </View>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+      {/* iOS 26 liquid glass when available, else frosted blur */}
+      {liquid ? (
+        <GlassView style={StyleSheet.absoluteFill} glassEffectStyle="regular" />
+      ) : (
+        <BlurView intensity={36} tint="light" style={StyleSheet.absoluteFill} />
+      )}
+      <View style={[styles.tint, liquid && styles.tintGlass]} pointerEvents="none" />
+      <View style={styles.row}>
+        {state.routes.map((route, index) => (
+          <TabItem
+            key={route.key}
+            routeName={route.name}
+            isFocused={state.index === index}
+            badge={route.name === 'private' && unreadTotal > 0}
+            onPress={() => {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
+              if (!event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            }}
+          />
+        ))}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // Transparent positioning layer — the screen's paper shows behind the floating
-  // capsule.
-  wrap: {
-    backgroundColor: 'transparent',
-    paddingHorizontal: 16,
-    paddingTop: 6,
-  },
-  // The capsule: real glass, clipped to the rounded shape, warmed by the paper tint.
-  capsule: {
-    borderRadius: 30,
+  container: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: AppColors.border,
+    paddingTop: Space.sm,
     overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: AppColors.border,
-    paddingVertical: 10,
   },
-  paperTint: { backgroundColor: PAPER_TINT },
+  // translucent paper tint over the blur so labels stay legible on light content
+  tint: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(243,239,230,0.5)' },
+  // lighter tint over liquid glass so the glass still reads through
+  tintGlass: { backgroundColor: 'rgba(243,239,230,0.18)' },
   row: { flexDirection: 'row' },
-  tabItem: { flex: 1, alignItems: 'center' },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
   tabInner: {
     alignItems: 'center',
     paddingVertical: 4,
@@ -148,12 +137,12 @@ const styles = StyleSheet.create({
   },
   activePill: {
     position: 'absolute',
-    top: -2,
-    left: 6,
-    right: 6,
-    bottom: -2,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: AppColors.accentLight,
-    borderRadius: 16,
+    borderRadius: 14,
   },
   badgeDot: {
     position: 'absolute',
@@ -164,7 +153,9 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: '#E5484D',
   },
-  iconWrap: { zIndex: 1 },
+  iconWrap: {
+    zIndex: 1,
+  },
   tabLabel: {
     fontFamily: Typography.fonts.body,
     fontSize: 10,
