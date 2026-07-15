@@ -34,7 +34,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.nihtavci.resense",
-      "buildNumber": "4",
+      "buildNumber": "5",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSUserTrackingUsageDescription": "We use this data to improve your experience and show you more relevant content.",
