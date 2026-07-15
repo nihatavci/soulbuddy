@@ -7,7 +7,6 @@ import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppColors, Typography } from '../../constants/theme';
-import { Space } from '../../constants/spacing';
 import { useUnread } from '../../context/UnreadContext';
 
 type FeatherIcon = React.ComponentProps<typeof Feather>['name'];
@@ -55,7 +54,7 @@ function TabItem({
         <View style={styles.iconWrap}>
           <Feather
             name={isFocused ? config.activeIcon : config.icon}
-            size={20}
+            size={18}
             color={isFocused ? AppColors.accent : AppColors.textSecondary}
           />
           {badge && <View style={styles.badgeDot} />}
@@ -81,7 +80,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const liquid = isLiquidGlassAvailable();
 
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 6) }]}>
       {/* iOS 26 liquid glass when available, else frosted blur */}
       {liquid ? (
         <GlassView style={StyleSheet.absoluteFill} glassEffectStyle="regular" />
@@ -117,7 +116,7 @@ const styles = StyleSheet.create({
   container: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: AppColors.border,
-    paddingTop: Space.sm,
+    paddingTop: 5,
     overflow: 'hidden',
   },
   // translucent paper tint over the blur so labels stay legible on light content
@@ -131,7 +130,7 @@ const styles = StyleSheet.create({
   },
   tabInner: {
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 2,
     paddingHorizontal: 16,
     position: 'relative',
   },
@@ -146,11 +145,11 @@ const styles = StyleSheet.create({
   },
   badgeDot: {
     position: 'absolute',
-    top: -1,
-    right: -6,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    top: 0,
+    right: -5,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
     backgroundColor: '#E5484D',
   },
   iconWrap: {
@@ -158,9 +157,9 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     fontFamily: Typography.fonts.body,
-    fontSize: 10,
+    fontSize: 9,
     letterSpacing: 0.3,
-    marginTop: 2,
+    marginTop: 1,
     zIndex: 1,
   },
   tabLabelActive: {
