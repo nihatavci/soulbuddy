@@ -224,6 +224,84 @@ export type Database = {
         }
         Relationships: []
       }
+      space_events: {
+        Row: {
+          actor_id: string
+          created_at: string
+          id: string
+          kind: string
+          space_id: string
+        }
+        Insert: {
+          actor_id?: string
+          created_at?: string
+          id?: string
+          kind: string
+          space_id: string
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          space_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_events_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "private_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "space_events_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "space_overview"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      space_reveals: {
+        Row: {
+          age_verified: boolean
+          created_at: string
+          first_name: string | null
+          space_id: string
+          user_id: string
+        }
+        Insert: {
+          age_verified?: boolean
+          created_at?: string
+          first_name?: string | null
+          space_id: string
+          user_id?: string
+        }
+        Update: {
+          age_verified?: boolean
+          created_at?: string
+          first_name?: string | null
+          space_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_reveals_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "private_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "space_reveals_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "space_overview"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       public_profiles: {
@@ -291,6 +369,7 @@ export type Database = {
       }
     }
     Functions: {
+      i_have_revealed: { Args: { p_space_id: string }; Returns: boolean }
       is_space_member: { Args: { p_space_id: string }; Returns: boolean }
       signal_author: { Args: { p_signal_id: string }; Returns: string }
     }

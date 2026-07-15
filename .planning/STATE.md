@@ -83,6 +83,7 @@ None yet.
 | 2026-07-15 | nativetabs-glass | Restore expo-router NativeTabs liquid-glass tab bar (blog approach); verifying via iOS 26.5 native build | complete ✓ |
 | 2026-07-15 | renkler-grain | Fix invisible black-on-black button + add Renkler grain overlay (global + textured buttons) | complete ✓ |
 | 2026-07-15 | compose-edgeframe-seal | Compose screen: edge-tracing frame draw-on-open, bigger seal (scaled SealMark), pulsing tap-hint; fix grain tiling regression | complete ✓ |
+| 2026-07-15 | reveal-slowdown | Build mutual Reveal (space_reveals + mutual-gate RLS) + Slow-down (space_events) for real; consolidate Report/shield; feedback toasts | complete ✓ |
 
 ## Deferred Items
 

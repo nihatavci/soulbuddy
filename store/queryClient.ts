@@ -120,4 +120,6 @@ export const queryKeys = {
   replies:       (signalId: string) => ['replies', signalId] as const,
   spaces:        (userId: string)   => ['spaces', userId] as const,
   spaceMessages: (spaceId: string)  => ['spaceMessages', spaceId] as const,
+  spaceReveals:  (spaceId: string)  => ['spaceReveals', spaceId] as const,
+  spaceEvents:   (spaceId: string)  => ['spaceEvents', spaceId] as const,
 } as const;

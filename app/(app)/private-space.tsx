@@ -31,6 +31,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useMessages, useSendMessage } from '@/hooks/useMessages';
 import { usePrivateSpaces, otherAlias } from '@/hooks/useSpaces';
 import { useUnreadContext } from '@/context/UnreadContext';
+import { useReveal } from '@/hooks/useReveal';
+import { useSpaceEvents, useSendSlowDown } from '@/hooks/useSpaceEvents';
+import { Toast } from '@/components/glow';
 import type { Message } from '@/services/supabase';
 
 function ThreadBubble({ message, mine }: { message: Message; mine: boolean }) {
@@ -41,6 +44,15 @@ function ThreadBubble({ message, mine }: { message: Message; mine: boolean }) {
           {message.text}
         </Text>
       </View>
+    </View>
+  );
+}
+
+function SystemNote({ text }: { text: string }) {
+  return (
+    <View style={styles.sysNote}>
+      <Icon name="pause" size={12} color={AppColors.textSecondary} />
+      <Text style={styles.sysNoteText}>{text}</Text>
     </View>
   );
 }
@@ -74,6 +86,28 @@ export default function PrivateSpaceScreen() {
   const space = spaces?.find((s) => s.id === spaceId);
   const alias = space && user?.id ? otherAlias(space, user.id) : '···';
 
+  // Reveal state + pace signals
+  const { iRevealed, bothRevealed, other } = useReveal(spaceId);
+  const { data: events = [] } = useSpaceEvents(spaceId);
+  const { mutateAsync: sendSlowDown } = useSendSlowDown(spaceId ?? '');
+  // Header shows the real first name once both have revealed; otherwise the alias.
+  const displayName = bothRevealed && other?.first_name?.trim() ? other.first_name.trim() : alias;
+
+  // Messages + pace nudges woven into one time-ordered timeline.
+  const timeline = React.useMemo(() => {
+    const items: (
+      | { kind: 'msg'; at: string; msg: Message }
+      | { kind: 'event'; at: string; id: string; mine: boolean }
+    )[] = [
+      ...messages.map((m) => ({ kind: 'msg' as const, at: m.created_at, msg: m })),
+      ...events
+        .filter((e) => e.kind === 'slow_down')
+        .map((e) => ({ kind: 'event' as const, at: e.created_at, id: e.id, mine: e.actor_id === user?.id })),
+    ];
+    items.sort((a, b) => a.at.localeCompare(b.at));
+    return items;
+  }, [messages, events, user?.id]);
+
   const [text, setText] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -81,7 +115,7 @@ export default function PrivateSpaceScreen() {
 
   useEffect(() => {
     scrollRef.current?.scrollToEnd({ animated: true });
-  }, [messages.length]);
+  }, [timeline.length]);
 
   // Reading the thread clears its unread state — on open and on each new message
   // that arrives while it's on screen.
@@ -111,10 +145,19 @@ export default function PrivateSpaceScreen() {
   };
   const openReveal = () => {
     Haptics.selectionAsync();
-    router.push('/(app)/reveal' as any);
+    router.push({ pathname: '/(app)/reveal', params: { spaceId: spaceId ?? '' } } as any);
   };
-  const slowDown = () => {
-    Haptics.selectionAsync();
+  const slowDown = async () => {
+    if (!spaceId) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      await sendSlowDown();
+      Toast.show(`You asked to slow down. ${alias} will see a gentle nudge — no pressure.`, {
+        type: 'info', position: 'top', duration: 3400,
+      });
+    } catch (e: any) {
+      Toast.show(e?.message || 'Could not send that. Try again.', { type: 'error', position: 'top', duration: 3200 });
+    }
   };
 
   return (
@@ -138,28 +181,27 @@ export default function PrivateSpaceScreen() {
 
             <View style={styles.headerCenter}>
               <View style={styles.headerAliasRow}>
-                <Icon name="lock" size={12} color={AppColors.textSecondary} />
+                <Icon name={bothRevealed ? 'eye' : 'lock'} size={12} color={AppColors.textSecondary} />
                 <Text style={styles.headerAlias} numberOfLines={1}>
-                  {alias}
+                  {displayName}
                 </Text>
               </View>
-              <Text style={styles.headerSub}>anonymous</Text>
+              <Text style={styles.headerSub}>
+                {bothRevealed ? 'revealed' : iRevealed ? 'you revealed · waiting' : 'anonymous'}
+              </Text>
             </View>
 
-            <Pressable
-              style={styles.headerBtn}
-              onPress={openCheckIn}
-              accessibilityRole="button"
-              accessibilityLabel="Safety and check-in"
-              hitSlop={8}
-            >
-              <Icon name="shield" size={20} color={AppColors.textSecondary} />
-            </Pressable>
+            {/* right spacer — keeps the title centred (safety/report lives in the strip) */}
+            <View style={styles.headerBtn} />
           </View>
 
           {/* Safety strip */}
           <View style={styles.safetyStrip}>
-            <SafetyPill icon="eye" label="Reveal" onPress={openReveal} />
+            <SafetyPill
+              icon="eye"
+              label={bothRevealed ? 'Revealed' : iRevealed ? 'Waiting…' : 'Reveal'}
+              onPress={openReveal}
+            />
             <SafetyPill icon="pause" label="Slow down" onPress={slowDown} />
             <SafetyPill icon="flag" label="Report" onPress={openCheckIn} />
           </View>
@@ -176,9 +218,16 @@ export default function PrivateSpaceScreen() {
             <Text style={styles.threadNote}>
               A private space. It moves at your pace — no rush, no one watching.
             </Text>
-            {messages.map((m) => (
-              <ThreadBubble key={m.id} message={m} mine={m.sender_id === user?.id} />
-            ))}
+            {timeline.map((it) =>
+              it.kind === 'msg' ? (
+                <ThreadBubble key={it.msg.id} message={it.msg} mine={it.msg.sender_id === user?.id} />
+              ) : (
+                <SystemNote
+                  key={it.id}
+                  text={`${it.mine ? 'You' : alias} asked to slow down — take your time.`}
+                />
+              ),
+            )}
           </ScrollView>
 
           {/* Input bar */}
@@ -284,6 +333,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
     opacity: 0.8,
+  },
+  sysNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(13,13,16,0.05)',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginVertical: 8,
+  },
+  sysNoteText: {
+    fontFamily: Typography.fonts.body,
+    fontSize: 12,
+    color: AppColors.textSecondary,
   },
   bubbleRow: { flexDirection: 'row', marginBottom: 10 },
   bubbleRowMine: { justifyContent: 'flex-end' },
