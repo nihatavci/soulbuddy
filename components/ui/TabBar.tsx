@@ -2,10 +2,16 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Feather } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppColors, Typography } from '../../constants/theme';
 import { useUnread } from '../../context/UnreadContext';
+
+// Paper tint laid over the glass so the capsule reads warm/cream instead of the
+// OS's cool white. Higher alpha = warmer & more solid; lower = glassier.
+const PAPER_TINT = 'rgba(243,239,230,0.6)';
 
 type FeatherIcon = React.ComponentProps<typeof Feather>['name'];
 
@@ -70,18 +76,26 @@ function TabItem({
 }
 
 /**
- * re:sense tab bar — a floating rounded capsule (the shape) filled with the app's
- * EXACT paper background color (#F3EFE6). Pure RN views, so the color is exact and
- * never the OS's white liquid-glass material. A hairline border + soft shadow lift
- * it off the page; the active tab gets the signal-yellow pill.
+ * re:sense tab bar — a floating rounded capsule of real glass (iOS 26 liquid glass
+ * via GlassView, frosted blur fallback) warmed with a paper tint so it reads cream,
+ * NOT the OS's white. Custom view = we control the tint (the native tab bar can't
+ * be recolored). Active tab gets the signal-yellow pill; small unread dot.
  */
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { total: unreadTotal } = useUnread();
+  const liquid = isLiquidGlassAvailable();
 
   return (
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 10) }]}>
       <View style={styles.capsule}>
+        {liquid ? (
+          <GlassView style={StyleSheet.absoluteFill} glassEffectStyle="regular" />
+        ) : (
+          <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
+        )}
+        {/* warm the glass toward paper so it isn't white */}
+        <View style={[StyleSheet.absoluteFill, styles.paperTint]} pointerEvents="none" />
         <View style={styles.row}>
           {state.routes.map((route, index) => (
             <TabItem
@@ -115,19 +129,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 6,
   },
-  // The capsule itself: EXACT paper, rounded, lifted with a hairline + soft shadow.
+  // The capsule: real glass, clipped to the rounded shape, warmed by the paper tint.
   capsule: {
-    backgroundColor: AppColors.background, // #F3EFE6 — exact match, never white
     borderRadius: 30,
+    overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: AppColors.border,
     paddingVertical: 10,
-    shadowColor: '#0D0D10',
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 10,
   },
+  paperTint: { backgroundColor: PAPER_TINT },
   row: { flexDirection: 'row' },
   tabItem: { flex: 1, alignItems: 'center' },
   tabInner: {
