@@ -43,6 +43,7 @@ import { useNetworkSync } from '@/hooks/useNetworkSync';
 import { initSentry, SentryWrap, sentryRoutingInstrumentation } from '@/lib/sentry';
 import { useTrackingTransparency } from '@/hooks/useTrackingTransparency';
 import { ToastSetupProvider, ToastOverlay } from '@/components/glow/index';
+import { AnimatedSplash } from '@/components/ui/AnimatedSplash';
 import { getConsentPreferences, hasGivenConsent } from '@/lib/consent';
 import { initMixpanel, optInMixpanel, optOutMixpanel } from '@/lib/mixpanel';
 
@@ -129,6 +130,7 @@ function AuthGatedApp({ colorScheme }: { colorScheme: ReturnType<typeof useColor
 
 function RootLayout() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [splashDone, setSplashDone] = useState(false);
   const colorScheme = useColorScheme();
 
   const { isReady: attReady } = useTrackingTransparency();
@@ -166,30 +168,36 @@ function RootLayout() {
     load();
   }, []);
 
-  if (!fontsLoaded || !attReady) {
-    return null; // Splash is shown by AuthGatedApp — single instance only
-  }
+  // Ink field is up from the first frame (matching the solid-ink native splash),
+  // so there is never a white flash or a blank gap. The app tree mounts only once
+  // fonts + ATT are resolved; the AnimatedSplash covers it until then and cross-
+  // fades away when both the app is ready and the line has finished drawing.
+  const ready = fontsLoaded && attReady;
 
   return (
     <ErrorBoundary>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        {/* TanStack Query with cache persistence */}
-        <PersistQueryClientProvider
-          client={queryClient}
-          persistOptions={{
-            persister:    mmkvPersister,
-            maxAge:       1000 * 60 * 60 * 24,   // 24 h cache lifetime
-            buster:       '3',                    // bumped — Supabase auth migration
-            dehydrateOptions: {
-              shouldDehydrateQuery: (query) =>
-                query.state.status === 'success',
-            },
-          }}
-        >
-          <AuthProvider>
-            <AuthGatedApp colorScheme={colorScheme} />
-          </AuthProvider>
-        </PersistQueryClientProvider>
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#0D0D10' }}>
+        {ready && (
+          <PersistQueryClientProvider
+            client={queryClient}
+            persistOptions={{
+              persister:    mmkvPersister,
+              maxAge:       1000 * 60 * 60 * 24,   // 24 h cache lifetime
+              buster:       '3',                    // bumped — Supabase auth migration
+              dehydrateOptions: {
+                shouldDehydrateQuery: (query) =>
+                  query.state.status === 'success',
+              },
+            }}
+          >
+            <AuthProvider>
+              <AuthGatedApp colorScheme={colorScheme} />
+            </AuthProvider>
+          </PersistQueryClientProvider>
+        )}
+        {!splashDone && (
+          <AnimatedSplash ready={ready} onFinish={() => setSplashDone(true)} />
+        )}
       </GestureHandlerRootView>
     </ErrorBoundary>
   );
