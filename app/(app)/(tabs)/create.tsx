@@ -25,12 +25,11 @@ import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import Svg, { Path } from 'react-native-svg';
 import Animated, {
-  useSharedValue, useAnimatedStyle, withTiming, withRepeat, cancelAnimation, runOnJS,
-  interpolateColor, Easing,
+  useSharedValue, useAnimatedStyle, useAnimatedProps, withTiming, withRepeat, cancelAnimation,
+  runOnJS, interpolateColor, Easing,
 } from 'react-native-reanimated';
 import { AppColors, Typography } from '@/constants/theme';
 import { PaperBackground } from '@/components/ui/PaperBackground';
-import { EdgeFrame } from '@/components/ui/EdgeFrame';
 import { InkBloom } from '@/components/ui/InkBloom';
 import { SealMark } from '@/components/ui/SealMark';
 import { Toast } from '@/components/glow';
@@ -44,6 +43,7 @@ const WET_INK = '#0D0D10';   // fresh ink while writing (deep, glossy)
 const DRY_INK = '#2A2A30';   // dried ink after sealing (lighter, matte)
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 // A quiet poetic line that fades in while you hold the seal.
 const HOLD_LINES = [
@@ -88,6 +88,15 @@ export default function CreateScreen() {
   const pageFade = useSharedValue(1);
   const pageLift = useSharedValue(0);
   const ghostOpacity = useSharedValue(1);
+  const ruleDraw = useSharedValue(0);   // margin rule inks itself down to the edge, once
+
+  // Draw the margin rule slowly toward the bottom edge, once, when the zone is measured.
+  const zoneReady = zoneH > 0;
+  useEffect(() => {
+    if (!zoneReady) return;
+    ruleDraw.value = 0;
+    ruleDraw.value = withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.cubic) });
+  }, [zoneReady]);
   const pulse = useSharedValue(0);       // tap-hint ripple 0→1, looping
 
   // Gentle looping ripple for the seal tap-hint (a breathing ink ring).
@@ -252,14 +261,14 @@ export default function CreateScreen() {
   // Hand-drawn geometry (deterministic — no runtime randomness).
   const ruleH = zoneH || 320;
   const rulePath = `M8 2 Q4 ${ruleH * 0.28} 8 ${ruleH * 0.5} T8 ${ruleH - 2}`;
+  const ruleLen = ruleH + 24; // ≥ path length so the whole rule dashes off, then draws in
+  const ruleAnimProps = useAnimatedProps(() => ({ strokeDashoffset: ruleLen * (1 - ruleDraw.value) }));
   const underlinePath = wordW > 4
     ? `M0 5 Q ${wordW * 0.28} 0 ${wordW * 0.52} 5 T ${wordW} 4`
     : '';
 
   return (
     <PaperBackground style={styles.root}>
-      {/* Ambient page frame — inks itself around the edges once on open, then stays. */}
-      <EdgeFrame />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <KeyboardAvoidingView style={styles.kav} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         {/* back to the board + faint dateline — like the corner of a page */}
@@ -292,7 +301,16 @@ export default function CreateScreen() {
           {/* The writing zone — paper only, one hand-drawn margin rule + travelling ink */}
           <View style={styles.zone} onLayout={(e) => setZoneH(e.nativeEvent.layout.height)}>
             <Svg width={16} height={ruleH} style={styles.rule} pointerEvents="none">
-              <Path d={rulePath} stroke={AppColors.text} strokeWidth={1} strokeOpacity={0.18} fill="none" strokeLinecap="round" />
+              <AnimatedPath
+                d={rulePath}
+                stroke={AppColors.text}
+                strokeWidth={1}
+                strokeOpacity={0.18}
+                fill="none"
+                strokeLinecap="round"
+                strokeDasharray={[ruleLen, ruleLen]}
+                animatedProps={ruleAnimProps}
+              />
             </Svg>
             <Animated.View style={[styles.inkDrop, dropStyle]} pointerEvents="none" />
 
