@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import Animated, {
   useSharedValue,
@@ -56,7 +56,7 @@ export function Header({
           {showBack && (
             <Pressable onPress={handleLeftPress} style={styles.sideBtn}>
               <Animated.View style={leftBtnStyle}>
-                <Ionicons name="chevron-back" size={24} color={AppColors.text} />
+                <Icon name="chevron-back" size={24} color={AppColors.text} />
               </Animated.View>
             </Pressable>
           )}

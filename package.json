@@ -80,6 +80,7 @@
     "patch-package": "^8.0.1",
     "prettier": "^3.8.1",
     "react-test-renderer": "^19.1.0",
+    "svg-path-properties": "^2.0.2",
     "teenybase": "^0.0.14",
     "typescript": "^5.9.3"
   },
@@ -139,6 +140,7 @@
   "name": "myapp",
   "scripts": {
     "android": "expo run:android",
+    "bake:icons": "node scripts/bake-icons.mjs",
     "build:backend": "teeny build --local",
     "deploy:backend:remote": "teeny deploy --migrate --remote",
     "dev:backend": "teeny dev --local",

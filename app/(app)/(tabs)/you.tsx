@@ -11,7 +11,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { AppColors, Typography } from '@/constants/theme';
@@ -27,7 +27,7 @@ import { useT } from '@/context/LanguageContext';
 import { Prefs } from '@/store/mmkv';
 
 type Row = {
-  icon: React.ComponentProps<typeof Feather>['name'];
+  icon: string;
   label: string;
   route: string;
 };
@@ -152,10 +152,10 @@ export default function YouScreen() {
                 accessibilityRole="button"
               >
                 <View style={styles.rowLeft}>
-                  <Feather name={row.icon} size={18} color={AppColors.text} />
+                  <Icon name={row.icon} size={18} color={AppColors.text} />
                   <Text style={styles.rowLabel}>{row.label}</Text>
                 </View>
-                <Feather name="chevron-right" size={18} color={AppColors.textSecondary} />
+                <Icon name="chevron-right" size={18} color={AppColors.textSecondary} />
               </Pressable>
             ))}
           </View>

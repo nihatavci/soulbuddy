@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/Button';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import { AppColors, Typography } from '@/constants/theme';
 import { Space, Relation, ScreenPaddingH, ScreenPaddingTop, ScreenPaddingBottom } from '@/constants/spacing';
 import { supabase } from '@/services/supabase';
@@ -149,7 +149,7 @@ export default function SignInScreen() {
                     editable={!loading}
                   />
                   <Pressable onPress={() => setShowPass((v) => !v)} style={styles.eyeBtn}>
-                    <Feather name={showPass ? 'eye-off' : 'eye'} size={18} color={AppColors.textSecondary} />
+                    <Icon name={showPass ? 'eye-off' : 'eye'} size={18} color={AppColors.textSecondary} />
                   </Pressable>
                 </AnimatedInputWrapper>
               </View>

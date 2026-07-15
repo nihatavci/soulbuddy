@@ -12,7 +12,7 @@
 import React, { useCallback } from 'react';
 import { Text, StyleSheet, Pressable, View, type ViewStyle } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring, Easing } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import { AppColors, Typography } from '@/constants/theme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -47,7 +47,7 @@ export function SelectableChip({ label, selected, onPress, style }: SelectableCh
       style={[styles.chip, selected ? styles.chipOn : styles.chipOff, animStyle, style]}
     >
       {selected && (
-        <Ionicons name="checkmark" size={15} color={AppColors.background} style={styles.check} />
+        <Icon name="checkmark" size={15} color={AppColors.background} style={styles.check} />
       )}
       <Text style={[styles.label, selected ? styles.labelOn : styles.labelOff]}>{label}</Text>
     </AnimatedPressable>

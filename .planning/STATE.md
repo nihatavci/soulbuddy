@@ -79,6 +79,7 @@ None yet.
 |------|------|-------------|--------|
 | 2026-07-15 | harden-messaging-db | Remediate Supabase advisors on messaging DB (RLS initplan, search_path, SECURITY DEFINER RPC surface) | complete ✓ |
 | 2026-07-15 | wire-message-push | Wire live message push (expo-notifications plugin, foreground handler, presence badge, tap deep-link, alias push trigger) — needs native rebuild | complete ✓ |
+| 2026-07-15 | paperwhite-icons | Replace all Feather/Ionicons with baked Paperwhite pen-drawn icon set (bake script + Icon component + 25 files converted) | complete ✓ |
 
 ## Deferred Items
 

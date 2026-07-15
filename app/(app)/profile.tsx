@@ -21,7 +21,7 @@ import {
 import { AnimatedInputWrapper } from '@/components/ui/AnimatedPressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { AppColors, Typography, CardThemes } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
@@ -40,7 +40,6 @@ import {
 } from '@/lib/onesignal';
 import { trackMixpanelPushPermissionGranted as trackPushPermissionGranted, trackMixpanelPushPermissionDenied as trackPushPermissionDenied, optInMixpanel, optOutMixpanel } from '@/lib/mixpanel';
 import { useT } from '@/context/LanguageContext';
-import { Feather } from '@expo/vector-icons';
 import {
   getConsentPreferences,
   saveConsentPreferences,
@@ -199,7 +198,7 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={22} color={AppColors.text} />
+          <Icon name="chevron-back" size={22} color={AppColors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>{t('profile.title')}</Text>
         <View style={{ width: 34 }} />
@@ -215,11 +214,11 @@ export default function ProfileScreen() {
             {/* Avatar — light cream circle with gold profile icon */}
             <View style={styles.avatarSection}>
               <View style={[styles.avatarCircle, styles.localAvatarCircle]}>
-                <Feather name="user" size={32} color={AppColors.accent} />
+                <Icon name="user" size={32} color={AppColors.accent} />
               </View>
               {isPro && (
                 <View style={styles.proBadge}>
-                  <Feather name="star" size={10} color="#FFFFFF" />
+                  <Icon name="star" size={10} color="#FFFFFF" />
                   <Text style={styles.proBadgeText}>MyApp Pro</Text>
                 </View>
               )}
@@ -228,7 +227,7 @@ export default function ProfileScreen() {
             {/* Back-up hero — framed as protection, not "create account from nothing" */}
             <Animated.View entering={FadeInDown.duration(300).springify()} style={styles.guestHero}>
               <View style={styles.guestHeroIconWrap}>
-                <Feather name="shield" size={18} color={AppColors.accentDeep} />
+                <Icon name="shield" size={18} color={AppColors.accentDeep} />
               </View>
               <Text style={styles.guestHeroHeadline}>{t('profile.backUpAccount')}</Text>
               <Text style={styles.guestHeroBody}>
@@ -242,7 +241,7 @@ export default function ProfileScreen() {
                 }}
               >
                 <Text style={styles.guestHeroCTAText}>{t('account.backUpWithEmail')}</Text>
-                <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                <Icon name="arrow-forward" size={16} color="#FFFFFF" />
               </Pressable>
             </Animated.View>
           </>
@@ -303,7 +302,7 @@ export default function ProfileScreen() {
                     style={styles.editBtn}
                     onPress={() => { setEditingName(true); Haptics.selectionAsync(); }}
                   >
-                    <Ionicons name="pencil-outline" size={18} color={AppColors.textSecondary} />
+                    <Icon name="pencil-outline" size={18} color={AppColors.textSecondary} />
                   </Pressable>
                 )}
               </View>
@@ -344,11 +343,11 @@ export default function ProfileScreen() {
               >
                 <View style={styles.menuRowLeft}>
                   <View style={styles.menuIcon}>
-                    <Ionicons name="lock-closed-outline" size={18} color="#FFFFFF" />
+                    <Icon name="lock-closed-outline" size={18} color="#FFFFFF" />
                   </View>
                   <Text style={styles.menuLabel}>{t('profile.passwordSecurity')}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={AppColors.textSecondary} />
+                <Icon name="chevron-forward" size={16} color={AppColors.textSecondary} />
               </Pressable>
 
               <View style={styles.divider} />
@@ -366,7 +365,7 @@ export default function ProfileScreen() {
             >
               <View style={styles.enhanceInner}>
                 <View style={styles.enhanceIconChip}>
-                  <Feather name="zap" size={18} color="#FFFFFF" />
+                  <Icon name="zap" size={18} color="#FFFFFF" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.enhanceLabel}>{t('profile.enhanceReplies')}</Text>
@@ -376,7 +375,7 @@ export default function ProfileScreen() {
                 </View>
                 <View style={styles.enhanceStartChip}>
                   <Text style={styles.enhanceStartChipText}>{t('common.start')}</Text>
-                  <Ionicons name="arrow-forward" size={12} color="#FFFFFF" />
+                  <Icon name="arrow-forward" size={12} color="#FFFFFF" />
                 </View>
               </View>
             </Pressable>
@@ -392,7 +391,7 @@ export default function ProfileScreen() {
           <View style={styles.menuRow}>
             <View style={styles.menuRowLeft}>
               <View style={styles.menuIcon}>
-                <Ionicons name="notifications-outline" size={18} color="#FFFFFF" />
+                <Icon name="notifications-outline" size={18} color="#FFFFFF" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.menuLabel}>{t('profile.pushNotifications')}</Text>
@@ -418,7 +417,7 @@ export default function ProfileScreen() {
           <View style={styles.menuRow}>
             <View style={styles.menuRowLeft}>
               <View style={styles.menuIcon}>
-                <Feather name="bar-chart-2" size={18} color="#FFFFFF" />
+                <Icon name="bar-chart-2" size={18} color="#FFFFFF" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.menuLabel}>{t('profile.analytics')}</Text>
@@ -439,7 +438,7 @@ export default function ProfileScreen() {
           <View style={styles.menuRow}>
             <View style={styles.menuRowLeft}>
               <View style={styles.menuIcon}>
-                <Feather name="alert-triangle" size={18} color="#FFFFFF" />
+                <Icon name="alert-triangle" size={18} color="#FFFFFF" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.menuLabel}>{t('profile.crashReports')}</Text>
@@ -460,7 +459,7 @@ export default function ProfileScreen() {
           <View style={styles.menuRow}>
             <View style={styles.menuRowLeft}>
               <View style={styles.menuIcon}>
-                <Feather name="cpu" size={18} color="#FFFFFF" />
+                <Icon name="cpu" size={18} color="#FFFFFF" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.menuLabel}>{t('profile.aiProcessing')}</Text>
@@ -485,7 +484,7 @@ export default function ProfileScreen() {
           <View style={styles.menuRow}>
             <View style={styles.menuRowLeft}>
               <View style={styles.menuIcon}>
-                <Feather name="slash" size={18} color="#FFFFFF" />
+                <Icon name="slash" size={18} color="#FFFFFF" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.menuLabel}>{t('profile.doNotSell')}</Text>
@@ -511,7 +510,7 @@ export default function ProfileScreen() {
           <View style={styles.menuRow}>
             <View style={styles.menuRowLeft}>
               <View style={styles.menuIcon}>
-                <Ionicons name="star-outline" size={18} color="#FFFFFF" />
+                <Icon name="star-outline" size={18} color="#FFFFFF" />
               </View>
               <View>
                 <Text style={styles.menuLabel}>{t('profile.currentPlan')}</Text>
@@ -543,11 +542,11 @@ export default function ProfileScreen() {
               >
                 <View style={styles.menuRowLeft}>
                   <View style={styles.menuIcon}>
-                    <Ionicons name="card-outline" size={18} color="#FFFFFF" />
+                    <Icon name="card-outline" size={18} color="#FFFFFF" />
                   </View>
                   <Text style={styles.menuLabel}>{t('profile.manageSubscription')}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={AppColors.textSecondary} />
+                <Icon name="chevron-forward" size={16} color={AppColors.textSecondary} />
               </Pressable>
             </>
           )}
@@ -564,7 +563,7 @@ export default function ProfileScreen() {
           >
             <View style={styles.menuRowLeft}>
               <View style={[styles.menuIcon, { backgroundColor: '#FFE5EA' }]}>
-                <Feather name="trash-2" size={18} color="#E11D48" />
+                <Icon name="trash-2" size={18} color="#E11D48" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.menuLabel, { color: '#E11D48' }]}>

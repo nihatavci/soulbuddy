@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, View, Text, Pressable, StyleSheet, Linking } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { AppColors, Typography, Space, BorderRadius } from '@/constants/theme';
 import {
@@ -42,7 +42,7 @@ export function AiConsentGate({ visible, onEnable, onDismiss }: Props) {
       <View style={styles.overlay}>
         <View style={styles.sheet}>
           <View style={styles.iconWrap}>
-            <Feather name="cpu" size={24} color={AppColors.accent} />
+            <Icon name="cpu" size={24} color={AppColors.accent} />
           </View>
           <Text style={styles.title}>{t('aiConsent.title')}</Text>
           <Text style={styles.body}>
@@ -50,7 +50,7 @@ export function AiConsentGate({ visible, onEnable, onDismiss }: Props) {
             <Text style={styles.bold}>{t('aiConsent.secureService')}</Text>{t('aiConsent.bodySuffix')}
           </Text>
           <Pressable style={styles.primary} onPress={handleEnable}>
-            <Feather name="zap" size={16} color={AppColors.background} style={{ marginRight: 8 }} />
+            <Icon name="zap" size={16} color={AppColors.background} style={{ marginRight: 8 }} />
             <Text style={styles.primaryText}>{t('aiConsent.enableContinue')}</Text>
           </Pressable>
           <Pressable style={styles.secondary} onPress={handleDismiss}>

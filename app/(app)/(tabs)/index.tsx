@@ -12,7 +12,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH } from '@/constants/spacing';
@@ -41,7 +41,7 @@ function SignalCard({ signal, onPress, isMine }: { signal: PublicSignal; onPress
       </View>
       <Text style={styles.signalText}>{signal.text}</Text>
       <View style={styles.cardFoot}>
-        <Feather name="corner-up-left" size={14} color={AppColors.textSecondary} />
+        <Icon name="corner-up-left" size={14} color={AppColors.textSecondary} />
         <Text style={styles.footText}>
           {isMine ? 'your signal' : replyCount === 0 ? 'add to this' : `${replyCount} added`}
         </Text>

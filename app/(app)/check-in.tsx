@@ -12,7 +12,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH, Space } from '@/constants/spacing';
@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/Button';
 import { PaperBackground } from '@/components/ui/PaperBackground';
 import { GoldDisc } from '@/components/ui/GoldDisc';
 
-type FeatherIcon = keyof typeof Feather.glyphMap;
+type FeatherIcon = string;
 
 interface Option {
   value: string;
@@ -58,10 +58,10 @@ function OptionRow({
       accessibilityState={{ selected }}
       style={[styles.row, selected && styles.rowOn]}
     >
-      <Feather name={option.icon} size={18} color={iconColor} />
+      <Icon name={option.icon} size={18} color={iconColor} />
       <Text style={[styles.rowLabel, { color: tint }]}>{option.label}</Text>
       {selected && (
-        <Feather name="check" size={18} color={AppColors.accent} style={styles.rowCheck} />
+        <Icon name="check" size={18} color={AppColors.accent} style={styles.rowCheck} />
       )}
     </Pressable>
   );
@@ -96,7 +96,7 @@ export default function CheckInScreen() {
             hitSlop={12}
             style={styles.closeBtn}
           >
-            <Feather name="x" size={22} color={AppColors.textSecondary} />
+            <Icon name="x" size={22} color={AppColors.textSecondary} />
           </Pressable>
         </View>
 

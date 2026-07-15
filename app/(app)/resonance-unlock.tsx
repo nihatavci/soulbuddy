@@ -12,7 +12,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH, Space } from '@/constants/spacing';
@@ -37,7 +37,7 @@ export default function ResonanceUnlockScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
           <View style={styles.emblem}>
-            <Feather name="zap" size={28} color={AppColors.accent} />
+            <Icon name="zap" size={28} color={AppColors.accent} />
           </View>
 
           <Text style={styles.label}>A RESONANCE</Text>
@@ -64,7 +64,7 @@ export default function ResonanceUnlockScreen() {
         </View>
 
         <View style={styles.reassurance}>
-          <Feather name="shield" size={13} color={AppColors.textSecondary} />
+          <Icon name="shield" size={13} color={AppColors.textSecondary} />
           <Text style={styles.reassuranceText}>
             You stay anonymous until you both choose otherwise.
           </Text>

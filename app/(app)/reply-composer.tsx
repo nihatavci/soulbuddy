@@ -14,7 +14,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Pressable, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH } from '@/constants/spacing';
@@ -76,7 +76,7 @@ export default function ReplyComposerScreen() {
               accessibilityRole="button"
               accessibilityLabel="Close"
             >
-              <Feather name="x" size={22} color={AppColors.text} />
+              <Icon name="x" size={22} color={AppColors.text} />
             </Pressable>
           </View>
 

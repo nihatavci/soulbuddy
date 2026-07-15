@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import Svg, { Path } from 'react-native-svg';
 import Animated, {
@@ -241,7 +241,7 @@ export default function CreateScreen() {
         {/* back to the board + faint dateline — like the corner of a page */}
         <View style={styles.head}>
           <Pressable onPress={goBack} hitSlop={14} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Back to the board">
-            <Feather name="chevron-left" size={22} color={AppColors.text} />
+            <Icon name="chevron-left" size={22} color={AppColors.text} />
           </Pressable>
           <Text style={styles.dateline}>today</Text>
         </View>

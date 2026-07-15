@@ -13,7 +13,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH } from '@/constants/spacing';
@@ -47,7 +47,7 @@ function SpaceCard({ space, onPress }: { space: SpaceCardData; onPress: () => vo
     <Pressable style={styles.card} onPress={onPress} accessibilityRole="button">
       <View style={styles.cardHead}>
         <View style={styles.headLeft}>
-          <Feather name="lock" size={12} color={AppColors.textSecondary} />
+          <Icon name="lock" size={12} color={AppColors.textSecondary} />
           <Text style={styles.alias}>{space.alias}</Text>
           {space.unread && <View style={styles.unreadDot} />}
         </View>
@@ -59,7 +59,7 @@ function SpaceCard({ space, onPress }: { space: SpaceCardData; onPress: () => vo
       <View style={styles.cardFoot}>
         <Text style={styles.footText}>from your signal · {space.fromSignal}</Text>
         <View style={styles.footRight}>
-          <Feather name="chevron-right" size={16} color={AppColors.textSecondary} />
+          <Icon name="chevron-right" size={16} color={AppColors.textSecondary} />
         </View>
       </View>
     </Pressable>

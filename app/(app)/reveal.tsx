@@ -13,7 +13,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH, Space } from '@/constants/spacing';
@@ -48,7 +48,7 @@ export default function RevealScreen() {
             accessibilityRole="button"
             accessibilityLabel="Close"
           >
-            <Feather name="x" size={24} color={AppColors.textSecondary} />
+            <Icon name="x" size={24} color={AppColors.textSecondary} />
           </Pressable>
         </View>
 
@@ -57,7 +57,7 @@ export default function RevealScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.emblem}>
-            <Feather name="eye" size={26} color={AppColors.accent} />
+            <Icon name="eye" size={26} color={AppColors.accent} />
           </View>
 
           <Text style={styles.title}>Choose to reveal</Text>
@@ -70,12 +70,12 @@ export default function RevealScreen() {
 
           <View style={styles.card}>
             <View style={styles.cardHead}>
-              <Feather name="shield" size={16} color={AppColors.textSecondary} />
+              <Icon name="shield" size={16} color={AppColors.textSecondary} />
               <Text style={styles.cardTitle}>What gets shared</Text>
             </View>
             {SHARED_ITEMS.map((item) => (
               <View key={item} style={styles.shareRow}>
-                <Feather name="check" size={16} color={AppColors.success} />
+                <Icon name="check" size={16} color={AppColors.success} />
                 <Text style={styles.shareLabel}>{item}</Text>
               </View>
             ))}
@@ -91,7 +91,7 @@ export default function RevealScreen() {
             accessibilityState={{ checked: agreed }}
           >
             <View style={[styles.checkbox, agreed && styles.checkboxOn]}>
-              {agreed && <Feather name="check" size={15} color={AppColors.ink} />}
+              {agreed && <Icon name="check" size={15} color={AppColors.ink} />}
             </View>
             <Text style={styles.checkLabel}>
               I understand revealing is my choice, and I can stop here.

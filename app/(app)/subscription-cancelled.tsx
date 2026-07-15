@@ -8,7 +8,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '@/constants/theme';
@@ -185,7 +185,7 @@ export default function SubscriptionCancelledScreen() {
         {/* Countdown + badge overlaid on hero */}
         <View style={[s.heroOverlay, { paddingTop: insets.top + 16 }]}>
           <Animated.View entering={FadeIn.delay(100)} style={s.timerRow}>
-            <Ionicons name="time-outline" size={14} color={C.gold} />
+            <Icon name="time-outline" size={14} color={C.gold} />
             <Text style={s.timerLabel}>{t('subscription.cancelled.offerExpiresIn')} </Text>
             <Text style={s.timerValue}>{formatTime(secondsLeft)}</Text>
           </Animated.View>
@@ -285,7 +285,7 @@ export default function SubscriptionCancelledScreen() {
 function FeatureRow({ text }: { text: string }) {
   return (
     <View style={s.featureRow}>
-      <Ionicons name="checkmark-circle" size={16} color={C.gold} />
+      <Icon name="checkmark-circle" size={16} color={C.gold} />
       <Text style={s.featureText}>{text}</Text>
     </View>
   );

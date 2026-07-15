@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH, Space } from '@/constants/spacing';
@@ -50,13 +50,13 @@ function SafetyPill({
   label,
   onPress,
 }: {
-  icon: React.ComponentProps<typeof Feather>['name'];
+  icon: string;
   label: string;
   onPress: () => void;
 }) {
   return (
     <Pressable style={styles.pill} onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>
-      <Feather name={icon} size={13} color={AppColors.textSecondary} />
+      <Icon name={icon} size={13} color={AppColors.textSecondary} />
       <Text style={styles.pillText}>{label}</Text>
     </Pressable>
   );
@@ -133,12 +133,12 @@ export default function PrivateSpaceScreen() {
               accessibilityLabel="Back"
               hitSlop={8}
             >
-              <Feather name="chevron-left" size={24} color={AppColors.text} />
+              <Icon name="chevron-left" size={24} color={AppColors.text} />
             </Pressable>
 
             <View style={styles.headerCenter}>
               <View style={styles.headerAliasRow}>
-                <Feather name="lock" size={12} color={AppColors.textSecondary} />
+                <Icon name="lock" size={12} color={AppColors.textSecondary} />
                 <Text style={styles.headerAlias} numberOfLines={1}>
                   {alias}
                 </Text>
@@ -153,7 +153,7 @@ export default function PrivateSpaceScreen() {
               accessibilityLabel="Safety and check-in"
               hitSlop={8}
             >
-              <Feather name="shield" size={20} color={AppColors.textSecondary} />
+              <Icon name="shield" size={20} color={AppColors.textSecondary} />
             </Pressable>
           </View>
 
@@ -207,7 +207,7 @@ export default function PrivateSpaceScreen() {
                   accessibilityLabel="Send"
                   hitSlop={8}
                 >
-                  <Feather name="send" size={20} color={AppColors.accent} />
+                  <Icon name="send" size={20} color={AppColors.accent} />
                 </Pressable>
               </View>
             </AnimatedInputWrapper>

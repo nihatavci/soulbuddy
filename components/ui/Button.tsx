@@ -26,7 +26,7 @@ import Animated, {
   withSpring,
   Easing,
 } from 'react-native-reanimated';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppColors, Typography } from '@/constants/theme';
 
@@ -42,7 +42,7 @@ interface ButtonProps {
   variant?: ButtonVariant;
   size?: ButtonSize;
   label: string;
-  icon?: keyof typeof Feather.glyphMap;
+  icon?: string;
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
@@ -97,7 +97,7 @@ export function Button({
   ) : (
     <View style={styles.inner}>
       {icon && (
-        <Feather
+        <Icon
           name={icon}
           size={iconSize}
           color={textColor}

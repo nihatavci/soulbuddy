@@ -25,7 +25,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { AppColors, Typography, BorderRadius } from '@/constants/theme';
@@ -49,7 +49,7 @@ const PRIVACY_POLICY_URL = 'https://example.com/privacy';
 
 interface ConsentCategory {
   key: keyof ConsentPreferences;
-  icon: keyof typeof Feather.glyphMap;
+  icon: string;
   title: string;
   description: string;
 }
@@ -132,7 +132,7 @@ export default function ConsentScreen() {
                 setShowCustomize(false);
               }}
             >
-              <Feather name="chevron-left" size={18} color={AppColors.text} />
+              <Icon name="chevron-left" size={18} color={AppColors.text} />
               <Text style={styles.backChipText}>{t('common.back')}</Text>
             </Pressable>
           </Animated.View>
@@ -153,7 +153,7 @@ export default function ConsentScreen() {
             >
               <View style={styles.categoryTop}>
                 <View style={styles.categoryIconWrap}>
-                  <Feather name={cat.icon} size={18} color={AppColors.accent} />
+                  <Icon name={cat.icon} size={18} color={AppColors.accent} />
                 </View>
                 <View style={styles.categoryText}>
                   <Text style={styles.categoryTitle}>{cat.title}</Text>
@@ -172,7 +172,7 @@ export default function ConsentScreen() {
           {/* Essential note */}
           <Animated.View entering={FadeInDown.delay(450).duration(250)}>
             <View style={styles.essentialNote}>
-              <Feather name="lock" size={14} color={AppColors.textSecondary} />
+              <Icon name="lock" size={14} color={AppColors.textSecondary} />
               <Text style={styles.essentialNoteText}>
                 {t('consent.essentialNote')}
               </Text>
@@ -206,7 +206,7 @@ export default function ConsentScreen() {
         {/* Content */}
         <Animated.View entering={FadeInDown.delay(100).duration(400)} style={styles.content}>
           <View style={styles.iconCircle}>
-            <Feather name="shield" size={28} color={AppColors.accent} />
+            <Icon name="shield" size={28} color={AppColors.accent} />
           </View>
 
           <Text style={styles.title}>{t('consent.privacyTitle')}</Text>
@@ -219,7 +219,7 @@ export default function ConsentScreen() {
         <Animated.View entering={FadeInDown.delay(200).duration(300)} style={styles.chipList}>
           {CATEGORIES.map((cat) => (
             <View key={cat.key} style={styles.chip}>
-              <Feather name={cat.icon} size={14} color={AppColors.accentDeep} />
+              <Icon name={cat.icon} size={14} color={AppColors.accentDeep} />
               <Text style={styles.chipText}>{cat.title}</Text>
             </View>
           ))}
@@ -248,7 +248,7 @@ export default function ConsentScreen() {
             }}
             style={({ pressed }) => [styles.customizeBtn, pressed && styles.btnPressed]}
           >
-            <Feather name="sliders" size={16} color={AppColors.accent} />
+            <Icon name="sliders" size={16} color={AppColors.accent} />
             <Text style={styles.customizeBtnText}>{t('consent.customize')}</Text>
           </Pressable>
         </Animated.View>
