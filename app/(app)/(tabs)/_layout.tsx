@@ -20,10 +20,16 @@ import { AppColors } from '@/constants/theme';
 
 export default function TabsLayout() {
   const { total } = useUnread();
-  const badge = total > 0 ? String(total) : undefined;
+  // Paper-ink unread indicator: a small INK dot (empty string = dot, not a count) —
+  // calmer + on-brand vs the loud system-red numbered circle. Non-addictive by design.
+  const badge = total > 0 ? '' : undefined;
 
   return (
-    <NativeTabs tintColor={AppColors.accent}>
+    <NativeTabs
+      tintColor={AppColors.accent}
+      badgeBackgroundColor={AppColors.ink}
+      badgeTextColor={AppColors.background}
+    >
       <NativeTabs.Trigger name="index">
         <Label>Board</Label>
         <Icon sf={{ default: 'square.grid.2x2', selected: 'square.grid.2x2.fill' }} />
