@@ -13,17 +13,17 @@ import { NativeTabs, Icon, Label, Badge } from 'expo-router/unstable-native-tabs
 import { useUnread } from '@/context/UnreadContext';
 import { AppColors } from '@/constants/theme';
 
-// Translucent paper laid over the liquid glass — keeps the glass, warms it to
-// the app's paper background. Raise the alpha toward 1 for a more solid match,
-// lower it for more glass.
-const GLASS_PAPER_TINT = 'rgba(243,239,230,0.72)';
+// Exact paper match. A translucent tint over the bright liquid glass still reads
+// white, so we set the bar to the app's exact background color (opaque) — this
+// trades the glass translucency for a seamless color match with the screen.
+const BAR_BG = AppColors.background; // #F3EFE6
 
 export default function TabsLayout() {
   const { total } = useUnread();
   const badge = total > 0 ? String(total) : undefined;
 
   return (
-    <NativeTabs tintColor={AppColors.accent} backgroundColor={GLASS_PAPER_TINT}>
+    <NativeTabs tintColor={AppColors.accent} backgroundColor={BAR_BG}>
       <NativeTabs.Trigger name="index">
         <Label>Board</Label>
         <Icon sf={{ default: 'square.grid.2x2', selected: 'square.grid.2x2.fill' }} />
