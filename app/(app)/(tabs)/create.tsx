@@ -30,6 +30,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { AppColors, Typography } from '@/constants/theme';
 import { PaperBackground } from '@/components/ui/PaperBackground';
+import { EdgeFrame } from '@/components/ui/EdgeFrame';
 import { InkBloom } from '@/components/ui/InkBloom';
 import { SealMark } from '@/components/ui/SealMark';
 import { Toast } from '@/components/glow';
@@ -87,6 +88,18 @@ export default function CreateScreen() {
   const pageFade = useSharedValue(1);
   const pageLift = useSharedValue(0);
   const ghostOpacity = useSharedValue(1);
+  const pulse = useSharedValue(0);       // tap-hint ripple 0→1, looping
+
+  // Gentle looping ripple for the seal tap-hint (a breathing ink ring).
+  useEffect(() => {
+    pulse.value = 0;
+    pulse.value = withRepeat(
+      withTiming(1, { duration: 1600, easing: Easing.out(Easing.quad) }),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(pulse);
+  }, []);
 
   // Rotate the unfinished-sentence prompts while the page is empty. Gentle
   // crossfade; pauses the moment you start writing.
@@ -226,6 +239,15 @@ export default function CreateScreen() {
     transform: [{ translateY: pageLift.value }],
   }));
   const ghostStyle = useAnimatedStyle(() => ({ opacity: ghostOpacity.value * 0.5 }));
+  // Tap-hint ripple: an ink ring that expands + fades on a loop, above the seal.
+  // Only invites while you're NOT holding, and only when there's something to seal.
+  const hintStyle = useAnimatedStyle(() => {
+    const gate = (canLeave ? 1 : 0.4) * (1 - hold.value);
+    return {
+      opacity: (0.5 - pulse.value * 0.5) * gate,
+      transform: [{ scale: 0.7 + pulse.value * 0.7 }],
+    };
+  });
 
   // Hand-drawn geometry (deterministic — no runtime randomness).
   const ruleH = zoneH || 320;
@@ -236,6 +258,8 @@ export default function CreateScreen() {
 
   return (
     <PaperBackground style={styles.root}>
+      {/* Ambient page frame — inks itself around the edges once on open, then stays. */}
+      <EdgeFrame />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <KeyboardAvoidingView style={styles.kav} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         {/* back to the board + faint dateline — like the corner of a page */}
@@ -296,6 +320,8 @@ export default function CreateScreen() {
           <Animated.Text style={[styles.holdLine, holdLineStyle]} pointerEvents="none">
             {holdLine}
           </Animated.Text>
+          {/* tap-hint: a breathing ink ring just above the seal, inviting the press */}
+          <Animated.View style={[styles.hintRing, hintStyle]} pointerEvents="none" />
           <AnimatedPressable
             ref={sealRef}
             onPressIn={beginHold}
@@ -311,7 +337,7 @@ export default function CreateScreen() {
             accessibilityRole="button"
             accessibilityLabel="Press and hold to leave this signal on the board"
           >
-            <SealMark hold={hold} spin={spin} enabled={canLeave} size={96} />
+            <SealMark hold={hold} spin={spin} enabled={canLeave} size={140} />
           </AnimatedPressable>
           <Text style={[styles.sealCaption, { opacity: canLeave ? 1 : 0.5 }]}>
             {canLeave ? 'press & hold the seal' : 'write a few words first'}
@@ -377,7 +403,11 @@ const styles = StyleSheet.create({
     fontFamily: 'SpecialElite', fontSize: 15, lineHeight: 21, color: AppColors.text,
     textAlign: 'center', height: 44, marginBottom: 2, paddingHorizontal: 24,
   },
-  seal: { width: 96, height: 96, alignItems: 'center', justifyContent: 'center' },
+  hintRing: {
+    width: 22, height: 22, borderRadius: 11, borderWidth: 1.6,
+    borderColor: AppColors.text, backgroundColor: 'transparent', marginBottom: -24,
+  },
+  seal: { width: 140, height: 140, alignItems: 'center', justifyContent: 'center' },
   sealCaption: {
     fontFamily: Typography.fonts.body, fontSize: 12, letterSpacing: 0.3,
     color: AppColors.textSecondary, marginTop: 8,
