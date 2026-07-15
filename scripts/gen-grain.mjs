@@ -16,9 +16,11 @@ for (let y = 0; y < N; y++) {
   raw[row] = 0; // filter: none
   for (let x = 0; x < N; x++) {
     const i = row + 1 + x * 4;
-    const v = Math.floor(rng() * 256);          // gray value (neutral: ~half darken, half lighten)
-    // punchy but still fine grain: mean alpha ~48, max ~130
-    const a = Math.floor(Math.pow(rng(), 1.5) * 130);
+    // Charcoal-biased salt-and-pepper: ~72% dark specks (read as charcoal grit on the
+    // light paper + gold) and ~28% light specks so it's grain, not a flat wash.
+    const dark = rng() < 0.72;
+    const v = dark ? Math.floor(rng() * 55) : 175 + Math.floor(rng() * 80);
+    const a = Math.floor(Math.pow(rng(), 1.25) * 150); // punchy: mean ~60, max 150
     raw[i] = v; raw[i + 1] = v; raw[i + 2] = v; raw[i + 3] = a;
   }
 }

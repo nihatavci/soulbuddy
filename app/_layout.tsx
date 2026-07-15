@@ -122,7 +122,7 @@ function AuthGatedApp({ colorScheme }: { colorScheme: ReturnType<typeof useColor
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
         {/* Renkler grain — subtle film/paper texture over every screen (like the design's
             top noise layer). pointer-transparent; sits above content, below toasts. */}
-        <Grain opacity={0.13} />
+        <Grain opacity={0.26} />
         {/* ToastOverlay MUST be last — rendered after Stack so it floats above all native screens */}
         <ToastOverlay />
       </ToastSetupProvider>

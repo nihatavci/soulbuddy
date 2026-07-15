@@ -84,7 +84,7 @@ export function Button({
   // Renkler: gold + ink buttons carry a hand-applied grain; paper/ghost stay clean
   // (the global overlay covers them). Gold reads as pigment; ink as charcoal.
   const grainOpacity =
-    variant === 'primary' || variant === 'gradient' ? 0.24 : variant === 'dark' ? 0.2 : 0;
+    variant === 'primary' || variant === 'gradient' ? 0.3 : variant === 'dark' ? 0.24 : 0;
   // re:sense: Signal-Yellow buttons (primary/gradient) take INK text (design.md);
   // the dark island takes paper text; others use their variant text color.
   const textColor =
