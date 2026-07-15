@@ -39,6 +39,7 @@ import {
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { Prefs } from '@/store/mmkv';
 import { UnreadProvider } from '@/context/UnreadContext';
+import { registerPushToken } from '@/lib/push';
 
 export default function AppLayout() {
   const { user } = useAuth();
@@ -155,6 +156,12 @@ export default function AppLayout() {
     } else {
       unregisterPushUser();
     }
+  }, [user?.id]);
+
+  // Register the Expo push token for message notifications (no-op until the app
+  // is rebuilt with expo-notifications + a real EAS projectId).
+  useEffect(() => {
+    if (user?.id) registerPushToken(user.id);
   }, [user?.id]);
 
   // Sync subscription tier as a OneSignal tag

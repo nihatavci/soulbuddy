@@ -57,6 +57,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          pair_key: string | null
           signal_id: string
           user_a: string
           user_b: string
@@ -64,6 +65,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          pair_key?: string | null
           signal_id: string
           user_a: string
           user_b: string
@@ -71,6 +73,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          pair_key?: string | null
           signal_id?: string
           user_a?: string
           user_b?: string
@@ -123,6 +126,27 @@ export type Database = {
           intent?: string[]
           onboarded?: boolean
           trust_level?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      push_tokens: {
+        Row: {
+          platform: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          platform?: string
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          platform?: string
+          token?: string
           updated_at?: string
           user_id?: string
         }
