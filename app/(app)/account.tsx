@@ -212,7 +212,7 @@ export default function AccountScreen() {
 
           <Button
             label={t('account.updatePassword')}
-            variant="primary"
+            variant="dark"
             size="lg"
             onPress={handleChangePassword}
             disabled={pwLoading}

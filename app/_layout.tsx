@@ -43,6 +43,7 @@ import { useNetworkSync } from '@/hooks/useNetworkSync';
 import { initSentry, SentryWrap, sentryRoutingInstrumentation } from '@/lib/sentry';
 import { useTrackingTransparency } from '@/hooks/useTrackingTransparency';
 import { ToastSetupProvider, ToastOverlay } from '@/components/glow/index';
+import { Grain } from '@/components/ui/Grain';
 import { AnimatedSplash } from '@/components/ui/AnimatedSplash';
 import { getConsentPreferences, hasGivenConsent } from '@/lib/consent';
 import { initMixpanel, optInMixpanel, optOutMixpanel } from '@/lib/mixpanel';
@@ -119,6 +120,9 @@ function AuthGatedApp({ colorScheme }: { colorScheme: ReturnType<typeof useColor
           <Stack.Screen name="(app)"  options={{ animation: 'fade' }} />
         </Stack>
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        {/* Renkler grain — subtle film/paper texture over every screen (like the design's
+            top noise layer). pointer-transparent; sits above content, below toasts. */}
+        <Grain opacity={0.13} />
         {/* ToastOverlay MUST be last — rendered after Stack so it floats above all native screens */}
         <ToastOverlay />
       </ToastSetupProvider>

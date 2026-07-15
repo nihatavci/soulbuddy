@@ -81,6 +81,7 @@ None yet.
 | 2026-07-15 | wire-message-push | Wire live message push (expo-notifications plugin, foreground handler, presence badge, tap deep-link, alias push trigger) — needs native rebuild | complete ✓ |
 | 2026-07-15 | paperwhite-icons | Replace all Feather/Ionicons with baked Paperwhite pen-drawn icon set (bake script + Icon component + 25 files converted) | complete ✓ |
 | 2026-07-15 | nativetabs-glass | Restore expo-router NativeTabs liquid-glass tab bar (blog approach); verifying via iOS 26.5 native build | complete ✓ |
+| 2026-07-15 | renkler-grain | Fix invisible black-on-black button + add Renkler grain overlay (global + textured buttons) | complete ✓ |
 
 ## Deferred Items
 

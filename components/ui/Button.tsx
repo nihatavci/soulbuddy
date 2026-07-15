@@ -27,6 +27,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { Icon } from '@/components/icons/Icon';
+import { Grain } from '@/components/ui/Grain';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppColors, Typography } from '@/constants/theme';
 
@@ -80,6 +81,10 @@ export function Button({
   const isGradient = variant === 'gradient';
   const variantStyle = VARIANT_STYLES[variant];
   const iconSize = size === 'sm' ? 14 : size === 'md' ? 16 : 18;
+  // Renkler: gold + ink buttons carry a hand-applied grain; paper/ghost stay clean
+  // (the global overlay covers them). Gold reads as pigment; ink as charcoal.
+  const grainOpacity =
+    variant === 'primary' || variant === 'gradient' ? 0.24 : variant === 'dark' ? 0.2 : 0;
   // re:sense: Signal-Yellow buttons (primary/gradient) take INK text (design.md);
   // the dark island takes paper text; others use their variant text color.
   const textColor =
@@ -133,6 +138,7 @@ export function Button({
           end={{ x: 1, y: 0.5 }}
           style={StyleSheet.absoluteFill}
         />
+        {grainOpacity > 0 && <Grain opacity={grainOpacity} />}
         {content}
       </AnimatedPressable>
     );
@@ -148,12 +154,14 @@ export function Button({
         styles.base,
         sizeStyle.container,
         variantStyle.container,
+        grainOpacity > 0 && { overflow: 'hidden' },
         isDisabled && styles.disabled,
         animStyle,
         style,
       ]}
       testID={testID}
     >
+      {grainOpacity > 0 && <Grain opacity={grainOpacity} />}
       {content}
     </AnimatedPressable>
   );
