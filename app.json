@@ -33,7 +33,7 @@
     "jsEngine": "hermes",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.nihtavci.resense",
+      "bundleIdentifier": "com.terra.resense",
       "buildNumber": "8",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -49,14 +49,14 @@
           }
         ]
       },
-      "appleTeamId": "DN6Q7MMM66"
+      "appleTeamId": "G9PF4M8VP8"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.nihtavci.resense",
+      "package": "com.terra.resense",
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
