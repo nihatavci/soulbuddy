@@ -113,12 +113,6 @@
       "expo-asset",
       "expo-localization",
       [
-        "@react-native-google-signin/google-signin",
-        {
-          "iosUrlScheme": "com.googleusercontent.apps.REPLACE_ME"
-        }
-      ],
-      [
         "react-native-fbsdk-next",
         {
           "appID": "REPLACE_ME",
