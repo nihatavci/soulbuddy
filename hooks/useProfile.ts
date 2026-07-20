@@ -97,6 +97,16 @@ export function useUpdateProfile() {
       }
     },
 
+    // Write the authoritative server row into the cache. Critical for NEW users:
+    // the optimistic onMutate above is a no-op when there is no existing row
+    // (old === null), so without this the cache would still read onboarded=false
+    // and AppGate would bounce a just-onboarded user back to /onboarding until a
+    // background refetch landed. Writing the returned row makes the cache correct
+    // synchronously, before onboarding navigates.
+    onSuccess: (data) => {
+      qc.setQueryData<Profile>(queryKeys.profile(userId), data);
+    },
+
     onSettled: () => {
       qc.invalidateQueries({ queryKey: queryKeys.profile(userId) });
     },
