@@ -1,3 +1,11 @@
+---
+paths:
+  - ios/**
+  - "**/app.json"
+  - .asc/**
+  - metadata/**
+---
+
 # Blitz MCP Integration
 
 This project is open in **Blitz**, a native macOS iOS development environment.

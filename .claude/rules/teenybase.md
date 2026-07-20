@@ -1,3 +1,10 @@
+---
+paths:
+  - server/**
+  - "**/teenybase.ts"
+  - "**/teeny.config.ts"
+---
+
 # Adding a Backend to a Blitz project
 
 **Prerequisites:** Node.js >= 18.14.1, teenybase CLI installed.
