@@ -1,38 +1,104 @@
 /**
- * Grain — film-grain / paper-fiber texture overlay (re:sense Renkler).
+ * Grain — procedural film / paper grain, rendered on the GPU with Skia.
  *
- * A small neutral-gray-ish noise tile (assets/textures/grain.png, see scripts/gen-grain.mjs)
- * tiled and alpha-blended. Charcoal-biased so it reads as grit on the light paper + gold.
- * Always pointer-transparent.
+ * Replaces the old tiled-PNG overlay. A runtime (SkSL) shader emits symmetric,
+ * high-frequency, ZERO-MEAN noise — equal light and dark specks at low alpha —
+ * so it *modulates* the surface beneath instead of veiling it like a flat gray
+ * scrim. That is the difference between grain sitting IN the paper and fog laid
+ * ON top: half the specks lighten, half darken, so mean luminance is preserved.
+ * No tiling seams, resolution-independent.
  *
- * Sized to the full window (not absoluteFill) so it covers the whole screen even when the
- * parent has no explicit bounds (e.g. a provider fragment). Inside a button it overflows
- * and is clipped by the button's `overflow:hidden` — so it fills there too.
+ * `animated` reanimates the field ~24×/sec (throttled to ~30 redraws/sec) for a
+ * real film-grain shimmer — use it for the one global overlay, leave it off for
+ * small/static uses (buttons) so each stays a single cheap draw. Always
+ * pointer-transparent.
+ *
+ * API is a superset of the old PNG version: <Grain opacity={...} style={...} />
+ * still works unchanged; `animated` is new and defaults to off.
  */
 import React from 'react';
-import { View, Image, StyleSheet, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  StyleSheet,
+  useWindowDimensions,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
+import { Canvas, Fill, Shader, Skia } from '@shopify/react-native-skia';
+import {
+  useDerivedValue,
+  useFrameCallback,
+  useSharedValue,
+  type FrameInfo,
+} from 'react-native-reanimated';
 
-const GRAIN = require('@/assets/textures/grain.png');
+const SOURCE = Skia.RuntimeEffect.Make(`
+uniform float u_time;
+uniform float u_strength;
+
+// cheap 2D hash -> [0, 1)
+float hash(float2 p) {
+  p = fract(p * float2(123.34, 345.45));
+  p += dot(p, p + 34.345);
+  return fract(p.x * p.y);
+}
+
+half4 main(float2 fragCoord) {
+  // reanimate the whole field ~24x/sec so it flickers like film, not scrolls
+  float frame = floor(u_time * 24.0);
+  float n = hash(fragCoord + frame * 71.7);
+  float g = n - 0.5;                     // [-0.5, 0.5], zero-mean
+  float a = abs(g) * 2.0 * u_strength;   // transparent at mid, speck at extremes
+  float3 c = g > 0.0 ? float3(1.0) : float3(0.0); // light or dark speck
+  return half4(c * a, a);                // premultiplied
+}
+`);
 
 export function Grain({
   opacity = 0.06,
+  animated = false,
   style,
 }: {
   opacity?: number;
+  /** Reanimate the grain each frame (film shimmer). Off = a single static draw. */
+  animated?: boolean;
   style?: StyleProp<ViewStyle>;
+  /** Deprecated no-op — kept for call-site compatibility. */
+  grain?: number;
 }) {
   const { width, height } = useWindowDimensions();
+  const time = useSharedValue(0);
+  const acc = useSharedValue(0);
+
+  useFrameCallback((f: FrameInfo) => {
+    'worklet';
+    const dt = f.timeSincePreviousFrame ?? 0;
+    acc.value += dt;
+    // throttle redraws to ~30/sec — grain flicker doesn't need 60fps
+    if (acc.value >= 1000 / 30) {
+      time.value += acc.value / 1000;
+      acc.value = 0;
+    }
+  }, animated);
+
+  const uniforms = useDerivedValue(
+    () => ({
+      u_time: time.value,
+      u_strength: Math.max(0, Math.min(1, opacity)),
+    }),
+    [opacity, time],
+  );
+
+  if (!SOURCE) return null;
+
   return (
-    <View pointerEvents="none" style={[styles.fill, { width, height }, style]}>
-      {/* explicit window w/h (not absoluteFill) — repeat mode tiles evenly this way;
-          absoluteFill left a denser patch in the top-left corner. */}
-      <Image
-        source={GRAIN}
-        resizeMode="repeat"
-        fadeDuration={0}
-        style={{ width, height, opacity }}
-      />
-    </View>
+    <Canvas
+      pointerEvents="none"
+      style={[styles.fill, { width, height }, style]}
+    >
+      <Fill>
+        <Shader source={SOURCE} uniforms={uniforms} />
+      </Fill>
+    </Canvas>
   );
 }
 

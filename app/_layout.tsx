@@ -120,9 +120,10 @@ function AuthGatedApp({ colorScheme }: { colorScheme: ReturnType<typeof useColor
           <Stack.Screen name="(app)"  options={{ animation: 'fade' }} />
         </Stack>
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-        {/* Renkler grain — subtle film/paper texture over every screen (like the design's
-            top noise layer). pointer-transparent; sits above content, below toasts. */}
-        <Grain opacity={0.26} />
+        {/* Renkler grain — static GPU film/paper grain over every screen. Symmetric
+            zero-mean noise (modulates, doesn't veil) so it reads as texture in the
+            surface, not fog on top. pointer-transparent; above content, below toasts. */}
+        <Grain opacity={0.1} />
         {/* ToastOverlay MUST be last — rendered after Stack so it floats above all native screens */}
         <ToastOverlay />
       </ToastSetupProvider>
