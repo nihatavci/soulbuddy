@@ -320,5 +320,5 @@ const styles = StyleSheet.create({
   termsLink: { fontFamily: Typography.fonts.heading, textDecorationLine: 'underline', color: AppColors.text },
   switchRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   switchLabel: { fontFamily: Typography.fonts.body, fontSize: 14, color: AppColors.textSecondary },
-  switchLink:  { fontFamily: Typography.fonts.heading, fontSize: 14, color: AppColors.accent, textDecorationLine: 'underline' },
+  switchLink:  { fontFamily: Typography.fonts.heading, fontSize: 14, color: AppColors.text, textDecorationLine: 'underline' },
 });

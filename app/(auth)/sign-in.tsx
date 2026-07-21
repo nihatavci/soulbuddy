@@ -240,5 +240,5 @@ const styles = StyleSheet.create({
   appleBtn: { marginBottom: Space.md },
   switchRow:   { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   switchLabel: { fontFamily: Typography.fonts.body, fontSize: 14, color: AppColors.textSecondary },
-  switchLink:  { fontFamily: Typography.fonts.heading, fontSize: 14, color: AppColors.accent, textDecorationLine: 'underline' },
+  switchLink:  { fontFamily: Typography.fonts.heading, fontSize: 14, color: AppColors.text, textDecorationLine: 'underline' },
 });

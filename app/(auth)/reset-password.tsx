@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(232,93,86,0.1)', borderRadius: Space.sm, padding: Space.sm + 2,
     marginBottom: Space.sm + 2, borderWidth: 1, borderColor: 'rgba(232,93,86,0.25)',
   },
-  errorText: { fontFamily: Typography.fonts.body, fontSize: 13, color: AppColors.accent },
+  errorText: { fontFamily: Typography.fonts.body, fontSize: 13, color: AppColors.error },
   // Override for Button to match original dark-bg style
   btnOverride: {
     backgroundColor: AppColors.text, borderRadius: 14, marginBottom: Space['2xs'],

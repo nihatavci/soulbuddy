@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     fontFamily: 'PlayfairDisplay', fontSize: 34, lineHeight: 41,
     letterSpacing: -0.6, color: AppColors.text,
   },
-  headlineEmphasis: { fontFamily: 'PlayfairDisplay-Italic', color: GOLD },
+  headlineEmphasis: { fontFamily: 'PlayfairDisplay-Italic', color: AppColors.text },
   actions: { alignItems: 'center', gap: 16 },
   fab: {
     width: 64, height: 64, borderRadius: 999, backgroundColor: GOLD,
