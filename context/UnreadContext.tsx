@@ -81,33 +81,44 @@ export function UnreadProvider({ children }: { children: React.ReactNode }) {
 
   // One global realtime subscription. RLS ensures we only receive INSERTs for
   // messages in spaces we're a member of. A message from the other person
-  // refreshes the spaces list (→ badge) and the open thread (→ instant display).
+  // refreshes the spaces list (→ badge). The open thread itself is refreshed by
+  // useMessages' own per-space channel (direct cache write) — invalidating
+  // spaceMessages here too would just be a redundant network refetch.
   useEffect(() => {
     if (!user?.id) return;
     const myId = user.id;
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    supabase.auth.getSession().then(({ data }) => {
-      const token = data.session?.access_token;
-      if (token) { try { supabase.realtime.setAuth(token); } catch { /* non-fatal */ } }
-    });
+    (async () => {
+      // Authorize the realtime socket with the current JWT BEFORE subscribing:
+      // subscribing first can race the auth handshake and the RLS-gated
+      // postgres_changes subscription is then silently rejected/never joins.
+      try {
+        const { data } = await supabase.auth.getSession();
+        const token = data.session?.access_token;
+        if (token) supabase.realtime.setAuth(token);
+      } catch { /* non-fatal */ }
 
-    const channel = supabase
-      .channel('unread:messages')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        (payload) => {
-          const msg = payload.new as { sender_id?: string; space_id?: string };
-          if (!msg?.sender_id || msg.sender_id === myId) return; // ignore my own
-          qc.invalidateQueries({ queryKey: queryKeys.spaces(myId) });
-          if (msg.space_id) {
-            qc.invalidateQueries({ queryKey: queryKeys.spaceMessages(msg.space_id) });
-          }
-        },
-      )
-      .subscribe();
+      if (cancelled) return;
+      channel = supabase
+        .channel('unread:messages')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'messages' },
+          (payload) => {
+            const msg = payload.new as { sender_id?: string; space_id?: string };
+            if (!msg?.sender_id || msg.sender_id === myId) return; // ignore my own
+            qc.invalidateQueries({ queryKey: queryKeys.spaces(myId) });
+          },
+        )
+        .subscribe();
+    })();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [user?.id, qc]);
 
   const value = useMemo<UnreadContextValue>(

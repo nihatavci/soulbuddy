@@ -37,12 +37,30 @@ import { Toast } from '@/components/glow';
 import type { Message } from '@/services/supabase';
 
 function ThreadBubble({ message, mine }: { message: Message; mine: boolean }) {
+  // Optimistic bubbles (not yet confirmed by the server) render at reduced
+  // opacity with a small clock glyph — same bubble, no layout shift on confirm.
+  const pending = (message as Message & { pending?: boolean }).pending === true;
   return (
     <View style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
-      <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
+      <View
+        style={[
+          styles.bubble,
+          styles.bubbleInnerRow,
+          mine ? styles.bubbleMine : styles.bubbleTheirs,
+          pending && styles.bubblePending,
+        ]}
+      >
         <Text style={[styles.bubbleText, mine ? styles.bubbleTextMine : styles.bubbleTextTheirs]}>
           {message.text}
         </Text>
+        {pending && (
+          <Icon
+            name="clock"
+            size={10}
+            color={mine ? AppColors.text : AppColors.background}
+            style={styles.bubblePendingIcon}
+          />
+        )}
       </View>
     </View>
   );
@@ -360,6 +378,10 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
   },
+  bubbleInnerRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
+  // Optimistic (not-yet-confirmed) bubble — same shape, quieter presence.
+  bubblePending: { opacity: 0.55 },
+  bubblePendingIcon: { marginBottom: 2 },
   // Mine → right, paper with a subtle ink hairline, tail at bottom-right.
   bubbleMine: {
     backgroundColor: '#ECE5D9',
