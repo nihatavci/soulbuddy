@@ -13,6 +13,9 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { supabase } from '@/services/supabase';
+import { Prefs } from '@/store/mmkv';
+
+const PUSH_OPT_OUT_KEY = 'push_opted_out';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let Notifications: any = null;
@@ -89,6 +92,54 @@ export function addPushResponseListener(
   } catch (e) {
     if (__DEV__) console.warn('[push] addPushResponseListener failed', e);
     return () => {};
+  }
+}
+
+// ─── Notification preferences ────────────────────────────────────────────
+// User-facing opt-in/opt-out toggle in profile.tsx. Distinct from the OS-level
+// permission prompt: a user can have OS permission granted but still choose to
+// opt out here, in which case we drop their token so no push is attempted.
+
+/** Whether the device currently has OS-level notification permission. */
+export async function hasPushPermission(): Promise<boolean> {
+  if (!Notifications) return false;
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    return status === 'granted';
+  } catch {
+    return false;
+  }
+}
+
+/** Prompt the OS permission dialog. Returns true if granted. */
+export async function requestPushPermission(): Promise<boolean> {
+  if (!Notifications) return false;
+  try {
+    const { status } = await Notifications.requestPermissionsAsync();
+    return status === 'granted';
+  } catch {
+    return false;
+  }
+}
+
+/** In-app opt-in state (defaults to opted-in; explicit opt-out is sticky). */
+export function isPushOptedIn(): boolean {
+  return !Prefs.getBool(PUSH_OPT_OUT_KEY, false);
+}
+
+/** User opted in via the profile toggle — register their Expo push token. */
+export async function optInPush(userId: string): Promise<void> {
+  Prefs.setBool(PUSH_OPT_OUT_KEY, false);
+  await registerPushToken(userId);
+}
+
+/** User opted out — remember the choice and drop their token so pushes stop. */
+export async function optOutPush(userId: string): Promise<void> {
+  Prefs.setBool(PUSH_OPT_OUT_KEY, true);
+  try {
+    await supabase.from('push_tokens').delete().eq('user_id', userId);
+  } catch (e) {
+    if (__DEV__) console.warn('[push] optOutPush failed to clear token', e);
   }
 }
 

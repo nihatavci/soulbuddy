@@ -24,7 +24,6 @@ MyApp — React Native (Expo) boilerplate. Replace this with your app's descript
    - Set `@react-native-google-signin/google-signin` `iosUrlScheme`.
    - Set `react-native-fbsdk-next` `appID` and `clientToken` if using Facebook.
    - Set `@sentry/react-native/expo` `project` and `organization`.
-   - Set `onesignal-expo-plugin` `devTeam` (Apple Team ID).
 4. Run `npx expo prebuild` to regenerate native projects.
 5. Run `npm run typecheck` to verify types pass.
 6. Fill Supabase: create your schema, regenerate types with:

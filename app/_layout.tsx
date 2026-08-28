@@ -23,7 +23,6 @@ import { LogBox } from 'react-native';
 
 // Suppress red-box for native modules that degrade gracefully in Expo Go
 LogBox.ignoreLogs([
-  'Could not load RNOneSignal native module',
   '[RevenueCat]',
 ]);
 import { GestureHandlerRootView } from 'react-native-gesture-handler';

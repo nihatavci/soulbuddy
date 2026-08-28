@@ -36,8 +36,7 @@ import {
   optOutPush,
   requestPushPermission,
   hasPushPermission,
-  sendTestPushNotification,
-} from '@/lib/onesignal';
+} from '@/lib/push';
 import { trackMixpanelPushPermissionGranted as trackPushPermissionGranted, trackMixpanelPushPermissionDenied as trackPushPermissionDenied, optInMixpanel, optOutMixpanel } from '@/lib/mixpanel';
 import { useT } from '@/context/LanguageContext';
 import {
@@ -83,7 +82,7 @@ export default function ProfileScreen() {
     Haptics.selectionAsync();
     if (value) {
       // If OS permission hasn't been granted yet, request it
-      if (!hasPushPermission()) {
+      if (!(await hasPushPermission())) {
         const granted = await requestPushPermission();
         if (!granted) {
           trackPushPermissionDenied();
@@ -96,15 +95,10 @@ export default function ProfileScreen() {
         }
         trackPushPermissionGranted();
       }
-      optInPush();
+      if (user?.id) await optInPush(user.id);
       setPushEnabled(true);
-      // Send a real push after a 2s delay — gives OneSignal time to register
-      // the subscription before delivery. This proves the pipeline works.
-      if (user?.id) {
-        setTimeout(() => sendTestPushNotification(user.id), 2000);
-      }
     } else {
-      optOutPush();
+      if (user?.id) await optOutPush(user.id);
       setPushEnabled(false);
     }
   }, [user?.id]);

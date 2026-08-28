@@ -7,32 +7,22 @@
  *
  * Responsible for:
  * – Initializing RevenueCat anonymously (no userId required)
- * – Initializing OneSignal + registering user for push notifications (when authenticated)
  * – Identifying the user in Sentry so crash reports are linked (when authenticated)
  * – Initializing AppsFlyer for install attribution + OneLink deep linking
  * – Clearing stale onboarding state from previous A/B gate bug
  */
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { initRevenueCat, linkRevenueCatIdentifiers } from '@/lib/revenuecat';
 import { identifySentryUser, clearSentryUser } from '@/lib/sentry';
-import {
-  initOneSignal,
-  registerPushUser,
-  unregisterPushUser,
-  onNotificationClicked,
-  onForegroundNotification,
-  setNotificationTags,
-} from '@/lib/onesignal';
 import { initAppsFlyer, setAppsFlyerUserId, clearAppsFlyerUserId } from '@/lib/appsflyer';
 import { initFacebook, setFacebookUserId, clearFacebookUserId } from '@/lib/facebook';
 import { requestTrackingPermissionsAsync, PermissionStatus } from 'expo-tracking-transparency';
 import {
   identifyMixpanelUser,
   resetMixpanelIdentity,
-  trackMixpanelNotificationOpened,
   setSuperPropertyIsPro,
   trackMixpanelAppOpened,
 } from '@/lib/mixpanel';
@@ -44,7 +34,6 @@ import { registerPushToken, configureNotifications, addPushResponseListener } fr
 export default function AppLayout() {
   const { user } = useAuth();
   const router = useRouter();
-  const oneSignalInitialized = useRef(false);
 
   const { data: entitlements } = useEntitlements();
   const isPro = entitlements?.isPro ?? false;
@@ -59,33 +48,6 @@ export default function AppLayout() {
       Prefs.setInt('onboarding_version', 0);
       Prefs.setBool('onboarding_complete', false);
     }
-  }, []);
-
-  // Initialize OneSignal once on mount
-  useEffect(() => {
-    if (oneSignalInitialized.current) return;
-    oneSignalInitialized.current = true;
-
-    initOneSignal();
-
-    // M3: Validate deep link screens against allowlist to prevent open redirect
-    const SAFE_DEEP_LINK_SCREENS = new Set([
-      '/(app)/(tabs)',
-      '/(app)/profile',
-      '/(app)/account',
-      '/(app)/paywall',
-      '/(app)/onboarding',
-    ]);
-
-    onNotificationClicked((notification) => {
-      trackMixpanelNotificationOpened(notification.notificationId ?? 'unknown');
-      const data = notification.additionalData as Record<string, string> | undefined;
-      if (data?.screen && SAFE_DEEP_LINK_SCREENS.has(data.screen)) {
-        router.push(data.screen as any);
-      }
-    });
-
-    onForegroundNotification(() => true);
   }, []);
 
   // Initialize RevenueCat anonymously on mount (no userId required).
@@ -149,15 +111,6 @@ export default function AppLayout() {
     })();
   }, []);
 
-  // Register / unregister OneSignal user
-  useEffect(() => {
-    if (user?.id) {
-      registerPushUser(user.id);
-    } else {
-      unregisterPushUser();
-    }
-  }, [user?.id]);
-
   // Register the Expo push token for message notifications (no-op until the app
   // is rebuilt with expo-notifications + a real EAS projectId).
   useEffect(() => {
@@ -173,11 +126,6 @@ export default function AppLayout() {
     });
     return unsubscribe;
   }, [router]);
-
-  // Sync subscription tier as a OneSignal tag
-  useEffect(() => {
-    setNotificationTags({ is_pro: isPro ? 'true' : 'false' });
-  }, [isPro]);
 
   // Identify user in Sentry (ID only — no PII)
   useEffect(() => {
