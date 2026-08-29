@@ -34,7 +34,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.nihtavci.resense",
-      "buildNumber": "9",
+      "buildNumber": "11",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSUserTrackingUsageDescription": "We use this data to improve your experience and show you more relevant content.",
@@ -111,20 +111,7 @@
       "expo-tracking-transparency",
       "expo-dev-client",
       "expo-asset",
-      "expo-localization",
-      [
-        "react-native-fbsdk-next",
-        {
-          "appID": "REPLACE_ME",
-          "clientToken": "REPLACE_ME",
-          "displayName": "MyApp",
-          "scheme": "fbREPLACE_ME",
-          "advertiserIDCollectionEnabled": true,
-          "autoLogAppEventsEnabled": true,
-          "isAutoInitEnabled": false,
-          "iosUserTrackingPermission": false
-        }
-      ]
+      "expo-localization"
     ],
     "owner": "nihtavci"
   }
