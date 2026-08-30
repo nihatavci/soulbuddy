@@ -1,0 +1,352 @@
+{
+  "common": {
+    "continue": "Weiter",
+    "back": "Zurück",
+    "skip": "Überspringen",
+    "start": "Los geht's",
+    "tryAgain": "Erneut versuchen",
+    "privacyPolicy": "Datenschutzerklärung",
+    "termsOfService": "Nutzungsbedingungen",
+    "termsOfUse": "Nutzungsbedingungen",
+    "terms": "Bedingungen",
+    "privacy": "Datenschutz",
+    "and": "und"
+  },
+  "auth": {
+    "signIn": {
+      "title": "Willkommen zurück",
+      "subtitle": "Melde dich an, um weiterzumachen",
+      "emailLabel": "E-Mail",
+      "emailPlaceholder": "deine@email.com",
+      "passwordLabel": "Passwort",
+      "signInButton": "Anmelden",
+      "googleButton": "Weiter mit Google",
+      "sendCodeButton": "Code senden",
+      "verifyCodeButton": "Code bestätigen",
+      "noAccount": "Noch kein Konto?",
+      "signUpLink": "Registrieren",
+      "usePassword": "Passwort verwenden",
+      "useMagicLink": "Magic Link verwenden",
+      "errors": {
+        "emailRequired": "Bitte gib deine E-Mail-Adresse ein.",
+        "emailAndPassword": "Bitte gib deine E-Mail und dein Passwort ein.",
+        "codeRequired": "Bitte gib den Code aus deiner E-Mail ein.",
+        "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+      },
+      "forgot": "Vergessen?",
+      "divider": "oder",
+      "verificationCode": "Bestätigungscode",
+      "codeSentTo": "Code gesendet an {{email}}",
+      "enterSixDigit": "Gib unten den 6-stelligen Code ein.",
+      "resendCode": "Nichts erhalten? Code erneut senden"
+    },
+    "signUp": {
+      "title": "Konto erstellen",
+      "subtitle": "Los geht's",
+      "emailLabel": "E-Mail",
+      "emailPlaceholder": "deine@email.com",
+      "passwordLabel": "Passwort",
+      "signUpButton": "Konto erstellen",
+      "googleButton": "Weiter mit Google",
+      "hasAccount": "Schon ein Konto?",
+      "signInLink": "Anmelden",
+      "errors": {
+        "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+        "codeRequired": "Bitte gib den Bestätigungscode ein.",
+        "nameRequired": "Bitte gib deinen Namen ein.",
+        "emailRequired": "Bitte gib deine E-Mail-Adresse ein.",
+        "emailInvalid": "Bitte gib eine gültige E-Mail-Adresse ein.",
+        "passwordTooShort": "Das Passwort muss mindestens 8 Zeichen lang sein.",
+        "passwordsMismatch": "Die Passwörter stimmen nicht überein.",
+        "emailExists": "Für diese E-Mail existiert bereits ein Konto. Melde dich stattdessen an."
+      },
+      "verificationCode": "Bestätigungscode",
+      "verifySubtitle": "Gib den 6-stelligen Code ein, der an {{email}} gesendet wurde",
+      "backToSignUp": "Zurück zur Registrierung",
+      "nameLabel": "Dein Name",
+      "passwordPlaceholder": "Mind. 8 Zeichen",
+      "confirmPasswordLabel": "Passwort bestätigen",
+      "divider": "oder",
+      "termsPrefix": "Mit der Kontoerstellung stimmst du unseren"
+    },
+    "forgotPassword": {
+      "back": "Zurück",
+      "title": "Passwort vergessen?",
+      "subtitle": "Gib deine E-Mail-Adresse ein und wir senden dir einen Link zum Zurücksetzen.",
+      "emailPlaceholder": "du@beispiel.com",
+      "sendButton": "Link senden",
+      "sentTitle": "Link gesendet!",
+      "sentSubtitle": "Öffne deine E-Mails und tippe auf den Link zum Zurücksetzen. Du wirst danach automatisch zurückgeleitet, um ein neues Passwort zu vergeben.",
+      "rememberIt": "Doch wieder eingefallen?",
+      "errors": {
+        "emailRequired": "Bitte gib deine E-Mail-Adresse ein.",
+        "generic": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+      }
+    },
+    "resetPassword": {
+      "waitingTitle": "Warten auf den Link",
+      "waitingSubtitle": "Bitte tippe auf den Link zum Zurücksetzen deines Passworts in deiner E-Mail{{emailSuffix}}. Du wirst danach automatisch zurückgeleitet.",
+      "waitingEmailSuffix": " (gesendet an {{email}})",
+      "backToForgot": "Zurück zu Passwort vergessen",
+      "newPasswordTitle": "Neues Passwort",
+      "newPasswordSubtitle": "Wähle ein neues Passwort für dein Konto",
+      "newPasswordLabel": "Neues Passwort",
+      "passwordPlaceholder": "Mind. 8 Zeichen",
+      "confirmPasswordLabel": "Passwort bestätigen",
+      "setButton": "Neues Passwort setzen",
+      "doneTitle": "Passwort aktualisiert!",
+      "doneSubtitle": "Dein Passwort wurde geändert. Du bist jetzt angemeldet.",
+      "errors": {
+        "passwordTooShort": "Das Passwort muss mindestens 8 Zeichen lang sein.",
+        "passwordsMismatch": "Die Passwörter stimmen nicht überein.",
+        "generic": "Passwort konnte nicht zurückgesetzt werden. Bitte versuche es erneut."
+      }
+    }
+  },
+  "tabs": {
+    "home": "Start"
+  },
+  "profile": {
+    "title": "Profil",
+    "avatarSubtext": "Avatar aus Initialen",
+    "displayName": "Anzeigename",
+    "email": "E-Mail",
+    "verified": "Verifiziert",
+    "yourNamePlaceholder": "Dein Name",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "account": "Konto",
+    "passwordSecurity": "Passwort & Sicherheit",
+    "notifications": "Benachrichtigungen",
+    "pushNotifications": "Push-Benachrichtigungen",
+    "pushNotificationsSubtitle": "Erinnerungen und Tipps",
+    "language": "Sprache",
+    "languageEnglish": "English",
+    "languageGerman": "Deutsch",
+    "subscription": "Abonnement",
+    "currentPlan": "Aktueller Plan",
+    "free": "Kostenlos",
+    "upgrade": "Upgrade",
+    "manageSubscription": "Abonnement verwalten",
+    "nameUpdated": "Name aktualisiert",
+    "nameEmpty": "Der Name darf nicht leer sein.",
+    "failedUpdate": "Name konnte nicht aktualisiert werden.",
+    "deleteAccount": "Konto löschen",
+    "deleteAccountSubtitle": "Entfernt dein Konto und deine Daten unwiderruflich",
+    "resetAndStartOver": "Zurücksetzen & neu starten",
+    "resetSubtitle": "Lokale Daten löschen und neu beginnen",
+    "backUpAccount": "Konto sichern",
+    "enhanceReplies": "Deine Antworten verfeinern",
+    "enhanceReplies_inactive": "KI-Antworten an deinen Stil anpassen",
+    "analytics": "Nutzungsanalyse",
+    "analyticsSubtitle": "Nutzungsdaten zur Verbesserung der App",
+    "crashReports": "Absturzberichte",
+    "crashReportsSubtitle": "Anonyme Fehlermeldungen",
+    "aiProcessing": "KI-Verarbeitung",
+    "aiProcessingSubtitle": "Erforderlich für KI-Funktionen",
+    "californiaPrivacy": "Datenschutz (Kalifornien)",
+    "doNotSell": "Meine Daten nicht verkaufen",
+    "doNotSellSubtitle": "Weitergabe persönlicher Daten ablehnen",
+    "yourData": "Deine Daten",
+    "exportData": "Meine Daten exportieren",
+    "exportDataSubtitle": "Lade alle deine Daten als JSON herunter",
+    "guestHeroBody": "Füge eine E-Mail-Adresse hinzu, damit deine Daten geräteübergreifend sicher bleiben.",
+    "toasts": {
+      "enablePushInSettings": "Öffne Einstellungen > Mitteilungen, um Push-Benachrichtigungen zu aktivieren",
+      "preferenceEnabled": "Einstellung aktiviert",
+      "preferenceDisabled": "Einstellung deaktiviert",
+      "dataSharingOptedOut": "Datenfreigabe deaktiviert",
+      "dataSharingOptedIn": "Datenfreigabe aktiviert",
+      "dataExported": "Daten erfolgreich exportiert",
+      "exportFailed": "Export fehlgeschlagen"
+    }
+  },
+  "account": {
+    "deleteConfirmTitle": "Konto löschen",
+    "deleteConfirmBody": "Dadurch werden dein Konto und alle zugehörigen Daten unwiderruflich gelöscht. Dies kann nicht rückgängig gemacht werden.",
+    "deleteCta": "Endgültig löschen",
+    "deleteCancel": "Abbrechen",
+    "deleteFailed": "Konto konnte nicht gelöscht werden. Bitte versuche es erneut.",
+    "title": "Konto",
+    "backUpFirst": "Zuerst sichern",
+    "backUpFirstBody": "Für Passwortänderungen und Abmelden benötigt dein Konto eine E-Mail-Adresse. Füge eine hinzu, um Zugangsdaten zu verwalten und deine Daten zu schützen.",
+    "backUpWithEmail": "Mit E-Mail sichern",
+    "passwordSecurity": "Passwort & Sicherheit",
+    "changePassword": "Passwort ändern",
+    "currentPassword": "Aktuelles Passwort",
+    "newPassword": "Neues Passwort",
+    "newPasswordPlaceholder": "Mind. 8 Zeichen",
+    "confirmNewPassword": "Neues Passwort bestätigen",
+    "updatePassword": "Passwort aktualisieren",
+    "session": "Sitzung",
+    "signOut": "Abmelden",
+    "dangerZone": "Gefahrenzone",
+    "deleteAccountSubtext": "Entfernt alle deine Daten unwiderruflich",
+    "errors": {
+      "currentRequired": "Gib dein aktuelles Passwort ein.",
+      "tooShort": "Das neue Passwort muss mindestens 8 Zeichen lang sein.",
+      "mismatch": "Die Passwörter stimmen nicht überein.",
+      "sameAsCurrent": "Das neue Passwort muss sich vom aktuellen unterscheiden.",
+      "incorrect": "Das aktuelle Passwort ist falsch.",
+      "changeFailed": "Passwort konnte nicht geändert werden. Überprüfe dein aktuelles Passwort."
+    },
+    "passwordChanged": "Passwort erfolgreich geändert",
+    "signOutConfirm": {
+      "title": "Abmelden",
+      "body": "Möchtest du dich wirklich abmelden?",
+      "cancel": "Abbrechen",
+      "confirm": "Abmelden"
+    }
+  },
+  "errors": {
+    "somethingWrong": "Etwas ist schiefgelaufen",
+    "crashBody": "Es gab einen unerwarteten Fehler. Du kannst es erneut versuchen oder die App neu starten.",
+    "restartApp": "App neu starten"
+  },
+  "replyComposer": {
+    "status": {
+      "sentTitle": "Gesendet",
+      "sentBody": "Deine Ergänzung wurde gesendet. Die andere Person hat noch nicht zurück ergänzt.",
+      "cta": "Weiter"
+    }
+  },
+  "consent": {
+    "customizeTitle": "Einstellungen anpassen",
+    "savePreferences": "Einstellungen speichern",
+    "privacyTitle": "Deine Privatsphäre zählt",
+    "acceptAll": "Alle akzeptieren",
+    "rejectNonEssential": "Nicht Notwendiges ablehnen",
+    "customize": "Anpassen",
+    "privacySubtitle": "Wir nutzen Nutzungsanalyse, Absturzberichte und KI-Verarbeitung, um dir das beste Erlebnis zu bieten. Du entscheidest, was du erlaubst.",
+    "customizeSubtitle": "Wähle, welche optionalen Dienste du aktivieren möchtest. Du kannst dies jederzeit in den Einstellungen ändern.",
+    "essentialNote": "Essenzielle Dienste (Authentifizierung, zentrale App-Funktionen) sind immer aktiv und benötigen keine Zustimmung.",
+    "legalNote": "Deine Einstellungen werden lokal gespeichert. Du kannst sie jederzeit im Profil ändern.",
+    "categories": {
+      "analytics": {
+        "title": "Nutzungsanalyse",
+        "description": "Hilft uns zu verstehen, wie die App genutzt wird, damit wir Funktionen verbessern können."
+      },
+      "crashReport": {
+        "title": "Absturzberichte",
+        "description": "Sendet anonyme Fehlerberichte, wenn etwas schiefgeht, damit wir Probleme schneller beheben können."
+      },
+      "aiProcessing": {
+        "title": "KI-Datenverarbeitung",
+        "description": "Erlaubt der App, deinen Kontext mit unserer KI zu verarbeiten, um Antworten zu generieren. Erforderlich für KI-Funktionen."
+      }
+    }
+  },
+  "aiConsent": {
+    "title": "KI-Verarbeitung aktivieren",
+    "enableContinue": "Aktivieren & weiter",
+    "keepOff": "Deaktiviert lassen",
+    "bodyPrefix": "Um Antworten zu generieren, sendet die App deine Eingabe an",
+    "secureService": "einen sicheren KI-Dienst",
+    "bodySuffix": ". Deine Daten werden nur zur Erstellung von Vorschlägen verwendet, niemals zum Trainieren von KI-Modellen, und nicht über deine Sitzung hinaus gespeichert. Du kannst dies jederzeit im Profil deaktivieren."
+  },
+  "paywall": {
+    "restore": "Wiederherstellen",
+    "readyToGoPro": "Bereit für PRO?",
+    "noCommitment": "Keine Verpflichtung. Jederzeit kündbar.",
+    "productDesc": "KI-gestützte Vorschläge, mit denen jedes Gespräch gelingt.",
+    "today": "Heute",
+    "daysFree": "{{count}} Tage kostenlos",
+    "due": "Fällig am {{date}}",
+    "billedToday": "Heute abgebucht",
+    "loading": "Wird geladen...",
+    "tryDaysFree": "{{count}} Tage kostenlos testen",
+    "subscribe": "Abonnieren",
+    "redeem": "Einlösen",
+    "alerts": {
+      "notReadyTitle": "Noch nicht bereit",
+      "notReadyBody": "Die Abo-Pakete werden noch geladen. Bitte versuche es erneut.",
+      "purchaseFailedTitle": "Kauf fehlgeschlagen",
+      "purchaseFailedAppStore": "Es gab ein Problem mit dem App Store. Falls du testest, stelle sicher, dass ein Sandbox-Tester in den Einstellungen angemeldet ist.",
+      "purchaseFailedGeneric": "Bitte versuche es gleich noch einmal.",
+      "noSubscriptionTitle": "Kein aktives Abonnement",
+      "noSubscriptionBody": "Wir konnten kein aktives Abonnement für dieses Konto finden.",
+      "restoreFailedTitle": "Wiederherstellung fehlgeschlagen",
+      "restoreFailedBody": "Bitte versuche es später erneut."
+    }
+  },
+  "subscription": {
+    "cancelled": {
+      "offerExpiresIn": "Angebot läuft ab in",
+      "heading": "Warte — ein letztes Angebot",
+      "subheading": "Nur für dich. Genau jetzt.",
+      "firstMonth": "Erster Monat",
+      "noThanks": "Nein danke, kostenlos weitermachen",
+      "badge": "50% RABATT",
+      "thenPerMonth": "danach {{price}}/Monat · jederzeit kündbar",
+      "cancelAnytime": "Jederzeit kündbar",
+      "cta": "Ja, ich will 50% Rabatt",
+      "processing": "Wird verarbeitet…",
+      "purchaseFailedTitle": "Kauf fehlgeschlagen",
+      "purchaseFailedBody": "Bitte versuche es erneut oder kontaktiere den Support.",
+      "features": {
+        "replies": "Unbegrenzte KI-Antwortvorschläge",
+        "challenges": "Challenges & Lektionen",
+        "scanner": "Profilanalyse"
+      }
+    },
+    "success": {
+      "heading": "Alles bereit!",
+      "subheading": "Dein Abonnement ist aktiv.",
+      "cta": "Los geht's"
+    }
+  },
+  "welcome": {
+    "tagline": "ein neuer emotionaler Raum.",
+    "headlineLead": "Ein unfertiger Gedanke,\neine neue ",
+    "headlineEmphasis": "Möglichkeit.",
+    "primary": "Einen Satz hinterlassen",
+    "login": "Anmelden"
+  },
+  "ageGate": {
+    "title": "Grenzen zuerst.",
+    "body": "re:sense ist nur für Erwachsene. Deine Absicht wird gesehen, bevor deine Identität es wird.",
+    "checkbox": "Ich bin über 18",
+    "confirm": "Verstanden — weiter",
+    "privacy": "Datenschutz-Übersicht",
+    "privacyNote": "Wir zeigen deinen echten Namen niemals standardmäßig an. Du teilst einen Satz und eine Absicht — kein Profil. Der Standort ist ungefähr; deine Identität bleibt deine eigene.",
+    "underageMessage": "Du musst mindestens 18 Jahre alt sein, um re:sense zu nutzen."
+  },
+  "board": {
+    "freshStart": {
+      "subtitleEmpty": "Das heutige Board ist neu. Lies und ergänze eines.",
+      "subtitleWithCount": "Das heutige Board ist neu. Du hast bisher {{count}} ergänzt."
+    },
+    "unreadAddition_one": "neue Ergänzung",
+    "unreadAddition_other": "{{count}} neue Ergänzungen"
+  },
+  "onboarding": {
+    "title": "Wähle deinen Alias",
+    "subtitle": "So wirst du angezeigt. Deinen echten Namen brauchst du nicht.",
+    "aliasLabel": "Alias",
+    "aliasPlaceholder": "z. B. luna",
+    "aliasHelper": "Deinen echten Namen brauchst du nicht.",
+    "aliasTaken": "Dieser Alias ist bereits vergeben — versuch einen anderen.",
+    "intentTitle": "Wonach suchst du hier?",
+    "intentHelper": "Wähle mindestens eine Option.",
+    "boundaryTitle": "Deine Grenzen",
+    "boundaryHelper": "Wähle mindestens eine Option. Du kannst dies später ändern.",
+    "cta": "re:sense öffnen",
+    "intent": {
+      "date": "Ein Date",
+      "slow_burn": "Langsam anbahnen",
+      "conversation": "Einfach reden",
+      "maybe": "Vielleicht / offen"
+    },
+    "boundary": {
+      "no_explicit_content": "Keine expliziten Inhalte",
+      "not_looking_to_meet_yet": "Noch nicht auf der Suche nach einem Treffen",
+      "go_slow": "Es langsam angehen",
+      "text_only": "Nur schreiben"
+    }
+  },
+  "checkIn": {
+    "closureTitle": "Ist still geworden",
+    "closureBody": "Das hier ist still geworden — das passiert. Kein Druck, es wieder aufzugreifen.",
+    "closureDismiss": "Verstanden"
+  }
+}

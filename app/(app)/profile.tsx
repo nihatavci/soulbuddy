@@ -47,6 +47,9 @@ import {
   type ConsentPreferences,
 } from '@/lib/consent';
 import { useAccountDeletion } from '@/hooks/useAccountDeletion';
+import { SelectableChip } from '@/components/ui/SelectableChip';
+import i18nInstance, { getLangOverride, type SupportedLang } from '@/i18n';
+import { resolveLangSelection, persistLangOverride } from '@/lib/langSelect';
 
 
 function getInitials(name: string | null | undefined, email: string): string {
@@ -143,6 +146,25 @@ export default function ProfileScreen() {
       { type: 'success', duration: 1500, position: 'top' },
     );
   }, [consent]);
+
+  // ─── Language preference ────────────────────────────────────────────────
+  const [activeLang, setActiveLang] = useState<SupportedLang>(
+    () => getLangOverride() ?? (i18nInstance.language as SupportedLang) ?? 'en',
+  );
+
+  const handleSelectLang = useCallback((lang: SupportedLang) => {
+    const { shouldApply, nextLang } = resolveLangSelection(activeLang, lang);
+    if (!shouldApply || !nextLang) return; // no-op on the already-active language
+    Haptics.selectionAsync();
+    i18nInstance.changeLanguage(nextLang);
+    setActiveLang(nextLang);
+    const persisted = persistLangOverride(nextLang);
+    if (!persisted && __DEV__) {
+      // Persistence failure shouldn't block the in-session language switch;
+      // still surface it via the repo's dev-only console.warn convention.
+      console.warn('[profile] Failed to persist language override');
+    }
+  }, [activeLang]);
 
   // ─── Name editing ─────────────────────────────────────────────────────────
   const [editingName, setEditingName] = useState(false);
@@ -397,6 +419,26 @@ export default function ProfileScreen() {
               onValueChange={handleTogglePush}
               trackColor={{ false: AppColors.border, true: AppColors.accent }}
               thumbColor="#fff"
+            />
+          </View>
+        </Animated.View>
+
+        {/* Language */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>{t('profile.language')}</Text>
+        </View>
+
+        <Animated.View entering={FadeInDown.duration(300).delay(180).springify()} style={[styles.card, styles.premiumCard]}>
+          <View style={styles.languageRow}>
+            <SelectableChip
+              label={t('profile.languageEnglish')}
+              selected={activeLang === 'en'}
+              onPress={() => handleSelectLang('en')}
+            />
+            <SelectableChip
+              label={t('profile.languageGerman')}
+              selected={activeLang === 'de'}
+              onPress={() => handleSelectLang('de')}
             />
           </View>
         </Animated.View>
@@ -668,6 +710,10 @@ const styles = StyleSheet.create({
   },
   menuRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 18, paddingVertical: 16,
+  },
+  languageRow: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 10,
     paddingHorizontal: 18, paddingVertical: 16,
   },
   menuRowLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 },

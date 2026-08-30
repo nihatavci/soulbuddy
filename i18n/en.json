@@ -120,6 +120,9 @@
     "notifications": "Notifications",
     "pushNotifications": "Push Notifications",
     "pushNotificationsSubtitle": "Reminders and tips",
+    "language": "Language",
+    "languageEnglish": "English",
+    "languageGerman": "Deutsch",
     "subscription": "Subscription",
     "currentPlan": "Current Plan",
     "free": "Free",
@@ -199,6 +202,13 @@
     "somethingWrong": "Something went wrong",
     "crashBody": "We hit an unexpected error. You can try again or restart the app.",
     "restartApp": "Restart App"
+  },
+  "replyComposer": {
+    "status": {
+      "sentTitle": "Sent",
+      "sentBody": "Your addition was sent. They haven't added back yet.",
+      "cta": "Continue"
+    }
   },
   "consent": {
     "customizeTitle": "Customize Preferences",
@@ -301,6 +311,14 @@
     "privacyNote": "We never show your real name by default. You share a sentence and an intent — not a profile. Location is approximate; identity stays yours.",
     "underageMessage": "You must be 18 or older to use re:sense."
   },
+  "board": {
+    "freshStart": {
+      "subtitleEmpty": "Today's board is new. Read, and add to one.",
+      "subtitleWithCount": "Today's board is new. You've added {{count}} so far."
+    },
+    "unreadAddition_one": "new addition",
+    "unreadAddition_other": "{{count}} new additions"
+  },
   "onboarding": {
     "title": "Set your alias",
     "subtitle": "This is how you'll appear. Your real name isn't needed.",
@@ -325,5 +343,10 @@
       "go_slow": "Go slow",
       "text_only": "Text only"
     }
+  },
+  "checkIn": {
+    "closureTitle": "Went quiet",
+    "closureBody": "This one went quiet — that happens. No pressure to pick it back up.",
+    "closureDismiss": "Got it"
   }
 }
