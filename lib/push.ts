@@ -14,6 +14,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { supabase } from '@/services/supabase';
 import { Prefs } from '@/store/mmkv';
+import { extractSpaceId } from '@/lib/pushDeepLink';
 
 const PUSH_OPT_OUT_KEY = 'push_opted_out';
 
@@ -75,9 +76,6 @@ export function addPushResponseListener(
   handler: (spaceId: string) => void,
 ): () => void {
   if (!Notifications) return () => {};
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const extract = (resp: any): string | undefined =>
-    resp?.notification?.request?.content?.data?.spaceId;
   try {
     // Cold start: app opened by tapping a notification.
     if (__DEV__) console.log(`[push-dl] ${Date.now()} registering getLastNotificationResponseAsync`);
@@ -85,15 +83,15 @@ export function addPushResponseListener(
       if (__DEV__) {
         console.log(`[push-dl] ${Date.now()} getLastNotificationResponseAsync resolved`, JSON.stringify(resp));
       }
-      const spaceId = extract(resp);
-      if (spaceId) handler(String(spaceId));
+      const spaceId = extractSpaceId(resp);
+      if (spaceId) handler(spaceId);
     });
     const sub = Notifications.addNotificationResponseReceivedListener((resp: unknown) => {
       if (__DEV__) {
         console.log(`[push-dl] ${Date.now()} addNotificationResponseReceivedListener fired`, JSON.stringify(resp));
       }
-      const spaceId = extract(resp);
-      if (spaceId) handler(String(spaceId));
+      const spaceId = extractSpaceId(resp);
+      if (spaceId) handler(spaceId);
     });
     return () => { try { sub?.remove?.(); } catch { /* non-fatal */ } };
   } catch (e) {
