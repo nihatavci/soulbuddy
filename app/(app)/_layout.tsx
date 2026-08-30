@@ -11,9 +11,9 @@
  * – Initializing AppsFlyer for install attribution + OneLink deep linking
  * – Clearing stale onboarding state from previous A/B gate bug
  */
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useRootNavigationState } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { initRevenueCat, linkRevenueCatIdentifiers } from '@/lib/revenuecat';
 import { identifySentryUser, clearSentryUser } from '@/lib/sentry';
@@ -30,10 +30,25 @@ import { useEntitlements } from '@/hooks/useEntitlements';
 import { Prefs } from '@/store/mmkv';
 import { UnreadProvider } from '@/context/UnreadContext';
 import { registerPushToken, configureNotifications, addPushResponseListener } from '@/lib/push';
+import { setPendingSpaceDeepLink } from '@/lib/pushDeepLink';
 
 export default function AppLayout() {
   const { user } = useAuth();
   const router = useRouter();
+  const rootState = useRootNavigationState();
+
+  // The push-response listener is registered once (mount-only effect below) but
+  // fires asynchronously, possibly long after mount — it must always read the
+  // LATEST nav-hydration / auth state, not whatever was captured in the effect's
+  // closure at registration time. Refs give it a live read without re-subscribing.
+  const navKeyRef = useRef<string | undefined>(rootState?.key);
+  const userIdRef = useRef<string | undefined>(user?.id);
+  useEffect(() => {
+    navKeyRef.current = rootState?.key;
+  }, [rootState?.key]);
+  useEffect(() => {
+    userIdRef.current = user?.id;
+  }, [user?.id]);
 
   const { data: entitlements } = useEntitlements();
   const isPro = entitlements?.isPro ?? false;
@@ -122,6 +137,21 @@ export default function AppLayout() {
   useEffect(() => {
     configureNotifications();
     const unsubscribe = addPushResponseListener((spaceId) => {
+      const navReady = navKeyRef.current != null;
+      const userResolved = userIdRef.current != null;
+      if (__DEV__) {
+        console.log(
+          `[push-dl] ${Date.now()} handler spaceId=${spaceId} navKey=${navKeyRef.current} userId=${userIdRef.current}`,
+        );
+      }
+      if (!navReady || !userResolved) {
+        // Nav tree not hydrated yet, or the user hasn't cleared the auth gate —
+        // hold the link instead of navigating. AppGate replays it once it lands
+        // the user on the tabs (authenticated + onboarded branch only).
+        if (__DEV__) console.log(`[push-dl] ${Date.now()} holding pending spaceId=${spaceId} (navReady=${navReady} userResolved=${userResolved})`);
+        setPendingSpaceDeepLink(spaceId);
+        return;
+      }
       router.push({ pathname: '/(app)/private-space', params: { spaceId } } as any);
     });
     return unsubscribe;

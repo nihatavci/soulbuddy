@@ -25,6 +25,7 @@ import { useRouter, useRootNavigationState } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { SplashScreen } from '@/components/shared/SplashScreen';
+import { consumePendingSpaceDeepLink } from '@/lib/pushDeepLink';
 
 export default function AppGate() {
   const router = useRouter();
@@ -35,11 +36,17 @@ export default function AppGate() {
   const onboarded = profile?.onboarded === true;
 
   useEffect(() => {
+    if (__DEV__) {
+      console.log(
+        `[push-dl] ${Date.now()} gate check navKey=${rootState?.key} authLoading=${authLoading} isAuthenticated=${isAuthenticated} profileLoading=${profileLoading} onboarded=${onboarded}`,
+      );
+    }
     // Wait until the navigation tree is fully hydrated before navigating.
     if (!rootState?.key) return;
     if (authLoading) return;
 
     if (!isAuthenticated) {
+      if (__DEV__) console.log(`[push-dl] ${Date.now()} gate replace -> /(auth)/welcome`);
       router.replace('/(auth)/welcome');
       return;
     }
@@ -47,6 +54,7 @@ export default function AppGate() {
     if (profileLoading) return;
 
     if (!onboarded) {
+      if (__DEV__) console.log(`[push-dl] ${Date.now()} gate replace -> /(app)/onboarding`);
       router.replace('/(app)/onboarding');
       return;
     }
@@ -54,7 +62,18 @@ export default function AppGate() {
     // Navigate to the tabs GROUP, not the deep nested index file — the group
     // href resolves to the tab navigator's initial screen and avoids the
     // doubled-`index` path (/(tabs)/index/index) which can 404 to +not-found.
+    // Replace to tabs FIRST so there is a real back target, then — on this
+    // authenticated + onboarded branch only — replay any pending notification
+    // deep link by pushing private-space on top. Single-consume: a later gate
+    // pass or a later app open will not re-fire it.
+    if (__DEV__) console.log(`[push-dl] ${Date.now()} gate replace -> /(app)/(tabs)`);
     router.replace('/(app)/(tabs)' as any);
+
+    const pendingSpaceId = consumePendingSpaceDeepLink();
+    if (pendingSpaceId) {
+      if (__DEV__) console.log(`[push-dl] ${Date.now()} gate replaying pending spaceId=${pendingSpaceId}`);
+      router.push({ pathname: '/(app)/private-space', params: { spaceId: pendingSpaceId } } as any);
+    }
   }, [rootState?.key, authLoading, isAuthenticated, profileLoading, onboarded]);
 
   // Always render splash while the effect resolves the destination — prevents a
