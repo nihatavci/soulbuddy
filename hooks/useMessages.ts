@@ -161,6 +161,14 @@ export function useSendMessage(spaceId: string) {
         queryKeys.spaceMessages(spaceId),
         (old) => replaceTemp(old, context?.tempId ?? '', msg),
       );
+      // BUG-1 fix: UnreadContext's realtime listener deliberately skips
+      // self-authored INSERTs (so senders don't see their own unread badge),
+      // which meant the sender's spaces() list (last_message_at / preview on
+      // the Private tab) never refreshed on their own send — only staleTime
+      // (30s) eventually caught it. Invalidate it here so sending reflects
+      // immediately for the sender too, symmetric with what the recipient
+      // already gets via the realtime path.
+      if (user?.id) qc.invalidateQueries({ queryKey: queryKeys.spaces(user.id) });
     },
     onError: (_err, _text, context) => {
       if (!context?.tempId) return;

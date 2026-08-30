@@ -137,6 +137,23 @@ describe('useSendMessage — optimistic update (H3 fix)', () => {
     expect(cached).toEqual([]);
   });
 
+  it('onSuccess: invalidates the spaces list so the sender\'s own Private-tab entry reorders immediately (BUG-1: previously only UnreadContext invalidated spaces(), and it deliberately skips self-authored inserts, so the sender never saw their own send reflected until staleTime expired)', async () => {
+    const qc = new QueryClient();
+    qc.setQueryData(queryKeys.spaceMessages(SPACE_ID), []);
+    const invalidateSpy = jest.spyOn(qc, 'invalidateQueries');
+    mockInsertSingle.mockResolvedValue({
+      data: { id: 'real_4', space_id: SPACE_ID, sender_id: 'user_a', text: 'hi', created_at: '2026-01-01T00:00:03.000Z' },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useSendMessage(SPACE_ID), { wrapper: wrapper(qc) });
+    await act(async () => { await result.current.mutateAsync('hi'); });
+
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: queryKeys.spaces('user_a') }),
+    );
+  });
+
   it('does not clobber an existing message list — only appends/replaces its own temp entry', async () => {
     const qc = new QueryClient();
     const existing = [{ id: 'm0', space_id: SPACE_ID, sender_id: 'user_b', text: 'earlier', created_at: '2025-12-31T23:59:00.000Z' }];
