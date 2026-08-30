@@ -20,7 +20,10 @@ import { Wordmark } from '@/components/ui/Wordmark';
 import { PaperBackground } from '@/components/ui/PaperBackground';
 import { GoldDisc } from '@/components/ui/GoldDisc';
 import { useSignals } from '@/hooks/useSignals';
+import { useFreshStart } from '@/hooks/useFreshStart';
 import { useAuth } from '@/context/AuthContext';
+import { useT } from '@/context/LanguageContext';
+import { SignalUnreadProvider, useSignalUnread } from '@/context/SignalUnreadContext';
 import type { PublicSignal } from '@/services/supabase';
 
 function timeAgo(iso: string): string {
@@ -31,10 +34,25 @@ function timeAgo(iso: string): string {
   return `${Math.floor(s / 86400)}d`;
 }
 
-function SignalCard({ signal, onPress, isMine }: { signal: PublicSignal; onPress: () => void; isMine: boolean }) {
+function SignalCard({
+  signal, onPress, isMine, unseenCount, onMarkSeen,
+}: {
+  signal: PublicSignal;
+  onPress: () => void;
+  isMine: boolean;
+  unseenCount: number;
+  onMarkSeen: () => void;
+}) {
+  const t = useT();
   const replyCount = signal.reply_count ?? 0;
+  // My own signals aren't tappable into the reply composer (nothing to add to
+  // your own signal) — but tapping still "opens" it, which is what clears the
+  // unseen-addition marker (Zeigarnik-style unfinished state → resolved on view,
+  // no read receipt is ever sent back to the replier — this only updates MY
+  // local last-seen-count, nothing is written server-side or shown to them).
+  const handlePress = isMine ? onMarkSeen : onPress;
   return (
-    <Pressable style={styles.card} onPress={isMine ? undefined : onPress} accessibilityRole="button" disabled={isMine}>
+    <Pressable style={styles.card} onPress={handlePress} accessibilityRole="button">
       <View style={styles.cardHead}>
         <Text style={styles.alias}>{signal.alias}</Text>
         <Text style={styles.meta}>{signal.created_at ? timeAgo(signal.created_at) : ''}</Text>
@@ -45,15 +63,35 @@ function SignalCard({ signal, onPress, isMine }: { signal: PublicSignal; onPress
         <Text style={styles.footText}>
           {isMine ? 'your signal' : replyCount === 0 ? 'add to this' : `${replyCount} added`}
         </Text>
+        {isMine && unseenCount > 0 && (
+          <View style={styles.unseenMarker} accessibilityLabel={t('board.unreadAddition', { count: unseenCount })}>
+            <View style={styles.unseenDot} />
+            <Text style={styles.unseenText}>{t('board.unreadAddition', { count: unseenCount })}</Text>
+          </View>
+        )}
       </View>
     </Pressable>
   );
 }
 
+// SignalUnreadProvider is mounted here, scoped to the Board screen — the
+// marker has no cross-tab surface (unlike UnreadContext's private-space
+// badge), so there's no need to hoist it to the app-root layout.
 export default function BoardScreen() {
+  return (
+    <SignalUnreadProvider>
+      <BoardScreenInner />
+    </SignalUnreadProvider>
+  );
+}
+
+function BoardScreenInner() {
   const router = useRouter();
   const { user } = useAuth();
+  const t = useT();
   const { data: signals = [], isFetching, refetch } = useSignals();
+  const { isFreshStart, todayCount } = useFreshStart(signals, user?.id);
+  const { countFor, markSignalRead } = useSignalUnread();
 
   const openReply = (id: string) => {
     Haptics.selectionAsync();
@@ -76,14 +114,27 @@ export default function BoardScreen() {
           }
         >
           <Text style={styles.title}>The board</Text>
-          <Text style={styles.subtitle}>Short signals from others. Read, and add to one.</Text>
+          <Text style={styles.subtitle}>
+            {isFreshStart
+              ? todayCount > 0
+                ? t('board.freshStart.subtitleWithCount', { count: todayCount })
+                : t('board.freshStart.subtitleEmpty')
+              : 'Short signals from others. Read, and add to one.'}
+          </Text>
 
           {signals.map((s, i) => {
             const isMine = !!user?.id && s.author_id === user.id;
+            const replyCount = s.reply_count ?? 0;
             return (
               <React.Fragment key={s.id ?? i}>
                 {i > 0 && <View style={styles.rule} />}
-                <SignalCard signal={s} onPress={() => s.id && openReply(s.id)} isMine={isMine} />
+                <SignalCard
+                  signal={s}
+                  onPress={() => s.id && openReply(s.id)}
+                  isMine={isMine}
+                  unseenCount={countFor(s.id)}
+                  onMarkSeen={() => s.id && markSignalRead(s.id, replyCount)}
+                />
               </React.Fragment>
             );
           })}
@@ -121,6 +172,12 @@ const styles = StyleSheet.create({
   signalText: { fontFamily: 'SpecialElite', fontSize: 17, lineHeight: 25, color: AppColors.text },
   cardFoot: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
   footText: { fontFamily: Typography.fonts.body, fontSize: 13, color: AppColors.textSecondary },
+  // Calm, persistent "unseen addition" marker — a small ink dot + short label,
+  // distinct from the "N added" popularity-flavored footText above. Signals
+  // "not yet seen by you", never a streak/urgency/points callout.
+  unseenMarker: { flexDirection: 'row', alignItems: 'center', gap: 5, marginLeft: 8 },
+  unseenDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: AppColors.text, opacity: 0.6 },
+  unseenText: { fontFamily: Typography.fonts.body, fontSize: 13, color: AppColors.text, fontStyle: 'italic' },
   end: {
     fontFamily: Typography.fonts.body, fontSize: 13, color: AppColors.textSecondary,
     textAlign: 'center', marginTop: 16, opacity: 0.7,

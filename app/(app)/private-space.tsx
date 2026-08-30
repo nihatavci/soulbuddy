@@ -159,7 +159,7 @@ export default function PrivateSpaceScreen() {
 
   const openCheckIn = () => {
     Haptics.selectionAsync();
-    router.push('/(app)/check-in' as any);
+    router.push({ pathname: '/(app)/check-in', params: { spaceId: spaceId ?? '' } } as any);
   };
   const openReveal = () => {
     Haptics.selectionAsync();
