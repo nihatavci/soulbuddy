@@ -80,11 +80,18 @@ export function addPushResponseListener(
     resp?.notification?.request?.content?.data?.spaceId;
   try {
     // Cold start: app opened by tapping a notification.
+    if (__DEV__) console.log(`[push-dl] ${Date.now()} registering getLastNotificationResponseAsync`);
     Notifications.getLastNotificationResponseAsync?.().then((resp: unknown) => {
+      if (__DEV__) {
+        console.log(`[push-dl] ${Date.now()} getLastNotificationResponseAsync resolved`, JSON.stringify(resp));
+      }
       const spaceId = extract(resp);
       if (spaceId) handler(String(spaceId));
     });
     const sub = Notifications.addNotificationResponseReceivedListener((resp: unknown) => {
+      if (__DEV__) {
+        console.log(`[push-dl] ${Date.now()} addNotificationResponseReceivedListener fired`, JSON.stringify(resp));
+      }
       const spaceId = extract(resp);
       if (spaceId) handler(String(spaceId));
     });

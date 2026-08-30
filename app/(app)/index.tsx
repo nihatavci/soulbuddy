@@ -35,11 +35,17 @@ export default function AppGate() {
   const onboarded = profile?.onboarded === true;
 
   useEffect(() => {
+    if (__DEV__) {
+      console.log(
+        `[push-dl] ${Date.now()} gate check navKey=${rootState?.key} authLoading=${authLoading} isAuthenticated=${isAuthenticated} profileLoading=${profileLoading} onboarded=${onboarded}`,
+      );
+    }
     // Wait until the navigation tree is fully hydrated before navigating.
     if (!rootState?.key) return;
     if (authLoading) return;
 
     if (!isAuthenticated) {
+      if (__DEV__) console.log(`[push-dl] ${Date.now()} gate replace -> /(auth)/welcome`);
       router.replace('/(auth)/welcome');
       return;
     }
@@ -47,6 +53,7 @@ export default function AppGate() {
     if (profileLoading) return;
 
     if (!onboarded) {
+      if (__DEV__) console.log(`[push-dl] ${Date.now()} gate replace -> /(app)/onboarding`);
       router.replace('/(app)/onboarding');
       return;
     }
@@ -54,6 +61,7 @@ export default function AppGate() {
     // Navigate to the tabs GROUP, not the deep nested index file — the group
     // href resolves to the tab navigator's initial screen and avoids the
     // doubled-`index` path (/(tabs)/index/index) which can 404 to +not-found.
+    if (__DEV__) console.log(`[push-dl] ${Date.now()} gate replace -> /(app)/(tabs)`);
     router.replace('/(app)/(tabs)' as any);
   }, [rootState?.key, authLoading, isAuthenticated, profileLoading, onboarded]);
 

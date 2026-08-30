@@ -13,7 +13,7 @@
  */
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useRootNavigationState } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { initRevenueCat, linkRevenueCatIdentifiers } from '@/lib/revenuecat';
 import { identifySentryUser, clearSentryUser } from '@/lib/sentry';
@@ -34,6 +34,7 @@ import { registerPushToken, configureNotifications, addPushResponseListener } fr
 export default function AppLayout() {
   const { user } = useAuth();
   const router = useRouter();
+  const rootState = useRootNavigationState();
 
   const { data: entitlements } = useEntitlements();
   const isPro = entitlements?.isPro ?? false;
@@ -122,6 +123,9 @@ export default function AppLayout() {
   useEffect(() => {
     configureNotifications();
     const unsubscribe = addPushResponseListener((spaceId) => {
+      if (__DEV__) {
+        console.log(`[push-dl] ${Date.now()} handler spaceId=${spaceId} navKey=${rootState?.key}`);
+      }
       router.push({ pathname: '/(app)/private-space', params: { spaceId } } as any);
     });
     return unsubscribe;
