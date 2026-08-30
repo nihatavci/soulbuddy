@@ -23,19 +23,36 @@ import { usePrivateSpaces } from '@/hooks/useSpaces';
 import { setAppBadge } from '@/lib/push';
 import { Prefs } from '@/store/mmkv';
 
-/** True if any space has a message newer than its stored last-read time. */
-function hasUnread(
-  spaces: { id?: string | null; last_message_at?: string | null }[],
-  lastRead: Record<string, string>,
-): boolean {
-  for (const s of spaces) {
-    if (!s.id || !s.last_message_at) continue;
-    const read = lastRead[s.id];
-    if (!read || new Date(s.last_message_at).getTime() > new Date(read).getTime()) {
-      return true;
-    }
-  }
-  return false;
+type UnreadSpaceLike = {
+  id?: string | null;
+  last_message_at?: string | null;
+  last_message_sender_id?: string | null;
+};
+
+/**
+ * A space counts as unread only when the last message is from the OTHER
+ * person AND it's newer than my stored last-read time.
+ *
+ * BUG-4 fix: this used to compare last_message_at against lastRead alone,
+ * with no awareness of who sent it. markSpaceRead stamps lastRead with a
+ * client-side "now" at send time, but the server's created_at for that same
+ * message (assigned at INSERT, after the network round trip) can land
+ * slightly LATER than that client stamp — so the sender's own just-sent
+ * message could read as "newer than lastRead" once spaces() refetched with
+ * the real timestamp, firing the badge/dot for a message the user sent to
+ * themselves. Checking the sender directly makes this immune to any clock
+ * or latency skew, rather than just narrowing the race window.
+ */
+function isSpaceUnread(space: UnreadSpaceLike, lastRead: Record<string, string>, myUserId: string): boolean {
+  if (!space.id || !space.last_message_at) return false;
+  if (space.last_message_sender_id === myUserId) return false;
+  const read = lastRead[space.id];
+  return !read || new Date(space.last_message_at).getTime() > new Date(read).getTime();
+}
+
+/** True if any space has an unread message from the other person. */
+function hasUnread(spaces: UnreadSpaceLike[], lastRead: Record<string, string>, myUserId: string): boolean {
+  return spaces.some((s) => isSpaceUnread(s, lastRead, myUserId));
 }
 
 const LAST_READ_KEY = 'unread_last_read_v1';
@@ -76,7 +93,7 @@ export function UnreadProvider({ children }: { children: React.ReactNode }) {
   // Kept in sync as spaces update (realtime/poll) and as threads are marked read.
   useEffect(() => {
     if (!user?.id) { void setAppBadge(0); return; }
-    void setAppBadge(hasUnread(spaces, lastRead) ? 1 : 0);
+    void setAppBadge(hasUnread(spaces, lastRead, user.id) ? 1 : 0);
   }, [user?.id, spaces, lastRead]);
 
   // One global realtime subscription. RLS ensures we only receive INSERTs for
@@ -146,22 +163,19 @@ export function useUnread(): {
   total: number;
   markSpaceRead: (spaceId: string) => void;
 } {
+  const { user } = useAuth();
   const { lastRead, markSpaceRead } = useUnreadContext();
   const { data: spaces = [] } = usePrivateSpaces();
+  const myUserId = user?.id ?? '';
 
   const unreadSpaceIds = useMemo(() => {
     const set = new Set<string>();
+    if (!myUserId) return set;
     for (const s of spaces) {
-      if (!s.id) continue;
-      const last = s.last_message_at;
-      if (!last) continue;
-      const read = lastRead[s.id];
-      if (!read || new Date(last).getTime() > new Date(read).getTime()) {
-        set.add(s.id);
-      }
+      if (s.id && isSpaceUnread(s, lastRead, myUserId)) set.add(s.id);
     }
     return set;
-  }, [spaces, lastRead]);
+  }, [spaces, lastRead, myUserId]);
 
   return { unreadSpaceIds, total: unreadSpaceIds.size, markSpaceRead };
 }

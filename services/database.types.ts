@@ -345,6 +345,7 @@ export type Database = {
           id: string | null
           last_message: string | null
           last_message_at: string | null
+          last_message_sender_id: string | null
           signal_id: string | null
           signal_text: string | null
           user_a: string | null
