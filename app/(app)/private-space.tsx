@@ -18,6 +18,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -27,20 +28,33 @@ import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH, Space } from '@/constants/spacing';
 import { AnimatedInputWrapper } from '@/components/ui/AnimatedPressable';
 import { PaperBackground } from '@/components/ui/PaperBackground';
+import { SwipeToDelete } from '@/components/ui/SwipeToDelete';
 import { useAuth } from '@/context/AuthContext';
-import { useMessages, useSendMessage } from '@/hooks/useMessages';
+import { useT } from '@/context/LanguageContext';
+import { useMessages, useSendMessage, useDeleteMessageForEveryone } from '@/hooks/useMessages';
 import { usePrivateSpaces, otherAlias } from '@/hooks/useSpaces';
 import { useUnreadContext } from '@/context/UnreadContext';
 import { useReveal } from '@/hooks/useReveal';
 import { useSpaceEvents, useSendSlowDown } from '@/hooks/useSpaceEvents';
+import { hideMessageForMe, getHiddenIds } from '@/lib/localMessageHide';
 import { Toast } from '@/components/glow';
 import type { Message } from '@/services/supabase';
 
-function ThreadBubble({ message, mine }: { message: Message; mine: boolean }) {
+function ThreadBubble({
+  message, mine, onDeleteForMe, onDeleteForEveryone,
+}: {
+  message: Message;
+  mine: boolean;
+  onDeleteForMe: () => void;
+  onDeleteForEveryone: () => void;
+}) {
+  const t = useT();
   // Optimistic bubbles (not yet confirmed by the server) render at reduced
   // opacity with a small clock glyph — same bubble, no layout shift on confirm.
   const pending = (message as Message & { pending?: boolean }).pending === true;
-  return (
+  const deleted = !!message.deleted_at;
+
+  const bubble = (
     <View style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
       <View
         style={[
@@ -48,12 +62,19 @@ function ThreadBubble({ message, mine }: { message: Message; mine: boolean }) {
           styles.bubbleInnerRow,
           mine ? styles.bubbleMine : styles.bubbleTheirs,
           pending && styles.bubblePending,
+          deleted && styles.bubbleDeleted,
         ]}
       >
-        <Text style={[styles.bubbleText, mine ? styles.bubbleTextMine : styles.bubbleTextTheirs]}>
-          {message.text}
+        <Text
+          style={[
+            styles.bubbleText,
+            mine ? styles.bubbleTextMine : styles.bubbleTextTheirs,
+            deleted && styles.bubbleTextDeleted,
+          ]}
+        >
+          {deleted ? t('messages.deletedPlaceholder') : message.text}
         </Text>
-        {pending && (
+        {pending && !deleted && (
           <Icon
             name="clock"
             size={10}
@@ -63,6 +84,22 @@ function ThreadBubble({ message, mine }: { message: Message; mine: boolean }) {
         )}
       </View>
     </View>
+  );
+
+  // A pending (not-yet-confirmed) or already-deleted bubble offers no swipe —
+  // nothing to delete yet, or already a tombstone.
+  return (
+    <SwipeToDelete
+      disabled={pending || deleted}
+      actions={[
+        { key: 'me', label: t('messages.deleteForMe'), icon: 'trash', tone: 'neutral', onPress: onDeleteForMe },
+        ...(mine
+          ? [{ key: 'everyone', label: t('messages.deleteForEveryone'), icon: 'trash', tone: 'danger' as const, onPress: onDeleteForEveryone }]
+          : []),
+      ]}
+    >
+      {bubble}
+    </SwipeToDelete>
   );
 }
 
@@ -94,11 +131,13 @@ function SafetyPill({
 
 export default function PrivateSpaceScreen() {
   const router = useRouter();
+  const t = useT();
   const { spaceId } = useLocalSearchParams<{ spaceId?: string }>();
   const { user } = useAuth();
   const { data: spaces } = usePrivateSpaces();
   const { data: messages = [] } = useMessages(spaceId);
   const { mutateAsync: send, isPending } = useSendMessage(spaceId ?? '');
+  const { mutateAsync: deleteForEveryone } = useDeleteMessageForEveryone(spaceId ?? '');
 
   const { markSpaceRead } = useUnreadContext();
   const space = spaces?.find((s) => s.id === spaceId);
@@ -111,25 +150,66 @@ export default function PrivateSpaceScreen() {
   // Header shows the real first name once both have revealed; otherwise the alias.
   const displayName = bothRevealed && other?.first_name?.trim() ? other.first_name.trim() : alias;
 
-  // Messages + pace nudges woven into one time-ordered timeline.
+  // "Delete for me" (local-only, per lib/localMessageHide.ts) needs a bit of
+  // local state to re-render the filtered timeline immediately — it never
+  // touches the server or the React Query cache.
+  const [locallyHiddenIds, setLocallyHiddenIds] = useState<Set<string>>(new Set());
+  const handleDeleteForMe = (messageId: string) => {
+    if (!spaceId) return;
+    Haptics.selectionAsync();
+    hideMessageForMe(spaceId, messageId);
+    setLocallyHiddenIds((prev) => new Set(prev).add(messageId));
+  };
+  const handleDeleteForEveryone = (messageId: string) => {
+    Alert.alert(
+      t('messages.deleteConfirmTitle'),
+      t('messages.deleteConfirmBody'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('messages.deleteConfirmConfirm'),
+          style: 'destructive',
+          onPress: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            deleteForEveryone(messageId).catch((e: any) => {
+              Toast.show(e?.message || 'Could not delete. Try again.', { type: 'error', position: 'top', duration: 3200 });
+            });
+          },
+        },
+      ],
+    );
+  };
+
+  // Messages + pace nudges woven into one time-ordered timeline. Locally
+  // "deleted for me" messages are filtered out entirely — the other person's
+  // copy is untouched (see lib/localMessageHide.ts).
   const timeline = React.useMemo(() => {
     const items: (
       | { kind: 'msg'; at: string; msg: Message }
       | { kind: 'event'; at: string; id: string; mine: boolean }
     )[] = [
-      ...messages.map((m) => ({ kind: 'msg' as const, at: m.created_at, msg: m })),
+      ...messages
+        .filter((m) => !locallyHiddenIds.has(m.id))
+        .map((m) => ({ kind: 'msg' as const, at: m.created_at, msg: m })),
       ...events
         .filter((e) => e.kind === 'slow_down')
         .map((e) => ({ kind: 'event' as const, at: e.created_at, id: e.id, mine: e.actor_id === user?.id })),
     ];
     items.sort((a, b) => a.at.localeCompare(b.at));
     return items;
-  }, [messages, events, user?.id]);
+  }, [messages, events, user?.id, locallyHiddenIds]);
 
   const [text, setText] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+
+  // Load this device's previously-hidden ids for this space (persisted across
+  // app restarts) — re-runs if the user navigates between spaces.
+  useEffect(() => {
+    if (!spaceId) return;
+    setLocallyHiddenIds(getHiddenIds(spaceId));
+  }, [spaceId]);
 
   useEffect(() => {
     scrollRef.current?.scrollToEnd({ animated: true });
@@ -238,7 +318,13 @@ export default function PrivateSpaceScreen() {
             </Text>
             {timeline.map((it) =>
               it.kind === 'msg' ? (
-                <ThreadBubble key={it.msg.id} message={it.msg} mine={it.msg.sender_id === user?.id} />
+                <ThreadBubble
+                  key={it.msg.id}
+                  message={it.msg}
+                  mine={it.msg.sender_id === user?.id}
+                  onDeleteForMe={() => handleDeleteForMe(it.msg.id)}
+                  onDeleteForEveryone={() => handleDeleteForEveryone(it.msg.id)}
+                />
               ) : (
                 <SystemNote
                   key={it.id}
@@ -382,6 +468,9 @@ const styles = StyleSheet.create({
   // Optimistic (not-yet-confirmed) bubble — same shape, quieter presence.
   bubblePending: { opacity: 0.55 },
   bubblePendingIcon: { marginBottom: 2 },
+  // Tombstone (deleted-for-everyone) — same shape, quieter and italic, no tail color distinction needed.
+  bubbleDeleted: { backgroundColor: 'transparent', borderColor: 'rgba(13,13,16,0.12)' },
+  bubbleTextDeleted: { fontStyle: 'italic', color: AppColors.textSecondary },
   // Mine → right, paper with a subtle ink hairline, tail at bottom-right.
   bubbleMine: {
     backgroundColor: '#ECE5D9',

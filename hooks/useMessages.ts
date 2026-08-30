@@ -47,6 +47,13 @@ function upsertMessage(list: Message[] | undefined, msg: Message): Message[] {
   return next;
 }
 
+/** Overwrite one message in-place by id (used for the deleted_at UPDATE path). */
+function replaceMessage(list: Message[] | undefined, msg: Message): Message[] {
+  const cur = list ?? [];
+  if (!cur.some((m) => m.id === msg.id)) return cur;
+  return cur.map((m) => (m.id === msg.id ? msg : m));
+}
+
 /** Deterministic-enough temp id for one optimistic bubble in one send call. */
 function makeTempId(): string {
   return `${TEMP_ID_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -137,6 +144,18 @@ export function useMessages(spaceId: string | undefined) {
             );
           },
         )
+        .on(
+          // Delivers a "delete for everyone" (deleted_at stamp) to the other
+          // person live, instead of waiting on the next poll tick.
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'messages', filter: `space_id=eq.${spaceId}` },
+          (payload) => {
+            qc.setQueryData<Message[]>(
+              queryKeys.spaceMessages(spaceId),
+              (old) => replaceMessage(old, payload.new as Message),
+            );
+          },
+        )
         .subscribe();
     })();
 
@@ -180,6 +199,7 @@ export function useSendMessage(spaceId: string) {
         sender_id: user?.id ?? '',
         text: text.trim(),
         created_at: new Date().toISOString(),
+        deleted_at: null,
         pending: true,
       };
       qc.setQueryData<Message[]>(
@@ -207,6 +227,38 @@ export function useSendMessage(spaceId: string) {
       qc.setQueryData<Message[]>(
         queryKeys.spaceMessages(spaceId),
         (old) => removeTemp(old, context.tempId),
+      );
+    },
+  });
+}
+
+/**
+ * "Delete for everyone" — a soft delete via the `deleted_at` stamp (migration
+ * 018_resense_delete_message_signal.sql). RLS only lets the sender update
+ * their own row, so the server rejects any attempt on someone else's message.
+ * The row itself is never removed: both people's client renders a "Message
+ * deleted" tombstone in its place once `deleted_at` is set, live via the
+ * realtime UPDATE listener above (or the next poll tick if the socket is down).
+ */
+export function useDeleteMessageForEveryone(spaceId: string) {
+  const qc = useQueryClient();
+
+  return useMutation<Message, Error, string>({
+    networkMode: 'always',
+    mutationFn: async (messageId: string): Promise<Message> => {
+      const { data, error } = await supabase
+        .from('messages')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', messageId)
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return data as Message;
+    },
+    onSuccess: (msg) => {
+      qc.setQueryData<Message[]>(
+        queryKeys.spaceMessages(spaceId),
+        (old) => replaceMessage(old, msg),
       );
     },
   });

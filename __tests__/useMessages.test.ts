@@ -24,6 +24,7 @@ const mockRemoveChannel = jest.fn();
 let mockGetSession = jest.fn();
 const mockSetAuth = jest.fn();
 const mockInsertSingle = jest.fn();
+const mockUpdateSingle = jest.fn();
 // fetchMessages' terminal `.order(...).order(...)` call — resolves the initial
 // useQuery read. Defaults to an empty list so the optimistic-update tests
 // (which don't care about the initial fetch) aren't affected.
@@ -33,12 +34,16 @@ jest.mock('@/services/supabase', () => ({
   supabase: {
     auth: { getSession: (...args: unknown[]) => mockGetSession(...args) },
     realtime: { setAuth: (...args: unknown[]) => mockSetAuth(...args) },
-    channel: jest.fn(() => ({
-      on: (...args: unknown[]) => {
-        mockChannelOn(...args);
-        return { subscribe: mockSubscribe };
-      },
-    })),
+    channel: jest.fn(() => {
+      const chainable: { on: (...args: unknown[]) => typeof chainable; subscribe: (...args: unknown[]) => unknown } = {
+        on: (...args: unknown[]) => {
+          mockChannelOn(...args);
+          return chainable;
+        },
+        subscribe: (...args: unknown[]) => mockSubscribe(...args),
+      };
+      return chainable;
+    }),
     removeChannel: (...args: unknown[]) => mockRemoveChannel(...args),
     from: jest.fn(() => ({
       select: jest.fn().mockReturnThis(),
@@ -51,6 +56,12 @@ jest.mock('@/services/supabase', () => ({
           single: (...args: unknown[]) => mockInsertSingle(...args),
         })),
       })),
+      update: jest.fn(() => ({
+        eq: jest.fn().mockReturnThis(),
+        select: jest.fn(() => ({
+          single: (...args: unknown[]) => mockUpdateSingle(...args),
+        })),
+      })),
     })),
   },
 }));
@@ -58,7 +69,7 @@ jest.mock('@/services/supabase', () => ({
 import React from 'react';
 import { renderHook, waitFor, act } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useSendMessage } from '@/hooks/useMessages';
+import { useSendMessage, useDeleteMessageForEveryone } from '@/hooks/useMessages';
 import { queryKeys } from '@/store/queryClient';
 
 const SPACE_ID = 'space_1';
@@ -285,5 +296,81 @@ describe('useMessages realtime subscribe ordering (H1 fix)', () => {
 
     const cached = qc.getQueryData<any[]>(queryKeys.spaceMessages(SPACE_ID));
     expect(cached!.map((m) => m.id)).toEqual(['m1', 'm2']);
+  });
+
+  it('the UPDATE handler replaces a message in-place (a "delete for everyone" tombstone arriving live)', async () => {
+    mockGetSession.mockResolvedValue({ data: { session: { access_token: 'tok_upd' } } });
+    mockFetchRows.mockResolvedValue({
+      data: [{ id: 'm1', space_id: SPACE_ID, sender_id: 'user_b', text: 'hello', created_at: '2026-01-01T00:00:00.000Z', deleted_at: null }],
+      error: null,
+    });
+    const { useMessages } = require('@/hooks/useMessages');
+    const qc = new QueryClient();
+
+    const { result } = renderHook(() => useMessages(SPACE_ID), { wrapper: wrapper(qc) });
+    await waitFor(() => expect(result.current.data).toHaveLength(1));
+    await waitFor(() => expect(mockChannelOn).toHaveBeenCalledTimes(2));
+    const updateHandler = mockChannelOn.mock.calls[1][2] as (payload: unknown) => void;
+
+    act(() => {
+      updateHandler({
+        new: { id: 'm1', space_id: SPACE_ID, sender_id: 'user_b', text: 'hello', created_at: '2026-01-01T00:00:00.000Z', deleted_at: '2026-01-01T00:05:00.000Z' },
+      });
+    });
+
+    const cached = qc.getQueryData<any[]>(queryKeys.spaceMessages(SPACE_ID));
+    expect(cached).toHaveLength(1);
+    expect(cached![0]).toMatchObject({ id: 'm1', deleted_at: '2026-01-01T00:05:00.000Z' });
+  });
+
+  it('the UPDATE handler is a no-op if the message id is not in the current cache', async () => {
+    mockGetSession.mockResolvedValue({ data: { session: { access_token: 'tok_upd2' } } });
+    mockFetchRows.mockResolvedValue({ data: [], error: null });
+    const { useMessages } = require('@/hooks/useMessages');
+    const qc = new QueryClient();
+
+    const { result } = renderHook(() => useMessages(SPACE_ID), { wrapper: wrapper(qc) });
+    await waitFor(() => expect(result.current.data).toEqual([]));
+    await waitFor(() => expect(mockChannelOn).toHaveBeenCalledTimes(2));
+    const updateHandler = mockChannelOn.mock.calls[1][2] as (payload: unknown) => void;
+
+    act(() => {
+      updateHandler({ new: { id: 'unknown_id', space_id: SPACE_ID, sender_id: 'user_b', text: 'x', created_at: '2026-01-01T00:00:00.000Z', deleted_at: '2026-01-01T00:00:01.000Z' } });
+    });
+
+    expect(qc.getQueryData<any[]>(queryKeys.spaceMessages(SPACE_ID))).toEqual([]);
+  });
+});
+
+describe('useDeleteMessageForEveryone', () => {
+  it('on success, stamps deleted_at on the matching message in the cache', async () => {
+    const qc = new QueryClient();
+    qc.setQueryData(queryKeys.spaceMessages(SPACE_ID), [
+      { id: 'm1', space_id: SPACE_ID, sender_id: 'user_a', text: 'oops', created_at: '2026-01-01T00:00:00.000Z', deleted_at: null },
+    ]);
+    mockUpdateSingle.mockResolvedValue({
+      data: { id: 'm1', space_id: SPACE_ID, sender_id: 'user_a', text: 'oops', created_at: '2026-01-01T00:00:00.000Z', deleted_at: '2026-01-01T00:10:00.000Z' },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useDeleteMessageForEveryone(SPACE_ID), { wrapper: wrapper(qc) });
+    await act(async () => { await result.current.mutateAsync('m1'); });
+
+    const cached = qc.getQueryData<any[]>(queryKeys.spaceMessages(SPACE_ID));
+    expect(cached![0]).toMatchObject({ id: 'm1', deleted_at: '2026-01-01T00:10:00.000Z' });
+  });
+
+  it('propagates the server error (e.g. RLS reject on someone else\'s message) without touching the cache', async () => {
+    const qc = new QueryClient();
+    const original = [{ id: 'm2', space_id: SPACE_ID, sender_id: 'user_b', text: 'not yours', created_at: '2026-01-01T00:00:00.000Z', deleted_at: null }];
+    qc.setQueryData(queryKeys.spaceMessages(SPACE_ID), original);
+    mockUpdateSingle.mockResolvedValue({ data: null, error: { message: 'permission denied' } });
+
+    const { result } = renderHook(() => useDeleteMessageForEveryone(SPACE_ID), { wrapper: wrapper(qc) });
+    await act(async () => {
+      await expect(result.current.mutateAsync('m2')).rejects.toThrow('permission denied');
+    });
+
+    expect(qc.getQueryData<any[]>(queryKeys.spaceMessages(SPACE_ID))).toEqual(original);
   });
 });

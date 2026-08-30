@@ -8,6 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { queryKeys } from '@/store/queryClient';
+import { useAuth } from '@/context/AuthContext';
 import type { PublicSignal, Signal } from '@/services/supabase';
 import type { SignalFormat } from '@/constants/signals';
 
@@ -60,6 +61,35 @@ export function useCreateSignal() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.signals() });
+    },
+  });
+}
+
+/**
+ * Deletes one of the caller's own signals. `signals_delete_own` (migration
+ * 018_resense_delete_message_signal.sql) scopes the DELETE to
+ * author_id = auth.uid(), so the server rejects any other signal.
+ *
+ * Explicit product decision: this is a real, cascading delete — the FKs from
+ * 009_resense_signals_loop.sql mean any replies AND any private space (and
+ * its messages) that grew from this signal are removed too, even if the
+ * other person is actively in that conversation. The UI must confirm before
+ * calling this — see the Alert.alert in app/(app)/(tabs)/index.tsx.
+ */
+export function useDeleteSignal() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (signalId: string): Promise<void> => {
+      const { error } = await supabase.from('signals').delete().eq('id', signalId);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.signals() });
+      // A deleted signal can cascade-remove a private space (see docstring
+      // above) — refresh the Private list too, in case one just vanished.
+      if (user?.id) qc.invalidateQueries({ queryKey: queryKeys.spaces(user.id) });
     },
   });
 }

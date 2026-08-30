@@ -10,7 +10,9 @@
     "termsOfUse": "Terms of Use",
     "terms": "Terms",
     "privacy": "Privacy",
-    "and": "and"
+    "and": "and",
+    "delete": "Delete",
+    "cancel": "Cancel"
   },
   "auth": {
     "signIn": {
@@ -210,6 +212,14 @@
       "cta": "Continue"
     }
   },
+  "messages": {
+    "deleteForMe": "Delete for me",
+    "deleteForEveryone": "Delete for everyone",
+    "deletedPlaceholder": "This message was deleted",
+    "deleteConfirmTitle": "Delete for everyone?",
+    "deleteConfirmBody": "This removes it for both of you. This can't be undone.",
+    "deleteConfirmConfirm": "Delete"
+  },
   "consent": {
     "customizeTitle": "Customize Preferences",
     "savePreferences": "Save Preferences",
@@ -317,7 +327,12 @@
       "subtitleWithCount": "Today's board is new. You've added {{count}} so far."
     },
     "unreadAddition_one": "new addition",
-    "unreadAddition_other": "{{count}} new additions"
+    "unreadAddition_other": "{{count}} new additions",
+    "deleteSignal": "Delete",
+    "deleteConfirmTitle": "Delete this signal?",
+    "deleteConfirmBody": "This can't be undone.",
+    "deleteConfirmBodyWithConversation": "This will also end the private conversation it opened — the other person will lose it too. This can't be undone.",
+    "deleteConfirmConfirm": "Delete"
   },
   "onboarding": {
     "title": "Set your alias",

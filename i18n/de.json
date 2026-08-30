@@ -10,7 +10,9 @@
     "termsOfUse": "Nutzungsbedingungen",
     "terms": "Bedingungen",
     "privacy": "Datenschutz",
-    "and": "und"
+    "and": "und",
+    "delete": "Löschen",
+    "cancel": "Abbrechen"
   },
   "auth": {
     "signIn": {
@@ -210,6 +212,14 @@
       "cta": "Weiter"
     }
   },
+  "messages": {
+    "deleteForMe": "Für mich löschen",
+    "deleteForEveryone": "Für alle löschen",
+    "deletedPlaceholder": "Diese Nachricht wurde gelöscht",
+    "deleteConfirmTitle": "Für alle löschen?",
+    "deleteConfirmBody": "Das entfernt sie für euch beide. Das kann nicht rückgängig gemacht werden.",
+    "deleteConfirmConfirm": "Löschen"
+  },
   "consent": {
     "customizeTitle": "Einstellungen anpassen",
     "savePreferences": "Einstellungen speichern",
@@ -317,7 +327,12 @@
       "subtitleWithCount": "Das heutige Board ist neu. Du hast bisher {{count}} ergänzt."
     },
     "unreadAddition_one": "neue Ergänzung",
-    "unreadAddition_other": "{{count}} neue Ergänzungen"
+    "unreadAddition_other": "{{count}} neue Ergänzungen",
+    "deleteSignal": "Löschen",
+    "deleteConfirmTitle": "Dieses Signal löschen?",
+    "deleteConfirmBody": "Das kann nicht rückgängig gemacht werden.",
+    "deleteConfirmBodyWithConversation": "Das beendet auch die private Unterhaltung, die daraus entstanden ist — die andere Person verliert sie ebenfalls. Das kann nicht rückgängig gemacht werden.",
+    "deleteConfirmConfirm": "Löschen"
   },
   "onboarding": {
     "title": "Wähle deinen Alias",

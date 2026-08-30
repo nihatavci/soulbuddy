@@ -9,7 +9,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Icon } from '@/components/icons/Icon';
@@ -19,11 +19,13 @@ import { ScreenPaddingH } from '@/constants/spacing';
 import { Wordmark } from '@/components/ui/Wordmark';
 import { PaperBackground } from '@/components/ui/PaperBackground';
 import { GoldDisc } from '@/components/ui/GoldDisc';
-import { useSignals } from '@/hooks/useSignals';
+import { SwipeToDelete } from '@/components/ui/SwipeToDelete';
+import { useSignals, useDeleteSignal } from '@/hooks/useSignals';
 import { useFreshStart } from '@/hooks/useFreshStart';
 import { useAuth } from '@/context/AuthContext';
 import { useT } from '@/context/LanguageContext';
 import { SignalUnreadProvider, useSignalUnread } from '@/context/SignalUnreadContext';
+import { Toast } from '@/components/glow';
 import type { PublicSignal } from '@/services/supabase';
 
 function timeAgo(iso: string): string {
@@ -35,13 +37,14 @@ function timeAgo(iso: string): string {
 }
 
 function SignalCard({
-  signal, onPress, isMine, unseenCount, onMarkSeen,
+  signal, onPress, isMine, unseenCount, onMarkSeen, onDelete,
 }: {
   signal: PublicSignal;
   onPress: () => void;
   isMine: boolean;
   unseenCount: number;
   onMarkSeen: () => void;
+  onDelete: () => void;
 }) {
   const t = useT();
   const replyCount = signal.reply_count ?? 0;
@@ -51,7 +54,7 @@ function SignalCard({
   // no read receipt is ever sent back to the replier — this only updates MY
   // local last-seen-count, nothing is written server-side or shown to them).
   const handlePress = isMine ? onMarkSeen : onPress;
-  return (
+  const card = (
     <Pressable style={styles.card} onPress={handlePress} accessibilityRole="button">
       <View style={styles.cardHead}>
         <Text style={styles.alias}>{signal.alias}</Text>
@@ -71,6 +74,14 @@ function SignalCard({
         )}
       </View>
     </Pressable>
+  );
+
+  // Only your own signal can be deleted — swiping someone else's card does nothing.
+  if (!isMine) return card;
+  return (
+    <SwipeToDelete actions={[{ key: 'delete', label: t('board.deleteSignal'), icon: 'trash', tone: 'danger', onPress: onDelete }]}>
+      {card}
+    </SwipeToDelete>
   );
 }
 
@@ -92,10 +103,36 @@ function BoardScreenInner() {
   const { data: signals = [], isFetching, refetch } = useSignals();
   const { isFreshStart, todayCount } = useFreshStart(signals, user?.id);
   const { countFor, markSignalRead } = useSignalUnread();
+  const { mutateAsync: deleteSignal } = useDeleteSignal();
 
   const openReply = (id: string) => {
     Haptics.selectionAsync();
     router.push({ pathname: '/(app)/reply-composer', params: { signalId: id } } as any);
+  };
+
+  // Explicit product decision: always deletable, cascade included — if a
+  // reply already opened a private space from this signal, deleting it
+  // removes that conversation for the other person too (see migration
+  // 018_resense_delete_message_signal.sql and hooks/useSignals.ts). The
+  // confirm copy says so plainly rather than hiding the consequence.
+  const confirmDeleteSignal = (id: string, hasReplies: boolean) => {
+    Alert.alert(
+      t('board.deleteConfirmTitle'),
+      hasReplies ? t('board.deleteConfirmBodyWithConversation') : t('board.deleteConfirmBody'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('board.deleteConfirmConfirm'),
+          style: 'destructive',
+          onPress: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            deleteSignal(id).catch((e: any) => {
+              Toast.show(e?.message || 'Could not delete. Try again.', { type: 'error', position: 'top', duration: 3200 });
+            });
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -134,6 +171,7 @@ function BoardScreenInner() {
                   isMine={isMine}
                   unseenCount={countFor(s.id)}
                   onMarkSeen={() => s.id && markSignalRead(s.id, replyCount)}
+                  onDelete={() => s.id && confirmDeleteSignal(s.id, replyCount > 0)}
                 />
               </React.Fragment>
             );
