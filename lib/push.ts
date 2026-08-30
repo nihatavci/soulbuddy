@@ -166,15 +166,15 @@ export async function registerPushToken(userId: string): Promise<void> {
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
     if (!token) return;
 
-    await supabase.from('push_tokens').upsert(
-      {
-        user_id: userId,
-        token,
-        platform: Platform.OS,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id,token' },
-    );
+    // BUG-3 fix: a plain upsert only ever touches OUR OWN row (RLS correctly
+    // blocks touching another user's row) — so a device that previously
+    // belonged to a different account keeps that stale registration forever,
+    // and a message trigger resolving "the other person" can end up pushing
+    // straight back to whoever currently holds that physical device. The
+    // claim_push_token RPC (SECURITY DEFINER) deletes any other user's row
+    // for this exact token before writing ours, so a token is always owned
+    // by exactly one user — whoever is currently signed in on that device.
+    await supabase.rpc('claim_push_token', { p_token: token, p_platform: Platform.OS });
   } catch (e) {
     if (__DEV__) console.warn('[push] registerPushToken failed', e);
   }

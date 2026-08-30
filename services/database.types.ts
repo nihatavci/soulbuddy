@@ -369,7 +369,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      claim_push_token: {
+        Args: { p_platform?: string; p_token: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
