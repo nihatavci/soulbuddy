@@ -71,6 +71,13 @@ export default function YouScreen() {
 
   const openRoute = (route: string) => {
     Haptics.selectionAsync();
+    // growth-3-space-closure-ritual design note: check-in.tsx now accepts an
+    // OPTIONAL `spaceId` route param (see private-space.tsx's openCheckIn())
+    // to show a per-space "quieted naturally" prompt. This row is a GLOBAL
+    // "Safety & check-in" entry with no single space in context, so it
+    // deliberately omits spaceId — check-in.tsx already handles that
+    // absence by simply not rendering the space-closure section (self
+    // check-in + Safety sections still work exactly as before).
     router.push(route as any);
   };
 

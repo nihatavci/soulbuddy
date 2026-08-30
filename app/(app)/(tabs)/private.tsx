@@ -9,7 +9,7 @@
  * usePrivateSpaces().
  */
 
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -69,8 +69,24 @@ function SpaceCard({ space, onPress }: { space: SpaceCardData; onPress: () => vo
 export default function PrivateScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { data: spaces = [], isFetching, refetch } = usePrivateSpaces();
+  const { data: spaces = [], refetch } = usePrivateSpaces();
   const { unreadSpaceIds, markSpaceRead } = useUnread();
+
+  // Local, pull-gesture-scoped refresh state — deliberately decoupled from
+  // `isFetching`. Other hooks (useMessages.ts, UnreadContext.tsx) invalidate
+  // this same query in the background on realtime events; if the spinner
+  // were tied to `isFetching` it would spin every time, even when the user
+  // never pulled to refresh.
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
 
   const openSpace = (id: string) => {
     Haptics.selectionAsync();
@@ -103,7 +119,7 @@ export default function PrivateScreen() {
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={AppColors.textSecondary} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={AppColors.textSecondary} />
           }
         >
           <Text style={styles.title}>Private</Text>

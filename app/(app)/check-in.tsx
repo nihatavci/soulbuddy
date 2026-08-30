@@ -8,10 +8,10 @@
  * answer. UI shell — onPress is mocked (haptic + router.back).
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
@@ -19,6 +19,10 @@ import { ScreenPaddingH, Space } from '@/constants/spacing';
 import { Button } from '@/components/ui/Button';
 import { PaperBackground } from '@/components/ui/PaperBackground';
 import { GoldDisc } from '@/components/ui/GoldDisc';
+import { useT } from '@/context/LanguageContext';
+import { usePrivateSpaces, otherAlias } from '@/hooks/useSpaces';
+import { useSpaceClosurePrompt } from '@/hooks/useSpaceClosurePrompt';
+import { useAuth } from '@/context/AuthContext';
 
 type FeatherIcon = string;
 
@@ -35,10 +39,27 @@ const FEELING_OPTIONS: Option[] = [
   { value: 'off', label: 'Something felt off', icon: 'shield' },
 ];
 
-const SAFETY_OPTIONS: Option[] = [
-  { value: 'report', label: 'Report this person', icon: 'flag', danger: true },
-  { value: 'block', label: 'Block & end the conversation', icon: 'pause', danger: true },
-];
+/** Stable `value`s for the Safety section — used by `isSafety` regardless of
+ * whether the alias-aware labels below could be resolved. */
+const SAFETY_VALUES = ['report', 'block'] as const;
+
+/**
+ * Safety options are alias-aware (checkin-report-context-clarity): when a
+ * `spaceId` is in context and the other participant's alias resolves, the
+ * labels name them directly so the action is unambiguous. `alias` is `null`
+ * when spaceId is present but the space/alias hasn't resolved yet (spaces
+ * still loading, stale/deleted spaceId) — falls back to generic "this
+ * person" wording rather than rendering `undefined`/empty text or crashing.
+ * (Section is hidden entirely, not called with this, when spaceId is absent
+ * — see `showSafety` in CheckInScreen.)
+ */
+function buildSafetyOptions(alias: string | null): Option[] {
+  const who = alias && alias.trim().length > 0 ? alias : 'this person';
+  return [
+    { value: 'report', label: `Report ${who}`, icon: 'flag', danger: true },
+    { value: 'block', label: `Block & end conversation with ${who}`, icon: 'pause', danger: true },
+  ];
+}
 
 function OptionRow({
   option,
@@ -67,11 +88,68 @@ function OptionRow({
   );
 }
 
+/**
+ * Space-closure section — a THIRD path, deliberately separate from the
+ * self-check-in "How does this feel?" list above and the Safety/report list
+ * below: no OptionRow, no danger tint, no single-select tied to the
+ * page-level Done/Submit action. It only renders when `useSpaceClosurePrompt`
+ * says the space has been silent for SPACE_CLOSURE_SILENCE_DAYS+ and hasn't
+ * been dismissed yet (see hooks/useSpaceClosurePrompt.ts). Dismissing it is
+ * its own, independent, non-blocking action — it never becomes the
+ * "selected" option and never changes the primary button's label.
+ */
+function SpaceClosureSection({ spaceId }: { spaceId: string | null }) {
+  const t = useT();
+  const { data: spaces } = usePrivateSpaces();
+  const space = spaceId ? spaces?.find((s) => s.id === spaceId) ?? null : null;
+  const { showPrompt, dismiss } = useSpaceClosurePrompt(space);
+
+  if (!showPrompt) return null;
+
+  const onDismiss = () => {
+    Haptics.selectionAsync();
+    dismiss();
+  };
+
+  return (
+    <View style={styles.closureCard} accessibilityRole="summary">
+      <View style={styles.closureHeader}>
+        <Icon name="feather" size={16} color={AppColors.textSecondary} />
+        <Text style={styles.closureTitle}>{t('checkIn.closureTitle')}</Text>
+      </View>
+      <Text style={styles.closureBody}>{t('checkIn.closureBody')}</Text>
+      <Pressable
+        onPress={onDismiss}
+        accessibilityRole="button"
+        accessibilityLabel={t('checkIn.closureDismiss')}
+        style={styles.closureDismissBtn}
+      >
+        <Text style={styles.closureDismissLabel}>{t('checkIn.closureDismiss')}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 export default function CheckInScreen() {
   const router = useRouter();
+  const { spaceId } = useLocalSearchParams<{ spaceId?: string }>();
+  const { user } = useAuth();
+  const { data: spaces } = usePrivateSpaces();
   const [selected, setSelected] = useState<string | null>(null);
 
-  const isSafety = SAFETY_OPTIONS.some((o) => o.value === selected);
+  // Mirrors SpaceClosureSection's own `spaceId ? spaces?.find(...) : null`
+  // lookup below — same pattern, not duplicated divergent logic.
+  const space = spaceId ? spaces?.find((s) => s.id === spaceId) ?? null : null;
+  const alias = space && user ? otherAlias(space, user.id) : null;
+
+  // Option 1 (hide) per checkin-report-context-clarity: with no spaceId (or
+  // an empty-string spaceId, treated equivalently to "no spaceId") there is
+  // no conversation in context to report/block, so the Safety section is
+  // hidden entirely rather than showing generic, ambiguous options.
+  const showSafety = !!spaceId;
+  const safetyOptions = useMemo(() => buildSafetyOptions(alias), [alias]);
+
+  const isSafety = SAFETY_VALUES.some((v) => v === selected);
   const canSubmit = selected !== null;
 
   const choose = (value: string) => {
@@ -119,15 +197,21 @@ export default function CheckInScreen() {
             />
           ))}
 
-          <Text style={[styles.sectionLabel, styles.sectionSpaced]}>Safety</Text>
-          {SAFETY_OPTIONS.map((o) => (
-            <OptionRow
-              key={o.value}
-              option={o}
-              selected={selected === o.value}
-              onPress={() => choose(o.value)}
-            />
-          ))}
+          {showSafety && (
+            <>
+              <Text style={[styles.sectionLabel, styles.sectionSpaced]}>Safety</Text>
+              {safetyOptions.map((o) => (
+                <OptionRow
+                  key={o.value}
+                  option={o}
+                  selected={selected === o.value}
+                  onPress={() => choose(o.value)}
+                />
+              ))}
+            </>
+          )}
+
+          <SpaceClosureSection spaceId={spaceId ?? null} />
 
           <Button
             label={isSafety ? 'Submit report' : 'Done'}
@@ -202,6 +286,45 @@ const styles = StyleSheet.create({
     marginTop: Space.xl,
     borderRadius: 999,
     alignSelf: 'stretch',
+  },
+  closureCard: {
+    marginTop: Space.xl,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: AppColors.textSecondary + '55',
+    padding: 14,
+  },
+  closureHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.xs,
+    marginBottom: Space.xs,
+  },
+  closureTitle: {
+    fontFamily: Typography.fonts.body,
+    fontSize: 13,
+    fontStyle: 'italic',
+    color: AppColors.textSecondary,
+  },
+  closureBody: {
+    fontFamily: Typography.fonts.body,
+    fontSize: 14,
+    lineHeight: 20,
+    color: AppColors.textSecondary,
+    marginBottom: Space.sm,
+  },
+  closureDismissBtn: {
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  closureDismissLabel: {
+    fontFamily: Typography.fonts.body,
+    fontSize: 13,
+    color: AppColors.textSecondary,
+    textDecorationLine: 'underline',
   },
   footer: {
     fontFamily: Typography.fonts.body,
