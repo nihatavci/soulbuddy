@@ -41,12 +41,11 @@ import { Toast } from '@/components/glow';
 import type { Message } from '@/services/supabase';
 
 function ThreadBubble({
-  message, mine, onDeleteForMe, onDeleteForEveryone,
+  message, mine, onDeletePress,
 }: {
   message: Message;
   mine: boolean;
-  onDeleteForMe: () => void;
-  onDeleteForEveryone: () => void;
+  onDeletePress: () => void;
 }) {
   const t = useT();
   // Optimistic bubbles (not yet confirmed by the server) render at reduced
@@ -54,52 +53,53 @@ function ThreadBubble({
   const pending = (message as Message & { pending?: boolean }).pending === true;
   const deleted = !!message.deleted_at;
 
-  const bubble = (
-    <View style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
-      <View
+  const bubbleBox = (
+    <View
+      style={[
+        styles.bubble,
+        styles.bubbleInnerRow,
+        mine ? styles.bubbleMine : styles.bubbleTheirs,
+        pending && styles.bubblePending,
+        deleted && styles.bubbleDeleted,
+      ]}
+    >
+      <Text
         style={[
-          styles.bubble,
-          styles.bubbleInnerRow,
-          mine ? styles.bubbleMine : styles.bubbleTheirs,
-          pending && styles.bubblePending,
-          deleted && styles.bubbleDeleted,
+          styles.bubbleText,
+          mine ? styles.bubbleTextMine : styles.bubbleTextTheirs,
+          deleted && styles.bubbleTextDeleted,
         ]}
       >
-        <Text
-          style={[
-            styles.bubbleText,
-            mine ? styles.bubbleTextMine : styles.bubbleTextTheirs,
-            deleted && styles.bubbleTextDeleted,
-          ]}
-        >
-          {deleted ? t('messages.deletedPlaceholder') : message.text}
-        </Text>
-        {pending && !deleted && (
-          <Icon
-            name="clock"
-            size={10}
-            color={mine ? AppColors.text : AppColors.background}
-            style={styles.bubblePendingIcon}
-          />
-        )}
-      </View>
+        {deleted ? t('messages.deletedPlaceholder') : message.text}
+      </Text>
+      {pending && !deleted && (
+        <Icon
+          name="clock"
+          size={10}
+          color={mine ? AppColors.text : AppColors.background}
+          style={styles.bubblePendingIcon}
+        />
+      )}
     </View>
   );
 
-  // A pending (not-yet-confirmed) or already-deleted bubble offers no swipe —
-  // nothing to delete yet, or already a tombstone.
+  // A single swipe reveal, matching the bubble's own trailing corners so it
+  // reads as one shape. The parent's onDeletePress opens the actual choice
+  // (delete for me / for everyone) as a native Alert — one clean swipe
+  // affordance, not a row of stacked colored buttons.
   return (
-    <SwipeToDelete
-      disabled={pending || deleted}
-      actions={[
-        { key: 'me', label: t('messages.deleteForMe'), icon: 'trash', tone: 'neutral', onPress: onDeleteForMe },
-        ...(mine
-          ? [{ key: 'everyone', label: t('messages.deleteForEveryone'), icon: 'trash', tone: 'danger' as const, onPress: onDeleteForEveryone }]
-          : []),
-      ]}
-    >
-      {bubble}
-    </SwipeToDelete>
+    <View style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
+      <SwipeToDelete
+        disabled={pending || deleted}
+        label={t('common.delete')}
+        onPress={onDeletePress}
+        topRightRadius={16}
+        bottomRightRadius={mine ? 6 : 16}
+        style={styles.bubbleSwipeWrap}
+      >
+        {bubbleBox}
+      </SwipeToDelete>
+    </View>
   );
 }
 
@@ -154,28 +154,38 @@ export default function PrivateSpaceScreen() {
   // local state to re-render the filtered timeline immediately — it never
   // touches the server or the React Query cache.
   const [locallyHiddenIds, setLocallyHiddenIds] = useState<Set<string>>(new Set());
-  const handleDeleteForMe = (messageId: string) => {
+  const deleteForMe = (messageId: string) => {
     if (!spaceId) return;
-    Haptics.selectionAsync();
     hideMessageForMe(spaceId, messageId);
     setLocallyHiddenIds((prev) => new Set(prev).add(messageId));
   };
-  const handleDeleteForEveryone = (messageId: string) => {
+  const runDeleteForEveryone = (messageId: string) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    deleteForEveryone(messageId).catch((e: any) => {
+      Toast.show(e?.message || 'Could not delete. Try again.', { type: 'error', position: 'top', duration: 3200 });
+    });
+  };
+
+  // One swipe reveal per bubble (see components/ui/SwipeToDelete.tsx) — the
+  // actual choice of HOW to delete lives here, as a single native Alert
+  // (its destructive-styled button IS the confirmation — no second nested
+  // dialog), matching how iMessage really behaves rather than stacking
+  // colored buttons behind the swipe itself.
+  const handleDeletePress = (messageId: string, mine: boolean) => {
+    Haptics.selectionAsync();
+    if (!mine) {
+      // Nothing to choose between — you can only ever hide someone else's
+      // message locally, never delete it for them.
+      deleteForMe(messageId);
+      return;
+    }
     Alert.alert(
-      t('messages.deleteConfirmTitle'),
-      t('messages.deleteConfirmBody'),
+      t('messages.deleteChoiceTitle'),
+      undefined,
       [
         { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('messages.deleteConfirmConfirm'),
-          style: 'destructive',
-          onPress: () => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            deleteForEveryone(messageId).catch((e: any) => {
-              Toast.show(e?.message || 'Could not delete. Try again.', { type: 'error', position: 'top', duration: 3200 });
-            });
-          },
-        },
+        { text: t('messages.deleteForMe'), onPress: () => deleteForMe(messageId) },
+        { text: t('messages.deleteForEveryone'), style: 'destructive', onPress: () => runDeleteForEveryone(messageId) },
       ],
     );
   };
@@ -322,8 +332,7 @@ export default function PrivateSpaceScreen() {
                   key={it.msg.id}
                   message={it.msg}
                   mine={it.msg.sender_id === user?.id}
-                  onDeleteForMe={() => handleDeleteForMe(it.msg.id)}
-                  onDeleteForEveryone={() => handleDeleteForEveryone(it.msg.id)}
+                  onDeletePress={() => handleDeletePress(it.msg.id, it.msg.sender_id === user?.id)}
                 />
               ) : (
                 <SystemNote
@@ -457,6 +466,10 @@ const styles = StyleSheet.create({
   bubbleRow: { flexDirection: 'row', marginBottom: 10 },
   bubbleRowMine: { justifyContent: 'flex-end' },
   bubbleRowTheirs: { justifyContent: 'flex-start' },
+  // Caps the swipeable wrapper to the bubble's own max width, so the row's
+  // empty space (on whichever side isn't the bubble) never becomes part of
+  // the swipe-reveal target.
+  bubbleSwipeWrap: { maxWidth: '88%' },
   bubble: {
     maxWidth: '88%',
     paddingVertical: 12,

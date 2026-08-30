@@ -1,62 +1,60 @@
 /**
  * components/ui/SwipeToDelete.tsx
  *
- * Apple-style swipe-left-to-reveal-actions wrapper (Mail/Messages/Photos
- * pattern): dragging the row left reveals one or more action buttons behind
- * it, most-destructive last (so the final, easiest-to-tap position is the
- * one actually intended for the common case). Presentational only — the
- * caller decides what each action does and whether to confirm first.
+ * Apple-style swipe-left-to-reveal-delete (Mail/Reminders pattern): one red
+ * "Delete" affordance the full height of the row, revealed by dragging left.
+ * Deliberately ONE action, not a row of stacked buttons — when a row needs
+ * more than one kind of delete (e.g. "for me" vs "for everyone"), the
+ * caller's `onPress` should open its own confirm/choice UI (Alert.alert),
+ * the same way iMessage's own swipe-to-delete works. Presentational only.
  */
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleProp, StyleSheet, Text, ViewStyle } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Icon } from '@/components/icons/Icon';
 import { AppColors, Typography } from '@/constants/theme';
 
-export interface SwipeAction {
-  key: string;
-  label: string;
-  icon?: string;
-  /** 'danger' renders a red background; 'neutral' a muted one. */
-  tone?: 'danger' | 'neutral';
-  onPress: () => void;
-}
-
 interface SwipeToDeleteProps {
   children: React.ReactNode;
-  actions: SwipeAction[];
+  label: string;
+  onPress: () => void;
   /** When true, renders children with no swipe affordance at all. */
   disabled?: boolean;
+  /** The wrapped content's own trailing corner radii — the revealed panel
+   * matches them exactly, so it reads as behind the same shape rather than
+   * a bare rectangle peeking out. */
+  topRightRadius?: number;
+  bottomRightRadius?: number;
+  /** Alignment/sizing for the swipeable wrapper itself — pass alignSelf and
+   * maxWidth here so the wrapper doesn't stretch wider than its content
+   * (important when the child is a variable-width chat bubble). */
+  style?: StyleProp<ViewStyle>;
 }
 
-const ACTION_WIDTH = 92;
-
-export function SwipeToDelete({ children, actions, disabled }: SwipeToDeleteProps) {
-  if (disabled || actions.length === 0) return <>{children}</>;
+export function SwipeToDelete({
+  children, label, onPress, disabled, topRightRadius = 0, bottomRightRadius = 0, style,
+}: SwipeToDeleteProps) {
+  if (disabled) return <>{children}</>;
 
   return (
     <Swipeable
       renderRightActions={() => (
-        <View style={styles.actionsRow}>
-          {actions.map((a) => (
-            <Pressable
-              key={a.key}
-              onPress={a.onPress}
-              accessibilityRole="button"
-              accessibilityLabel={a.label}
-              style={[
-                styles.action,
-                { backgroundColor: a.tone === 'neutral' ? AppColors.textSecondary : AppColors.error },
-              ]}
-            >
-              {a.icon && <Icon name={a.icon} size={18} color="#FFFFFF" />}
-              <Text style={styles.actionLabel} numberOfLines={2}>{a.label}</Text>
-            </Pressable>
-          ))}
-        </View>
+        <Pressable
+          onPress={onPress}
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          style={[
+            styles.action,
+            { borderTopRightRadius: topRightRadius, borderBottomRightRadius: bottomRightRadius },
+          ]}
+        >
+          <Icon name="trash" size={18} color="#FFFFFF" />
+          <Text style={styles.actionLabel} numberOfLines={1}>{label}</Text>
+        </Pressable>
       )}
       overshootRight={false}
       rightThreshold={40}
+      containerStyle={[styles.container, style]}
     >
       {children}
     </Swipeable>
@@ -64,18 +62,22 @@ export function SwipeToDelete({ children, actions, disabled }: SwipeToDeleteProp
 }
 
 const styles = StyleSheet.create({
-  actionsRow: { flexDirection: 'row' },
+  // Swipeable measures its child's own box — any vertical spacing between
+  // rows belongs OUTSIDE this component (on a wrapping View), never on the
+  // swiped child itself, or the revealed panel ends up a different height
+  // than the visible content.
+  container: { justifyContent: 'center' },
   action: {
-    width: ACTION_WIDTH,
+    minWidth: 84,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    paddingHorizontal: 8,
+    paddingHorizontal: 14,
+    backgroundColor: AppColors.error,
   },
   actionLabel: {
     fontFamily: Typography.fonts.body,
-    fontSize: 12,
+    fontSize: 13,
     color: '#FFFFFF',
-    textAlign: 'center',
   },
 });

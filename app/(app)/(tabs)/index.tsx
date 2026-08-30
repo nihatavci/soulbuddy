@@ -79,7 +79,7 @@ function SignalCard({
   // Only your own signal can be deleted — swiping someone else's card does nothing.
   if (!isMine) return card;
   return (
-    <SwipeToDelete actions={[{ key: 'delete', label: t('board.deleteSignal'), icon: 'trash', tone: 'danger', onPress: onDelete }]}>
+    <SwipeToDelete label={t('board.deleteSignal')} onPress={onDelete}>
       {card}
     </SwipeToDelete>
   );

@@ -213,12 +213,10 @@
     }
   },
   "messages": {
+    "deleteChoiceTitle": "Diese Nachricht löschen?",
     "deleteForMe": "Für mich löschen",
     "deleteForEveryone": "Für alle löschen",
-    "deletedPlaceholder": "Diese Nachricht wurde gelöscht",
-    "deleteConfirmTitle": "Für alle löschen?",
-    "deleteConfirmBody": "Das entfernt sie für euch beide. Das kann nicht rückgängig gemacht werden.",
-    "deleteConfirmConfirm": "Löschen"
+    "deletedPlaceholder": "Diese Nachricht wurde gelöscht"
   },
   "consent": {
     "customizeTitle": "Einstellungen anpassen",
