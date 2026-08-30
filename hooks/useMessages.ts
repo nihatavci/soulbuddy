@@ -63,11 +63,43 @@ function removeTemp(list: Message[] | undefined, tempId: string): Message[] {
   return (list ?? []).filter((m) => m.id !== tempId);
 }
 
+// A temp bubble has no server-assigned id to match against, so "already
+// covered by a fresh row" is a best-effort match: same sender, same text,
+// within a few seconds of the temp's optimistic timestamp. Wide enough to
+// absorb normal round-trip latency, narrow enough not to misfire on a
+// legitimate repeat message sent shortly after.
+const TEMP_MATCH_WINDOW_MS = 15_000;
+
+function isCoveredByFreshRow(pending: Message, fresh: Message[]): boolean {
+  const pendingAt = new Date(pending.created_at).getTime();
+  return fresh.some((m) =>
+    m.sender_id === pending.sender_id &&
+    m.text === pending.text &&
+    Math.abs(new Date(m.created_at).getTime() - pendingAt) <= TEMP_MATCH_WINDOW_MS,
+  );
+}
+
 export function useMessages(spaceId: string | undefined) {
   const qc = useQueryClient();
   const query = useQuery({
     queryKey: queryKeys.spaceMessages(spaceId ?? ''),
-    queryFn: () => fetchMessages(spaceId as string),
+    // BUG-2 fix: a plain `fetchMessages` return value becomes the new cache
+    // wholesale (React Query replaces `data` with whatever the queryFn
+    // resolves). If the 1.5s poll ticks while a just-sent message's INSERT
+    // hasn't committed yet (still in flight from onMutate to onSuccess), the
+    // server SELECT doesn't include it yet — a bare replace would erase the
+    // pending optimistic bubble for that window, which reads as "I hit send
+    // and my own message didn't show up." Re-attach any still-pending temp
+    // bubbles from the current cache onto the freshly fetched rows so a poll
+    // can only ever add rows, never erase an unconfirmed send.
+    queryFn: async () => {
+      const fresh = await fetchMessages(spaceId as string);
+      const current = qc.getQueryData<Message[]>(queryKeys.spaceMessages(spaceId ?? '')) ?? [];
+      const stillPending = current.filter(
+        (m) => m.id.startsWith(TEMP_ID_PREFIX) && !isCoveredByFreshRow(m, fresh),
+      );
+      return stillPending.reduce((list, p) => upsertMessage(list, p), fresh);
+    },
     enabled: !!spaceId,
     // Always hit the network; never serve-and-pause. Poll so new messages arrive
     // even if the realtime socket is down.

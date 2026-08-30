@@ -172,6 +172,63 @@ describe('useSendMessage — optimistic update (H3 fix)', () => {
   });
 });
 
+describe('useMessages poll-vs-optimistic race (BUG-2)', () => {
+  it('a poll refetch that resolves before the send confirms does NOT wipe the pending temp bubble', async () => {
+    mockGetSession.mockResolvedValue({ data: { session: { access_token: 'tok_y' } } });
+    // Initial fetch: empty thread.
+    mockFetchRows.mockResolvedValueOnce({ data: [], error: null });
+    const { useMessages } = require('@/hooks/useMessages');
+    const qc = new QueryClient();
+
+    const { result } = renderHook(() => useMessages(SPACE_ID), { wrapper: wrapper(qc) });
+    await waitFor(() => expect(result.current.data).toEqual([]));
+
+    // Simulate onMutate having already written a pending temp bubble (as
+    // useSendMessage's onMutate does synchronously on send) — the INSERT is
+    // still in flight, not yet visible to a server-side SELECT.
+    const tempId = 'temp-12345-abc';
+    qc.setQueryData(queryKeys.spaceMessages(SPACE_ID), [
+      { id: tempId, space_id: SPACE_ID, sender_id: 'user_a', text: 'hello', created_at: '2026-01-01T00:00:00.000Z', pending: true },
+    ]);
+
+    // A poll tick (refetchInterval) fires now, BEFORE the insert is committed —
+    // the server SELECT still returns the pre-send list (empty), same as the
+    // real-world race: the poll's queryFn result must not blindly replace the
+    // cache and erase the not-yet-confirmed optimistic bubble.
+    mockFetchRows.mockResolvedValueOnce({ data: [], error: null });
+    await act(async () => { await result.current.refetch(); });
+
+    const cached = qc.getQueryData<any[]>(queryKeys.spaceMessages(SPACE_ID));
+    expect(cached).toHaveLength(1);
+    expect(cached![0]).toMatchObject({ id: tempId, pending: true });
+  });
+
+  it('once the poll sees the real row, the temp bubble is superseded (no duplicate, no stuck pending)', async () => {
+    mockGetSession.mockResolvedValue({ data: { session: { access_token: 'tok_z' } } });
+    mockFetchRows.mockResolvedValueOnce({ data: [], error: null });
+    const { useMessages } = require('@/hooks/useMessages');
+    const qc = new QueryClient();
+
+    const { result } = renderHook(() => useMessages(SPACE_ID), { wrapper: wrapper(qc) });
+    await waitFor(() => expect(result.current.data).toEqual([]));
+
+    const tempId = 'temp-67890-xyz';
+    qc.setQueryData(queryKeys.spaceMessages(SPACE_ID), [
+      { id: tempId, space_id: SPACE_ID, sender_id: 'user_a', text: 'hi', created_at: '2026-01-01T00:00:01.000Z', pending: true },
+    ]);
+
+    // Next poll tick: the server now has the real, committed row.
+    mockFetchRows.mockResolvedValueOnce({
+      data: [{ id: 'real_9', space_id: SPACE_ID, sender_id: 'user_a', text: 'hi', created_at: '2026-01-01T00:00:01.000Z' }],
+      error: null,
+    });
+    await act(async () => { await result.current.refetch(); });
+
+    const cached = qc.getQueryData<any[]>(queryKeys.spaceMessages(SPACE_ID));
+    expect(cached!.map((m) => m.id)).toEqual(['real_9']);
+  });
+});
+
 describe('useMessages realtime subscribe ordering (H1 fix)', () => {
   it('awaits setAuth to resolve BEFORE calling channel().subscribe() (no fire-and-forget race)', async () => {
     const order: string[] = [];
