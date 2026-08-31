@@ -28,7 +28,6 @@ import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH, Space } from '@/constants/spacing';
 import { AnimatedInputWrapper } from '@/components/ui/AnimatedPressable';
 import { PaperBackground } from '@/components/ui/PaperBackground';
-import { SwipeToDelete } from '@/components/ui/SwipeToDelete';
 import { useAuth } from '@/context/AuthContext';
 import { useT } from '@/context/LanguageContext';
 import { useMessages, useSendMessage, useDeleteMessageForEveryone } from '@/hooks/useMessages';
@@ -83,22 +82,25 @@ function ThreadBubble({
     </View>
   );
 
-  // A single swipe reveal, matching the bubble's own trailing corners so it
-  // reads as one shape. The parent's onDeletePress opens the actual choice
-  // (delete for me / for everyone) as a native Alert — one clean swipe
-  // affordance, not a row of stacked colored buttons.
+  // Swipe-to-reveal doesn't fit a variable-width, side-aligned chat bubble —
+  // that pattern (Mail/Reminders) assumes a full-width list row, and forcing
+  // it onto a bubble either crops the action or disconnects it from the
+  // bubble when swiped (tried both, both looked broken). Real iMessage
+  // doesn't swipe-delete a single bubble either — it's long-press → action
+  // sheet, which is what this does: press and hold opens the same choice
+  // (delete for me / for everyone) as a native Alert.
   return (
     <View style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
-      <SwipeToDelete
-        disabled={pending || deleted}
-        label={t('common.delete')}
-        onPress={onDeletePress}
-        topRightRadius={16}
-        bottomRightRadius={mine ? 6 : 16}
-        style={styles.bubbleSwipeWrap}
+      <Pressable
+        onLongPress={() => {
+          if (pending || deleted) return;
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          onDeletePress();
+        }}
+        delayLongPress={350}
       >
         {bubbleBox}
-      </SwipeToDelete>
+      </Pressable>
     </View>
   );
 }
@@ -466,10 +468,6 @@ const styles = StyleSheet.create({
   bubbleRow: { flexDirection: 'row', marginBottom: 10 },
   bubbleRowMine: { justifyContent: 'flex-end' },
   bubbleRowTheirs: { justifyContent: 'flex-start' },
-  // Caps the swipeable wrapper to the bubble's own max width, so the row's
-  // empty space (on whichever side isn't the bubble) never becomes part of
-  // the swipe-reveal target.
-  bubbleSwipeWrap: { maxWidth: '88%' },
   bubble: {
     maxWidth: '88%',
     paddingVertical: 12,
