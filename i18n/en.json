@@ -216,7 +216,8 @@
     "deleteChoiceTitle": "Delete this message?",
     "deleteForMe": "Delete for me",
     "deleteForEveryone": "Delete for everyone",
-    "deletedPlaceholder": "This message was deleted"
+    "deletedPlaceholder": "This message was deleted",
+    "replyOwedNudge": "it's your turn — {{alias}} is waiting to hear back"
   },
   "consent": {
     "customizeTitle": "Customize Preferences",

@@ -35,6 +35,7 @@ import { usePrivateSpaces, otherAlias } from '@/hooks/useSpaces';
 import { useUnreadContext } from '@/context/UnreadContext';
 import { useReveal } from '@/hooks/useReveal';
 import { useSpaceEvents, useSendSlowDown } from '@/hooks/useSpaceEvents';
+import { useReplyOwedPrompt } from '@/hooks/useReplyOwedPrompt';
 import { hideMessageForMe, getHiddenIds } from '@/lib/localMessageHide';
 import { Toast } from '@/components/glow';
 import type { Message } from '@/services/supabase';
@@ -105,11 +106,30 @@ function ThreadBubble({
   );
 }
 
-function SystemNote({ text }: { text: string }) {
+function SystemNote({
+  text,
+  icon = 'pause',
+  onDismiss,
+}: {
+  text: string;
+  icon?: string;
+  onDismiss?: () => void;
+}) {
   return (
     <View style={styles.sysNote}>
-      <Icon name="pause" size={12} color={AppColors.textSecondary} />
+      <Icon name={icon} size={12} color={AppColors.textSecondary} />
       <Text style={styles.sysNoteText}>{text}</Text>
+      {onDismiss != null && (
+        <Pressable
+          onPress={onDismiss}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss"
+          hitSlop={8}
+          style={styles.sysNoteDismiss}
+        >
+          <Icon name="x" size={12} color={AppColors.textSecondary} />
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -149,6 +169,10 @@ export default function PrivateSpaceScreen() {
   const { iRevealed, bothRevealed, other } = useReveal(spaceId);
   const { data: events = [] } = useSpaceEvents(spaceId);
   const { mutateAsync: sendSlowDown } = useSendSlowDown(spaceId ?? '');
+  const { showNudge: showReplyOwedNudge, dismiss: dismissReplyOwedNudge } = useReplyOwedPrompt(
+    space,
+    user?.id,
+  );
   // Header shows the real first name once both have revealed; otherwise the alias.
   const displayName = bothRevealed && other?.first_name?.trim() ? other.first_name.trim() : alias;
 
@@ -328,6 +352,13 @@ export default function PrivateSpaceScreen() {
             <Text style={styles.threadNote}>
               A private space. It moves at your pace — no rush, no one watching.
             </Text>
+            {showReplyOwedNudge && (
+              <SystemNote
+                text={t('messages.replyOwedNudge', { alias })}
+                icon="pause"
+                onDismiss={dismissReplyOwedNudge}
+              />
+            )}
             {timeline.map((it) =>
               it.kind === 'msg' ? (
                 <ThreadBubble
@@ -464,6 +495,9 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fonts.body,
     fontSize: 12,
     color: AppColors.textSecondary,
+  },
+  sysNoteDismiss: {
+    marginLeft: 2,
   },
   bubbleRow: { flexDirection: 'row', marginBottom: 10 },
   bubbleRowMine: { justifyContent: 'flex-end' },
