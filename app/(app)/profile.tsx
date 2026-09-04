@@ -28,8 +28,6 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/services/supabase';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Toast } from '@/components/glow/index';
-import { presentCustomerCenter } from '@/lib/revenuecat';
-import { useEntitlements } from '@/hooks/useEntitlements';
 import {
   isPushOptedIn,
   optInPush,
@@ -65,8 +63,6 @@ export default function ProfileScreen() {
   const t = useT();
   const router = useRouter();
   const { user, isLoading, isAnonymous } = useAuth();
-  const { data: entitlements } = useEntitlements();
-  const isPro = entitlements?.isPro ?? false;
   const { loading: deletingAccount, confirmDelete } = useAccountDeletion();
 
   const displayName = user?.name ?? '';
@@ -232,12 +228,6 @@ export default function ProfileScreen() {
               <View style={[styles.avatarCircle, styles.localAvatarCircle]}>
                 <Icon name="user" size={32} color={AppColors.accent} />
               </View>
-              {isPro && (
-                <View style={styles.proBadge}>
-                  <Icon name="star" size={10} color="#FFFFFF" />
-                  <Text style={styles.proBadgeText}>MyApp Pro</Text>
-                </View>
-              )}
             </View>
 
             {/* Back-up hero — framed as protection, not "create account from nothing" */}
@@ -345,14 +335,14 @@ export default function ProfileScreen() {
           </>
         )}
 
-        {/* Account Settings */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t('profile.account')}</Text>
-        </View>
+        {/* Account Settings — nothing to show a guest (no password to manage, no upsell) */}
+        {!isAnonymous && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>{t('profile.account')}</Text>
+            </View>
 
-        <Animated.View entering={FadeInDown.duration(300).delay(80).springify()} style={[styles.card, styles.premiumCard]}>
-          {!isAnonymous && (
-            <>
+            <Animated.View entering={FadeInDown.duration(300).delay(80).springify()} style={[styles.card, styles.premiumCard]}>
               <Pressable
                 style={styles.menuRow}
                 onPress={() => router.push('/(app)/account')}
@@ -365,38 +355,9 @@ export default function ProfileScreen() {
                 </View>
                 <Icon name="chevron-forward" size={16} color={AppColors.textSecondary} />
               </Pressable>
-
-              <View style={styles.divider} />
-            </>
-          )}
-
-          {/* Enhance your replies */}
-          <View style={styles.enhanceWrap}>
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push({ pathname: '/(app)/paywall', params: { source: 'profile_powerup' } });
-              }}
-              style={{ width: '100%', backgroundColor: '#FFF8E6', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(201,168,76,0.2)', paddingVertical: 14, paddingHorizontal: 16 }}
-            >
-              <View style={styles.enhanceInner}>
-                <View style={styles.enhanceIconChip}>
-                  <Icon name="zap" size={18} color="#FFFFFF" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.enhanceLabel}>{t('profile.enhanceReplies')}</Text>
-                  <Text style={styles.enhanceSub}>
-                    {t('profile.enhanceReplies_inactive')}
-                  </Text>
-                </View>
-                <View style={styles.enhanceStartChip}>
-                  <Text style={styles.enhanceStartChipText}>{t('common.start')}</Text>
-                  <Icon name="arrow-forward" size={12} color="#FFFFFF" />
-                </View>
-              </View>
-            </Pressable>
-          </View>
-        </Animated.View>
+            </Animated.View>
+          </>
+        )}
 
         {/* Notifications */}
         <View style={styles.sectionHeader}>
@@ -536,57 +497,11 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
-        {/* Subscription */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t('profile.subscription')}</Text>
-        </View>
-
-        <Animated.View entering={FadeInDown.duration(300).delay(300).springify()} style={[styles.card, styles.premiumCard]}>
-          {/* Current plan row */}
-          <View style={styles.menuRow}>
-            <View style={styles.menuRowLeft}>
-              <View style={styles.menuIcon}>
-                <Icon name="star-outline" size={18} color="#FFFFFF" />
-              </View>
-              <View>
-                <Text style={styles.menuLabel}>{t('profile.currentPlan')}</Text>
-                <Text style={styles.menuSub}>{isPro ? 'MyApp Pro' : t('profile.free')}</Text>
-              </View>
-            </View>
-            {!isPro && (
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push({ pathname: '/(app)/paywall', params: { source: 'profile' } });
-                }}
-                style={{ backgroundColor: AppColors.accent, borderRadius: 14, paddingVertical: 9, paddingHorizontal: 16 }}
-              >
-                <Text style={{ fontFamily: Typography.fonts.heading, fontSize: 12.5, color: '#FFFFFF', letterSpacing: 0.3 }}>
-                  {t('profile.upgrade')}
-                </Text>
-              </Pressable>
-            )}
-          </View>
-
-          {isPro && (
-            <>
-              <View style={styles.divider} />
-              {/* Manage Subscription — opens RevenueCat Customer Center */}
-              <Pressable
-                style={styles.menuRow}
-                onPress={() => presentCustomerCenter()}
-              >
-                <View style={styles.menuRowLeft}>
-                  <View style={styles.menuIcon}>
-                    <Icon name="card-outline" size={18} color="#FFFFFF" />
-                  </View>
-                  <Text style={styles.menuLabel}>{t('profile.manageSubscription')}</Text>
-                </View>
-                <Icon name="chevron-forward" size={16} color={AppColors.textSecondary} />
-              </Pressable>
-            </>
-          )}
-        </Animated.View>
+        {/* Subscription section removed: re:sense has no monetization live yet
+            (PRD: "Payments: RevenueCat — the only source of payment status,
+            when monetization is added (deferred)") — showing a paywall entry
+            point with no real product behind it was boilerplate left over
+            from the base template, not a re:sense feature. */}
 
         {/* Delete / Reset account — Apple 5.1.1(v) compliance */}
         <Animated.View entering={FadeInDown.duration(300).delay(400).springify()} style={styles.card}>
