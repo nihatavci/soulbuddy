@@ -217,7 +217,8 @@
     "deleteForMe": "Für mich löschen",
     "deleteForEveryone": "Für alle löschen",
     "deletedPlaceholder": "Diese Nachricht wurde gelöscht",
-    "replyOwedNudge": "du bist dran — {{alias}} wartet auf deine Antwort"
+    "replyOwedNudge": "du bist dran — {{alias}} wartet auf deine Antwort",
+    "replyingTo": "Antwort an {{alias}}"
   },
   "consent": {
     "customizeTitle": "Einstellungen anpassen",

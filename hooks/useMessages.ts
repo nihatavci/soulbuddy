@@ -172,18 +172,24 @@ interface SendContext {
   tempId: string;
 }
 
+/** Input to `useSendMessage`'s mutation — `replyToId` is optional (swipe-to-reply). */
+export interface SendMessageInput {
+  text: string;
+  replyToId?: string | null;
+}
+
 export function useSendMessage(spaceId: string) {
   const qc = useQueryClient();
   const { user } = useAuth();
 
-  return useMutation<Message, Error, string, SendContext>({
+  return useMutation<Message, Error, SendMessageInput, SendContext>({
     // 'always' so a transient offline reading can never pause the send and leave
     // isPending stuck true (which would permanently disable the send button).
     networkMode: 'always',
-    mutationFn: async (text: string): Promise<Message> => {
+    mutationFn: async ({ text, replyToId }: SendMessageInput): Promise<Message> => {
       const { data, error } = await supabase
         .from('messages')
-        .insert({ space_id: spaceId, text: text.trim() })
+        .insert({ space_id: spaceId, text: text.trim(), reply_to_id: replyToId ?? null })
         .select()
         .single();
       if (error) throw new Error(error.message);
@@ -191,7 +197,7 @@ export function useSendMessage(spaceId: string) {
     },
     // Optimistic: the bubble appears the instant the user taps send, instead of
     // waiting on the insert+select network round trip (see H3, comms-latency-fix).
-    onMutate: (text: string): SendContext => {
+    onMutate: ({ text, replyToId }: SendMessageInput): SendContext => {
       const tempId = makeTempId();
       const temp: PendingMessage = {
         id: tempId,
@@ -200,6 +206,7 @@ export function useSendMessage(spaceId: string) {
         text: text.trim(),
         created_at: new Date().toISOString(),
         deleted_at: null,
+        reply_to_id: replyToId ?? null,
         pending: true,
       };
       qc.setQueryData<Message[]>(
@@ -208,7 +215,7 @@ export function useSendMessage(spaceId: string) {
       );
       return { tempId };
     },
-    onSuccess: (msg, _text, context) => {
+    onSuccess: (msg, _input, context) => {
       qc.setQueryData<Message[]>(
         queryKeys.spaceMessages(spaceId),
         (old) => replaceTemp(old, context?.tempId ?? '', msg),

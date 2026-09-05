@@ -96,7 +96,7 @@ describe('useSendMessage — optimistic update (H3 fix)', () => {
     const { result } = renderHook(() => useSendMessage(SPACE_ID), { wrapper: wrapper(qc) });
 
     act(() => {
-      result.current.mutate('hello there');
+      result.current.mutate({ text: 'hello there' });
     });
 
     // Synchronously (before the mutationFn's promise ever resolves) the cache
@@ -124,7 +124,7 @@ describe('useSendMessage — optimistic update (H3 fix)', () => {
     const { result } = renderHook(() => useSendMessage(SPACE_ID), { wrapper: wrapper(qc) });
 
     await act(async () => {
-      await result.current.mutateAsync('confirmed msg');
+      await result.current.mutateAsync({ text: 'confirmed msg' });
     });
 
     const cached = qc.getQueryData<any[]>(queryKeys.spaceMessages(SPACE_ID));
@@ -141,7 +141,7 @@ describe('useSendMessage — optimistic update (H3 fix)', () => {
     const { result } = renderHook(() => useSendMessage(SPACE_ID), { wrapper: wrapper(qc) });
 
     await act(async () => {
-      await expect(result.current.mutateAsync('will fail')).rejects.toThrow('insert failed');
+      await expect(result.current.mutateAsync({ text: 'will fail' })).rejects.toThrow('insert failed');
     });
 
     const cached = qc.getQueryData<any[]>(queryKeys.spaceMessages(SPACE_ID));
@@ -158,7 +158,7 @@ describe('useSendMessage — optimistic update (H3 fix)', () => {
     });
 
     const { result } = renderHook(() => useSendMessage(SPACE_ID), { wrapper: wrapper(qc) });
-    await act(async () => { await result.current.mutateAsync('hi'); });
+    await act(async () => { await result.current.mutateAsync({ text: 'hi' }); });
 
     expect(invalidateSpy).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: queryKeys.spaces('user_a') }),
@@ -175,11 +175,91 @@ describe('useSendMessage — optimistic update (H3 fix)', () => {
     });
 
     const { result } = renderHook(() => useSendMessage(SPACE_ID), { wrapper: wrapper(qc) });
-    await act(async () => { await result.current.mutateAsync('reply'); });
+    await act(async () => { await result.current.mutateAsync({ text: 'reply' }); });
 
     const cached = qc.getQueryData<any[]>(queryKeys.spaceMessages(SPACE_ID));
     expect(cached).toHaveLength(2);
     expect(cached!.map((m) => m.id)).toEqual(['m0', 'real_3']);
+  });
+
+  it('onMutate: with replyToId set, the temp bubble carries reply_to_id through to the cache', async () => {
+    const qc = new QueryClient();
+    qc.setQueryData(queryKeys.spaceMessages(SPACE_ID), []);
+    let resolveInsert: (v: unknown) => void = () => {};
+    mockInsertSingle.mockReturnValue(new Promise((res) => { resolveInsert = res; }));
+
+    const { result } = renderHook(() => useSendMessage(SPACE_ID), { wrapper: wrapper(qc) });
+
+    act(() => {
+      result.current.mutate({ text: 'a reply', replyToId: 'm1' });
+    });
+
+    const cached = qc.getQueryData<any[]>(queryKeys.spaceMessages(SPACE_ID));
+    expect(cached).toHaveLength(1);
+    expect(cached![0]).toMatchObject({ text: 'a reply', reply_to_id: 'm1' });
+
+    resolveInsert({
+      data: { id: 'real_5', space_id: SPACE_ID, sender_id: 'user_a', text: 'a reply', created_at: '2026-01-01T00:00:04.000Z', reply_to_id: 'm1' },
+      error: null,
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
+  it('onMutate: with no replyToId, the temp bubble has reply_to_id: null', async () => {
+    const qc = new QueryClient();
+    qc.setQueryData(queryKeys.spaceMessages(SPACE_ID), []);
+    let resolveInsert: (v: unknown) => void = () => {};
+    mockInsertSingle.mockReturnValue(new Promise((res) => { resolveInsert = res; }));
+
+    const { result } = renderHook(() => useSendMessage(SPACE_ID), { wrapper: wrapper(qc) });
+
+    act(() => {
+      result.current.mutate({ text: 'plain send' });
+    });
+
+    const cached = qc.getQueryData<any[]>(queryKeys.spaceMessages(SPACE_ID));
+    expect(cached![0]).toMatchObject({ text: 'plain send', reply_to_id: null });
+
+    resolveInsert({
+      data: { id: 'real_6', space_id: SPACE_ID, sender_id: 'user_a', text: 'plain send', created_at: '2026-01-01T00:00:05.000Z', reply_to_id: null },
+      error: null,
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
+  it('onSuccess: a server response carrying reply_to_id replaces the temp bubble with it unchanged', async () => {
+    const qc = new QueryClient();
+    qc.setQueryData(queryKeys.spaceMessages(SPACE_ID), []);
+    mockInsertSingle.mockResolvedValue({
+      data: { id: 'real_7', space_id: SPACE_ID, sender_id: 'user_a', text: 'quoting you', created_at: '2026-01-01T00:00:06.000Z', reply_to_id: 'm2' },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useSendMessage(SPACE_ID), { wrapper: wrapper(qc) });
+
+    await act(async () => {
+      await result.current.mutateAsync({ text: 'quoting you', replyToId: 'm2' });
+    });
+
+    const cached = qc.getQueryData<any[]>(queryKeys.spaceMessages(SPACE_ID));
+    expect(cached).toHaveLength(1);
+    expect(cached![0]).toMatchObject({ id: 'real_7', text: 'quoting you', reply_to_id: 'm2' });
+  });
+
+  it('onError: with replyToId set, still removes only the temp bubble (no crash, existing removeTemp behavior unchanged)', async () => {
+    const qc = new QueryClient();
+    qc.setQueryData(queryKeys.spaceMessages(SPACE_ID), []);
+    mockInsertSingle.mockResolvedValue({ data: null, error: { message: 'RLS reject: reply target not in space' } });
+
+    const { result } = renderHook(() => useSendMessage(SPACE_ID), { wrapper: wrapper(qc) });
+
+    await act(async () => {
+      await expect(result.current.mutateAsync({ text: 'orphan reply', replyToId: 'not_in_space' }))
+        .rejects.toThrow('RLS reject: reply target not in space');
+    });
+
+    const cached = qc.getQueryData<any[]>(queryKeys.spaceMessages(SPACE_ID));
+    expect(cached).toEqual([]);
   });
 });
 

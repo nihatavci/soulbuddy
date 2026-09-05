@@ -24,6 +24,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useSharedValue, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH, Space } from '@/constants/spacing';
 import { AnimatedInputWrapper } from '@/components/ui/AnimatedPressable';
@@ -39,19 +41,34 @@ import { useReplyOwedPrompt } from '@/hooks/useReplyOwedPrompt';
 import { hideMessageForMe, getHiddenIds } from '@/lib/localMessageHide';
 import { Toast } from '@/components/glow';
 import type { Message } from '@/services/supabase';
+import { buildThreadBubbleGesture, buildThreadBubbleCallbacks, REPLY_SWIPE_THRESHOLD } from './private-space-gestures';
 
 function ThreadBubble({
-  message, mine, onDeletePress,
+  message, mine, onDeletePress, onSwipeReply, allMessages, alias, currentUserId,
 }: {
   message: Message;
   mine: boolean;
   onDeletePress: () => void;
+  onSwipeReply?: (message: Message) => void;
+  /** The already-loaded thread — used to resolve `message.reply_to_id` into a quote preview, no new query. */
+  allMessages?: Message[];
+  /** The other person's alias, for the quote preview's sender indicator. */
+  alias?: string;
+  currentUserId?: string;
 }) {
   const t = useT();
   // Optimistic bubbles (not yet confirmed by the server) render at reduced
   // opacity with a small clock glyph — same bubble, no layout shift on confirm.
   const pending = (message as Message & { pending?: boolean }).pending === true;
   const deleted = !!message.deleted_at;
+  const gestureEnabled = !pending && !deleted;
+
+  // Quote preview: resolve the replied-to message from the already-loaded
+  // thread. Virtually always present (short-lived 1:1 spaces); if genuinely
+  // not found, render nothing extra rather than crash or show a placeholder.
+  const quoted = message.reply_to_id
+    ? allMessages?.find((m) => m.id === message.reply_to_id)
+    : undefined;
 
   // key={pending/deleted} forces a clean remount of this row instead of an
   // in-place reconcile when a bubble transitions pending -> confirmed (the
@@ -65,29 +82,49 @@ function ThreadBubble({
       key={pending ? 'pending' : deleted ? 'deleted' : 'confirmed'}
       style={[
         styles.bubble,
-        styles.bubbleInnerRow,
         mine ? styles.bubbleMine : styles.bubbleTheirs,
         pending && styles.bubblePending,
         deleted && styles.bubbleDeleted,
       ]}
     >
-      <Text
-        style={[
-          styles.bubbleText,
-          mine ? styles.bubbleTextMine : styles.bubbleTextTheirs,
-          deleted && styles.bubbleTextDeleted,
-        ]}
-      >
-        {deleted ? t('messages.deletedPlaceholder') : message.text}
-      </Text>
-      {pending && !deleted && (
-        <Icon
-          name="clock"
-          size={10}
-          color={mine ? AppColors.text : AppColors.background}
-          style={styles.bubblePendingIcon}
-        />
+      {quoted && (
+        <View style={styles.quotePreview}>
+          <View style={styles.quotePreviewBar} />
+          <View style={styles.quotePreviewBody}>
+            <Text
+              style={[styles.quotePreviewAlias, mine ? styles.quotePreviewTextMine : styles.quotePreviewTextTheirs]}
+              numberOfLines={1}
+            >
+              {quoted.sender_id === currentUserId ? 'You' : alias}
+            </Text>
+            <Text
+              style={[styles.quotePreviewText, mine ? styles.quotePreviewTextMine : styles.quotePreviewTextTheirs]}
+              numberOfLines={1}
+            >
+              {quoted.deleted_at ? t('messages.deletedPlaceholder') : quoted.text}
+            </Text>
+          </View>
+        </View>
       )}
+      <View style={styles.bubbleInnerRow}>
+        <Text
+          style={[
+            styles.bubbleText,
+            mine ? styles.bubbleTextMine : styles.bubbleTextTheirs,
+            deleted && styles.bubbleTextDeleted,
+          ]}
+        >
+          {deleted ? t('messages.deletedPlaceholder') : message.text}
+        </Text>
+        {pending && !deleted && (
+          <Icon
+            name="clock"
+            size={10}
+            color={mine ? AppColors.text : AppColors.background}
+            style={styles.bubblePendingIcon}
+          />
+        )}
+      </View>
     </View>
   );
 
@@ -98,18 +135,40 @@ function ThreadBubble({
   // doesn't swipe-delete a single bubble either — it's long-press → action
   // sheet, which is what this does: press and hold opens the same choice
   // (delete for me / for everyone) as a native Alert.
+  //
+  // A rightward drag (WhatsApp-style) now ALSO lives on this same bubble, to
+  // start a reply. The two gestures must never both fire for one physical
+  // touch — see app/(app)/private-space-gestures.ts's module doc for exactly
+  // how `Gesture.Race` + each gesture's own activation tuning enforces that.
+  const translateX = useSharedValue(0);
+  const { onSwipeCommit, onLongPressCommit } = buildThreadBubbleCallbacks({
+    message,
+    onDeletePress,
+    onSwipeReply,
+  });
+  const { composedGesture } = buildThreadBubbleGesture({
+    enabled: gestureEnabled,
+    translateX,
+    onSwipeCommit,
+    onLongPressCommit,
+  });
+  const bubbleAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+  const replyIconStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translateX.value, [0, REPLY_SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP),
+  }));
+
   return (
     <View style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
-      <Pressable
-        onLongPress={() => {
-          if (pending || deleted) return;
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          onDeletePress();
-        }}
-        delayLongPress={350}
-      >
-        {bubbleBox}
-      </Pressable>
+      <Animated.View style={replyIconStyle} pointerEvents="none">
+        <Icon name="reply" size={16} color={AppColors.textSecondary} />
+      </Animated.View>
+      <GestureDetector gesture={composedGesture}>
+        <Animated.View style={bubbleAnimatedStyle}>
+          {bubbleBox}
+        </Animated.View>
+      </GestureDetector>
     </View>
   );
 }
@@ -246,6 +305,10 @@ export default function PrivateSpaceScreen() {
   const [text, setText] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  // The message being replied to (set by a bubble's swipe-to-reply gesture,
+  // cleared on cancel or after a successful send). Last-swipe-wins: swiping a
+  // different bubble replaces the active target rather than stacking.
+  const [replyTarget, setReplyTarget] = useState<Message | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   // Load this device's previously-hidden ids for this space (persisted across
@@ -270,13 +333,19 @@ export default function PrivateSpaceScreen() {
     if (!trimmed || !spaceId) return;
     Haptics.selectionAsync();
     setSendError(null);
+    // Capture the active reply target before optimistically clearing draft
+    // state, so a failed send can restore both text AND the reply-target
+    // (mirrors the existing text capture-before-clear/restore-on-error shape).
+    const pendingReplyTarget = replyTarget;
     setText('');
+    setReplyTarget(null);
     try {
-      await send(trimmed);
+      await send({ text: trimmed, replyToId: pendingReplyTarget?.id ?? null });
     } catch (e: any) {
       // Send failed — restore the draft so it isn't lost, and surface the error inline.
       console.warn('[private-space] send failed', e?.message ?? e);
       setText(trimmed);
+      setReplyTarget(pendingReplyTarget);
       setSendError(e?.message ?? 'Could not send. Try again.');
     }
   };
@@ -374,6 +443,10 @@ export default function PrivateSpaceScreen() {
                   message={it.msg}
                   mine={it.msg.sender_id === user?.id}
                   onDeletePress={() => handleDeletePress(it.msg.id, it.msg.sender_id === user?.id)}
+                  onSwipeReply={(msg) => setReplyTarget(msg)}
+                  allMessages={messages}
+                  alias={alias}
+                  currentUserId={user?.id}
                 />
               ) : (
                 <SystemNote
@@ -386,6 +459,30 @@ export default function PrivateSpaceScreen() {
 
           {/* Input bar */}
           <View style={styles.inputBar}>
+            {replyTarget != null && (
+              <View style={styles.replyStrip}>
+                <View style={styles.replyStripBar} />
+                <View style={styles.replyStripBody}>
+                  <Text style={styles.replyStripAlias} numberOfLines={1}>
+                    {t('messages.replyingTo', {
+                      alias: replyTarget.sender_id === user?.id ? 'You' : alias,
+                    })}
+                  </Text>
+                  <Text style={styles.replyStripText} numberOfLines={1}>
+                    {replyTarget.deleted_at ? t('messages.deletedPlaceholder') : replyTarget.text}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => setReplyTarget(null)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel reply"
+                  hitSlop={8}
+                  style={styles.replyStripDismiss}
+                >
+                  <Icon name="x" size={14} color={AppColors.textSecondary} />
+                </Pressable>
+              </View>
+            )}
             {sendError != null && (
               <Text style={styles.errorText}>{sendError}</Text>
             )}
@@ -511,7 +608,7 @@ const styles = StyleSheet.create({
   bubbleRowMine: { justifyContent: 'flex-end' },
   bubbleRowTheirs: { justifyContent: 'flex-start' },
   bubble: {
-    maxWidth: '88%',
+    maxWidth: '92%',
     paddingVertical: 12,
     paddingHorizontal: 15,
     borderTopLeftRadius: 16,
@@ -541,6 +638,71 @@ const styles = StyleSheet.create({
   bubbleText: { fontFamily: Typography.fonts.body, fontSize: 15, lineHeight: 22, flexShrink: 1 },
   bubbleTextMine: { color: '#0D0D10' },
   bubbleTextTheirs: { color: '#F3EFE6' },
+
+  // Quote preview — a small, dimmer, left-accent-barred block above a reply
+  // bubble's own text (WhatsApp-style). Additive only.
+  quotePreview: {
+    flexDirection: 'row',
+    marginBottom: 6,
+    paddingBottom: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(13,13,16,0.12)',
+  },
+  quotePreviewBar: {
+    width: 3,
+    borderRadius: 2,
+    marginRight: 8,
+    backgroundColor: AppColors.accentDeep,
+  },
+  quotePreviewBody: { flex: 1 },
+  quotePreviewAlias: {
+    fontFamily: Typography.fonts.body,
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 1,
+  },
+  quotePreviewText: {
+    fontFamily: Typography.fonts.body,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  quotePreviewTextMine: { color: 'rgba(13,13,16,0.6)' },
+  quotePreviewTextTheirs: { color: 'rgba(243,239,230,0.65)' },
+
+  // "Replying to" composer strip — sits directly above the input bar.
+  replyStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: AppColors.elevated,
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginBottom: 8,
+  },
+  replyStripBar: {
+    width: 3,
+    alignSelf: 'stretch',
+    borderRadius: 2,
+    marginRight: 8,
+    backgroundColor: AppColors.accentDeep,
+  },
+  replyStripBody: { flex: 1 },
+  replyStripAlias: {
+    fontFamily: Typography.fonts.body,
+    fontSize: 12,
+    fontWeight: '600',
+    color: AppColors.text,
+    marginBottom: 1,
+  },
+  replyStripText: {
+    fontFamily: Typography.fonts.body,
+    fontSize: 12,
+    color: AppColors.textSecondary,
+  },
+  replyStripDismiss: {
+    marginLeft: 8,
+    padding: 4,
+  },
 
   // Input bar
   inputBar: {

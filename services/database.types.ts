@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           id: string
+          reply_to_id: string | null
           sender_id: string
           space_id: string
           text: string
@@ -27,6 +28,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          reply_to_id?: string | null
           sender_id?: string
           space_id: string
           text: string
@@ -35,11 +37,19 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
+          reply_to_id?: string | null
           sender_id?: string
           space_id?: string
           text?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "messages_space_id_fkey"
             columns: ["space_id"]
