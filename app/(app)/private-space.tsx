@@ -53,8 +53,16 @@ function ThreadBubble({
   const pending = (message as Message & { pending?: boolean }).pending === true;
   const deleted = !!message.deleted_at;
 
+  // key={pending/deleted} forces a clean remount of this row instead of an
+  // in-place reconcile when a bubble transitions pending -> confirmed (the
+  // clock icon disappearing changes the row from 2 children to 1). Without
+  // it, the Text node was sometimes reused with a stale, narrower measured
+  // width left over from when the icon was still taking up row space —
+  // visible on-device as short words hard-wrapping mid-character ("Hazir" /
+  // "Iz" on two lines) even though the bubble had plenty of room.
   const bubbleBox = (
     <View
+      key={pending ? 'pending' : deleted ? 'deleted' : 'confirmed'}
       style={[
         styles.bubble,
         styles.bubbleInnerRow,
@@ -395,14 +403,14 @@ export default function PrivateSpaceScreen() {
                   returnKeyType="default"
                 />
                 <Pressable
-                  style={styles.sendBtn}
+                  style={[styles.sendBtn, !text.trim() && styles.sendBtnDim]}
                   onPress={handleSend}
-                  disabled={isPending}
+                  disabled={isPending || !text.trim()}
                   accessibilityRole="button"
                   accessibilityLabel="Send"
                   hitSlop={8}
                 >
-                  <Icon name="send" size={20} color={AppColors.accent} />
+                  <Icon name="send" size={18} color="#FFFFFF" />
                 </Pressable>
               </View>
             </AnimatedInputWrapper>
@@ -530,7 +538,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 16,
     borderBottomLeftRadius: 6,
   },
-  bubbleText: { fontFamily: Typography.fonts.body, fontSize: 15, lineHeight: 22 },
+  bubbleText: { fontFamily: Typography.fonts.body, fontSize: 15, lineHeight: 22, flexShrink: 1 },
   bubbleTextMine: { color: '#0D0D10' },
   bubbleTextTheirs: { color: '#F3EFE6' },
 
@@ -565,10 +573,19 @@ const styles = StyleSheet.create({
     maxHeight: 120,
   },
   sendBtn: {
-    width: 40,
-    height: 40,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: AppColors.text,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 3,
+  },
+  // Nothing typed yet — same black circle, just quieter, so the button
+  // doesn't disappear (still clearly "the send button") but reads as
+  // not-yet-actionable until there's something to send.
+  sendBtnDim: {
+    opacity: 0.35,
   },
   errorText: {
     fontFamily: Typography.fonts.body,
