@@ -58,8 +58,22 @@ export const REPLY_SWIPE_FAIL_OFFSET_Y = 10;
  * rightward-only gesture (WhatsApp-style reply reveal) — any non-positive
  * (leftward or zero) raw distance clamps to 0, never producing visual
  * movement past origin.
+ *
+ * Explicit `'worklet'` directive (root cause of the build-24/26 crash, found
+ * via a real device crash log): this function is called from inside the Pan
+ * gesture's `onUpdate` worklet on the UI thread. Without its own `'worklet'`
+ * directive, calling it there throws Reanimated's "Tried to synchronously
+ * call a non-worklet function on the UI thread" — an uncaught JS exception
+ * inside the native gesture-event dispatch path, which Hermes/worklets has
+ * no recovery for and aborts the process (SIGABRT). Confirmed via
+ * `~/Library/Logs/DiagnosticReports/resense-*.ips`: the crashing thread's
+ * backtrace runs UIGestureRecognizer → RNGestureHandler → Reanimated
+ * event dispatch → WorkletEventHandler::process → HermesRuntimeImpl::call →
+ * throwPendingError → abort. Same fix applies to didCrossReplyThreshold
+ * below, called from `onEnd`.
  */
 export function clampDragTranslation(rawDx: number, maxOffset: number): number {
+  'worklet';
   if (rawDx <= 0) return 0;
   return Math.min(rawDx, maxOffset);
 }
@@ -69,8 +83,10 @@ export function clampDragTranslation(rawDx: number, maxOffset: number): number {
  * threshold. Pure boolean — must be evaluated against the *release-time*
  * translation only (never a stale mid-gesture peak value), so a drag that
  * crosses the threshold then reverses before release correctly does NOT fire.
+ * Explicit `'worklet'` directive — see clampDragTranslation's comment above.
  */
 export function didCrossReplyThreshold(translation: number, threshold: number): boolean {
+  'worklet';
   return translation >= threshold;
 }
 
