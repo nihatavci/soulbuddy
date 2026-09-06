@@ -22,6 +22,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useSharedValue, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
 import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
@@ -39,17 +41,21 @@ import { useReplyOwedPrompt } from '@/hooks/useReplyOwedPrompt';
 import { hideMessageForMe, getHiddenIds } from '@/lib/localMessageHide';
 import { Toast } from '@/components/glow';
 import type { Message } from '@/services/supabase';
-// NOTE: app/(app)/private-space-gestures.ts (the drag-to-reply gesture) is
-// intentionally NOT imported here — see the build-25 hotfix comment in
-// ThreadBubble below. Left in the repo, unused, pending a real crash log.
+import {
+  REPLY_SWIPE_MAX_OFFSET,
+  buildThreadBubbleGesture,
+  buildThreadBubbleCallbacks,
+} from '@/app/(app)/private-space-gestures';
 
 function ThreadBubble({
-  message, mine, onDeletePress, allMessages, alias, currentUserId,
+  message, mine, onDeletePress, onSwipeReply, allMessages, alias, currentUserId,
 }: {
   message: Message;
   mine: boolean;
-  /** Long-press opens the message-options Alert (Reply, delete choices). */
+  /** Long-press opens the message-options Alert (delete choices — Reply is still there too, as a fallback). */
   onDeletePress: () => void;
+  /** Swipe-right commit — starts a reply to this message. */
+  onSwipeReply: (message: Message) => void;
   /** The already-loaded thread — used to resolve `message.reply_to_id` into a quote preview, no new query. */
   allMessages?: Message[];
   /** The other person's alias, for the quote preview's sender indicator. */
@@ -62,6 +68,23 @@ function ThreadBubble({
   const pending = (message as Message & { pending?: boolean }).pending === true;
   const deleted = !!message.deleted_at;
   const gestureEnabled = !pending && !deleted;
+
+  // Swipe-to-reply drag offset. See private-space-gestures.ts for the
+  // build-24-crash root-cause note and why this Pan gesture is safe to
+  // reintroduce now (direction-constrained, no more raced LongPress).
+  const translateX = useSharedValue(0);
+  const { onSwipeCommit } = buildThreadBubbleCallbacks({ message, onSwipeReply });
+  const { panGesture } = buildThreadBubbleGesture({
+    enabled: gestureEnabled,
+    translateX,
+    onSwipeCommit,
+  });
+  const bubbleAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+  const replyIconAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translateX.value, [0, REPLY_SWIPE_MAX_OFFSET], [0, 1], Extrapolation.CLAMP),
+  }));
 
   // Quote preview: resolve the replied-to message from the already-loaded
   // thread. Virtually always present (short-lived 1:1 spaces); if genuinely
@@ -128,32 +151,33 @@ function ThreadBubble({
     </View>
   );
 
-  // TEMPORARY HOTFIX (build 25): the drag-to-reply gesture (GestureDetector +
-  // Gesture.Race + reanimated worklets) shipped in build 24 crashes the app
-  // on swipe — reported live, reproducible every time. No crash log was
-  // available yet from TestFlight (asc testflight crashes list returned
-  // empty) to root-cause the native crash properly, so rather than guess at
-  // gesture-handler/reanimated internals blind, this reverts the TRIGGER
-  // mechanism back to the long-press action sheet that was already proven
-  // stable in build 23 — "Reply" is now a third option there, alongside the
-  // existing delete choices. Everything downstream of the trigger (quote
-  // preview, composer strip, handleSend wiring) is untouched and still
-  // fully shipped; only how you START a reply changed. The gesture code
-  // itself (private-space-gestures.ts) is left in the repo, unused, pending
-  // a real crash log.
+  // Swipe right to reply (build-24 crash fixed — see the module doc in
+  // private-space-gestures.ts). Long-press still opens the delete-choice
+  // Alert on the plain `Pressable` below — a completely separate, native,
+  // non-gesture-handler responder, so it can never contend with the Pan
+  // gesture wrapping it.
   return (
     <View style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
-      <Pressable
-        testID={`thread-bubble-${message.id}`}
-        onLongPress={() => {
-          if (!gestureEnabled) return;
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          onDeletePress();
-        }}
-        delayLongPress={350}
-      >
-        {bubbleBox}
-      </Pressable>
+      <View style={styles.bubbleSwipeAnchor}>
+        <Animated.View style={[styles.replyAffordanceIcon, replyIconAnimatedStyle]} pointerEvents="none">
+          <Icon name="reply" size={16} color={AppColors.textSecondary} />
+        </Animated.View>
+        <GestureDetector gesture={panGesture}>
+          <Animated.View style={bubbleAnimatedStyle}>
+            <Pressable
+              testID={`thread-bubble-${message.id}`}
+              onLongPress={() => {
+                if (!gestureEnabled) return;
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                onDeletePress();
+              }}
+              delayLongPress={350}
+            >
+              {bubbleBox}
+            </Pressable>
+          </Animated.View>
+        </GestureDetector>
+      </View>
     </View>
   );
 }
@@ -244,11 +268,19 @@ export default function PrivateSpaceScreen() {
     });
   };
 
+  // Swipe right on a bubble to reply directly (see ThreadBubble's own
+  // comment + private-space-gestures.ts for the build-24 crash root cause
+  // and why the gesture is safe now). Long-press stays as a fallback that
+  // still offers Reply alongside the delete choice(s).
+  const handleSwipeReply = (message: Message) => {
+    setReplyTarget(message);
+  };
+
   // One long-press per bubble opens a single native Alert offering every
-  // action for that message — Reply first (per build-25 hotfix: this is now
-  // the only way to start a reply, see ThreadBubble's own comment), then the
-  // delete choice(s), matching how iMessage really behaves rather than
-  // stacking colored buttons behind a swipe.
+  // action for that message — Reply first (also reachable via swipe, see
+  // handleSwipeReply above), then the delete choice(s), matching how
+  // iMessage really behaves rather than stacking colored buttons behind a
+  // swipe.
   const handleLongPress = (message: Message, mine: boolean) => {
     Haptics.selectionAsync();
     const buttons: Array<{ text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }> = [
@@ -428,6 +460,7 @@ export default function PrivateSpaceScreen() {
                   message={it.msg}
                   mine={it.msg.sender_id === user?.id}
                   onDeletePress={() => handleLongPress(it.msg, it.msg.sender_id === user?.id)}
+                  onSwipeReply={handleSwipeReply}
                   allMessages={messages}
                   alias={alias}
                   currentUserId={user?.id}
@@ -591,6 +624,17 @@ const styles = StyleSheet.create({
   bubbleRow: { flexDirection: 'row', marginBottom: 10 },
   bubbleRowMine: { justifyContent: 'flex-end' },
   bubbleRowTheirs: { justifyContent: 'flex-start' },
+  // Wraps the reply-affordance icon + the swipeable bubble so the icon can be
+  // absolutely positioned just to the bubble's left, fading in as the drag
+  // (translateX, applied to the bubble only) moves the bubble away from it.
+  bubbleSwipeAnchor: { position: 'relative', maxWidth: '92%' },
+  replyAffordanceIcon: {
+    position: 'absolute',
+    left: -26,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
   bubble: {
     maxWidth: '92%',
     paddingVertical: 12,
