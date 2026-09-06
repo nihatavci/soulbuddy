@@ -24,8 +24,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
-import { GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, interpolate, Extrapolation } from 'react-native-reanimated';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH, Space } from '@/constants/spacing';
 import { AnimatedInputWrapper } from '@/components/ui/AnimatedPressable';
@@ -41,15 +39,17 @@ import { useReplyOwedPrompt } from '@/hooks/useReplyOwedPrompt';
 import { hideMessageForMe, getHiddenIds } from '@/lib/localMessageHide';
 import { Toast } from '@/components/glow';
 import type { Message } from '@/services/supabase';
-import { buildThreadBubbleGesture, buildThreadBubbleCallbacks, REPLY_SWIPE_THRESHOLD } from './private-space-gestures';
+// NOTE: app/(app)/private-space-gestures.ts (the drag-to-reply gesture) is
+// intentionally NOT imported here — see the build-25 hotfix comment in
+// ThreadBubble below. Left in the repo, unused, pending a real crash log.
 
 function ThreadBubble({
-  message, mine, onDeletePress, onSwipeReply, allMessages, alias, currentUserId,
+  message, mine, onDeletePress, allMessages, alias, currentUserId,
 }: {
   message: Message;
   mine: boolean;
+  /** Long-press opens the message-options Alert (Reply, delete choices). */
   onDeletePress: () => void;
-  onSwipeReply?: (message: Message) => void;
   /** The already-loaded thread — used to resolve `message.reply_to_id` into a quote preview, no new query. */
   allMessages?: Message[];
   /** The other person's alias, for the quote preview's sender indicator. */
@@ -128,47 +128,32 @@ function ThreadBubble({
     </View>
   );
 
-  // Swipe-to-reveal doesn't fit a variable-width, side-aligned chat bubble —
-  // that pattern (Mail/Reminders) assumes a full-width list row, and forcing
-  // it onto a bubble either crops the action or disconnects it from the
-  // bubble when swiped (tried both, both looked broken). Real iMessage
-  // doesn't swipe-delete a single bubble either — it's long-press → action
-  // sheet, which is what this does: press and hold opens the same choice
-  // (delete for me / for everyone) as a native Alert.
-  //
-  // A rightward drag (WhatsApp-style) now ALSO lives on this same bubble, to
-  // start a reply. The two gestures must never both fire for one physical
-  // touch — see app/(app)/private-space-gestures.ts's module doc for exactly
-  // how `Gesture.Race` + each gesture's own activation tuning enforces that.
-  const translateX = useSharedValue(0);
-  const { onSwipeCommit, onLongPressCommit } = buildThreadBubbleCallbacks({
-    message,
-    onDeletePress,
-    onSwipeReply,
-  });
-  const { composedGesture } = buildThreadBubbleGesture({
-    enabled: gestureEnabled,
-    translateX,
-    onSwipeCommit,
-    onLongPressCommit,
-  });
-  const bubbleAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
-  const replyIconStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(translateX.value, [0, REPLY_SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP),
-  }));
-
+  // TEMPORARY HOTFIX (build 25): the drag-to-reply gesture (GestureDetector +
+  // Gesture.Race + reanimated worklets) shipped in build 24 crashes the app
+  // on swipe — reported live, reproducible every time. No crash log was
+  // available yet from TestFlight (asc testflight crashes list returned
+  // empty) to root-cause the native crash properly, so rather than guess at
+  // gesture-handler/reanimated internals blind, this reverts the TRIGGER
+  // mechanism back to the long-press action sheet that was already proven
+  // stable in build 23 — "Reply" is now a third option there, alongside the
+  // existing delete choices. Everything downstream of the trigger (quote
+  // preview, composer strip, handleSend wiring) is untouched and still
+  // fully shipped; only how you START a reply changed. The gesture code
+  // itself (private-space-gestures.ts) is left in the repo, unused, pending
+  // a real crash log.
   return (
     <View style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
-      <Animated.View style={replyIconStyle} pointerEvents="none">
-        <Icon name="reply" size={16} color={AppColors.textSecondary} />
-      </Animated.View>
-      <GestureDetector gesture={composedGesture}>
-        <Animated.View style={bubbleAnimatedStyle}>
-          {bubbleBox}
-        </Animated.View>
-      </GestureDetector>
+      <Pressable
+        testID={`thread-bubble-${message.id}`}
+        onLongPress={() => {
+          if (!gestureEnabled) return;
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          onDeletePress();
+        }}
+        delayLongPress={350}
+      >
+        {bubbleBox}
+      </Pressable>
     </View>
   );
 }
@@ -259,28 +244,28 @@ export default function PrivateSpaceScreen() {
     });
   };
 
-  // One swipe reveal per bubble (see components/ui/SwipeToDelete.tsx) — the
-  // actual choice of HOW to delete lives here, as a single native Alert
-  // (its destructive-styled button IS the confirmation — no second nested
-  // dialog), matching how iMessage really behaves rather than stacking
-  // colored buttons behind the swipe itself.
-  const handleDeletePress = (messageId: string, mine: boolean) => {
+  // One long-press per bubble opens a single native Alert offering every
+  // action for that message — Reply first (per build-25 hotfix: this is now
+  // the only way to start a reply, see ThreadBubble's own comment), then the
+  // delete choice(s), matching how iMessage really behaves rather than
+  // stacking colored buttons behind a swipe.
+  const handleLongPress = (message: Message, mine: boolean) => {
     Haptics.selectionAsync();
-    if (!mine) {
-      // Nothing to choose between — you can only ever hide someone else's
-      // message locally, never delete it for them.
-      deleteForMe(messageId);
-      return;
+    const buttons: Array<{ text: string; style?: 'cancel' | 'destructive'; onPress?: () => void }> = [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.reply'), onPress: () => setReplyTarget(message) },
+    ];
+    if (mine) {
+      buttons.push(
+        { text: t('messages.deleteForMe'), onPress: () => deleteForMe(message.id) },
+        { text: t('messages.deleteForEveryone'), style: 'destructive', onPress: () => runDeleteForEveryone(message.id) },
+      );
+    } else {
+      // Nothing to choose between for someone else's message — you can only
+      // ever hide it locally, never delete it for them.
+      buttons.push({ text: t('messages.deleteForMe'), onPress: () => deleteForMe(message.id) });
     }
-    Alert.alert(
-      t('messages.deleteChoiceTitle'),
-      undefined,
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        { text: t('messages.deleteForMe'), onPress: () => deleteForMe(messageId) },
-        { text: t('messages.deleteForEveryone'), style: 'destructive', onPress: () => runDeleteForEveryone(messageId) },
-      ],
-    );
+    Alert.alert(t('messages.messageOptionsTitle'), undefined, buttons);
   };
 
   // Messages + pace nudges woven into one time-ordered timeline. Locally
@@ -442,8 +427,7 @@ export default function PrivateSpaceScreen() {
                   key={it.msg.id}
                   message={it.msg}
                   mine={it.msg.sender_id === user?.id}
-                  onDeletePress={() => handleDeletePress(it.msg.id, it.msg.sender_id === user?.id)}
-                  onSwipeReply={(msg) => setReplyTarget(msg)}
+                  onDeletePress={() => handleLongPress(it.msg, it.msg.sender_id === user?.id)}
                   allMessages={messages}
                   alias={alias}
                   currentUserId={user?.id}

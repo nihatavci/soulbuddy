@@ -12,6 +12,7 @@
     "privacy": "Privacy",
     "and": "and",
     "delete": "Delete",
+    "reply": "Reply",
     "cancel": "Cancel"
   },
   "auth": {
@@ -213,6 +214,7 @@
     }
   },
   "messages": {
+    "messageOptionsTitle": "Message options",
     "deleteChoiceTitle": "Delete this message?",
     "deleteForMe": "Delete for me",
     "deleteForEveryone": "Delete for everyone",

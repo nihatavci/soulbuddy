@@ -1,24 +1,19 @@
 /**
  * __tests__/private-space-reply-composer.test.tsx
  *
- * Render-level coverage for FEAT-3 (quote preview inside `ThreadBubble` + the
- * "replying to" composer strip + `handleSend` wiring, RUN-NONCE
- * resense-swipe-to-reply-20260905-215928). Mirrors
+ * Render-level coverage for the quote preview inside `ThreadBubble` + the
+ * "replying to" composer strip + `handleSend` wiring. Mirrors
  * private-space-reply-owed-nudge.test.tsx's full-screen mocking pattern (same
  * hooks mocked the same way).
  *
- * Native gesture recognition cannot be simulated in Jest/jsdom (see
- * app/(app)/private-space-gestures.ts's own module doc and
- * private-space-swipe-reply.test.tsx's test note) — so, to reach a real
- * "swipe completed" state and prove the composer-strip wiring end-to-end
- * without any component internals reaching in, this file wraps
- * `buildThreadBubbleCallbacks` (the REAL exported JS-thread wiring function
- * from private-space-gestures.ts, kept un-mocked) to capture each bubble's
- * `onSwipeCommit` callback as it's built during render. Calling a captured
- * callback directly invokes the exact same function a real gesture release
- * would call (`Haptics.impactAsync` + `onSwipeReply(message)`), which is the
- * screen's actual `setReplyTarget(msg)` wiring — this proves the FEAT-3
- * composer-strip contract for real, not a stand-in assertion.
+ * Build-25 hotfix note: a reply is now started via long-press → the
+ * message-options Alert's "Reply" button (see private-space.tsx's
+ * `handleLongPress`), NOT the drag gesture in private-space-gestures.ts
+ * (which crashed on-device and was reverted to unused/dormant — see that
+ * file's own module doc). This file drives the real trigger path: long-press
+ * the bubble (`fireEvent(el, 'longPress')` on its `testID`), capture the
+ * `Alert.alert` call, and invoke the "Reply" button's real `onPress` — no
+ * component internals reached into, no gesture simulation needed.
  */
 
 const mockUseLocalSearchParams = jest.fn();
@@ -84,28 +79,33 @@ jest.mock('@/hooks/useReplyOwedPrompt', () => ({
   useReplyOwedPrompt: jest.fn(() => ({ showNudge: false, dismiss: jest.fn() })),
 }));
 
-// Captures each bubble's real onSwipeCommit as it's built during render, so
-// tests can trigger a "swipe completed" exactly the way a real gesture
-// release would, without simulating native touch events (see module doc).
-let mockCapturedSwipeCommits: { messageId: string; onSwipeCommit: () => void }[] = [];
-jest.mock('@/app/(app)/private-space-gestures', () => {
-  const actual = jest.requireActual('@/app/(app)/private-space-gestures');
-  return {
-    ...actual,
-    buildThreadBubbleCallbacks: (params: any) => {
-      const real = actual.buildThreadBubbleCallbacks(params);
-      mockCapturedSwipeCommits.push({ messageId: params.message.id, onSwipeCommit: real.onSwipeCommit });
-      return real;
-    },
-  };
-});
-
 import React from 'react';
-import { Text } from 'react-native';
+import { Alert, Text } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import i18nInstance from '@/i18n';
 import { LanguageProvider } from '@/context/LanguageContext';
 import PrivateSpaceScreen from '@/app/(app)/private-space';
+
+/**
+ * Long-presses the bubble for `messageId`, capturing the resulting
+ * `Alert.alert(...)` call and pressing its "Reply" button — the real
+ * end-to-end trigger path a physical long-press + Alert tap would produce.
+ */
+function replyToMessageViaLongPress(tree: ReturnType<typeof render>, messageId: string) {
+  const alertSpy = jest.spyOn(Alert, 'alert');
+  act(() => {
+    fireEvent(tree.getByTestId(`thread-bubble-${messageId}`), 'longPress');
+  });
+  expect(alertSpy).toHaveBeenCalled();
+  const buttons = alertSpy.mock.calls[alertSpy.mock.calls.length - 1][2] as
+    { text: string; onPress?: () => void }[];
+  const replyButton = buttons.find((b) => b.text === 'Reply');
+  expect(replyButton?.onPress).toBeTruthy();
+  act(() => {
+    replyButton!.onPress!();
+  });
+  alertSpy.mockRestore();
+}
 
 const CURRENT_USER_ID = 'user_a';
 const OTHER_USER_ID = 'user_b';
@@ -178,7 +178,6 @@ describe('private-space.tsx — quote preview + replying-to composer strip', () 
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCapturedSwipeCommits = [];
     mockUseAuth.mockReturnValue({ user: { id: CURRENT_USER_ID } });
     mockUsePrivateSpaces.mockReturnValue({ data: [SPACE] });
     mockUseLocalSearchParams.mockReturnValue({ spaceId: SPACE.id });
@@ -238,11 +237,7 @@ describe('private-space.tsx — quote preview + replying-to composer strip', () 
     expect(tree.queryByText('Replying to Wren')).toBeNull();
     expect(tree.queryByLabelText('Cancel reply')).toBeNull();
 
-    const originalCommit = mockCapturedSwipeCommits.find((c) => c.messageId === ORIGINAL_MESSAGE.id);
-    expect(originalCommit).toBeTruthy();
-    act(() => {
-      originalCommit!.onSwipeCommit();
-    });
+    replyToMessageViaLongPress(tree, ORIGINAL_MESSAGE.id);
 
     // Strip shows "Replying to <sender alias>" (the original message was
     // sent by the other person, so its alias — not "you") + a snippet.
@@ -267,10 +262,7 @@ describe('private-space.tsx — quote preview + replying-to composer strip', () 
       </LanguageProvider>,
     );
 
-    const originalCommit = mockCapturedSwipeCommits.find((c) => c.messageId === ORIGINAL_MESSAGE.id)!;
-    act(() => {
-      originalCommit.onSwipeCommit();
-    });
+    replyToMessageViaLongPress(tree, ORIGINAL_MESSAGE.id);
     expect(tree.getByText('Replying to Wren')).toBeTruthy();
 
     const input = tree.getByPlaceholderText('Write something…');
@@ -296,10 +288,7 @@ describe('private-space.tsx — quote preview + replying-to composer strip', () 
       </LanguageProvider>,
     );
 
-    const originalCommit = mockCapturedSwipeCommits.find((c) => c.messageId === ORIGINAL_MESSAGE.id)!;
-    act(() => {
-      originalCommit.onSwipeCommit();
-    });
+    replyToMessageViaLongPress(tree, ORIGINAL_MESSAGE.id);
 
     const input = tree.getByPlaceholderText('Write something…');
     fireEvent.changeText(input, 'this will fail');
@@ -318,7 +307,7 @@ describe('private-space.tsx — quote preview + replying-to composer strip', () 
     expect(tree.getAllByText(ORIGINAL_MESSAGE.text).length).toBeGreaterThan(0);
   });
 
-  it('swiping a different bubble after one is already active replaces replyTarget (last-swipe-wins)', () => {
+  it('replying to a different bubble after one is already active replaces replyTarget (last-reply-wins)', () => {
     mockUseMessages.mockReturnValue({ data: [ORIGINAL_MESSAGE, REPLY_MESSAGE] });
 
     const tree = render(
@@ -327,17 +316,10 @@ describe('private-space.tsx — quote preview + replying-to composer strip', () 
       </LanguageProvider>,
     );
 
-    const originalCommit = mockCapturedSwipeCommits.find((c) => c.messageId === ORIGINAL_MESSAGE.id)!;
-    const replyCommit = mockCapturedSwipeCommits.find((c) => c.messageId === REPLY_MESSAGE.id)!;
-
-    act(() => {
-      originalCommit.onSwipeCommit();
-    });
+    replyToMessageViaLongPress(tree, ORIGINAL_MESSAGE.id);
     expect(tree.getByText('Replying to Wren')).toBeTruthy();
 
-    act(() => {
-      replyCommit.onSwipeCommit();
-    });
+    replyToMessageViaLongPress(tree, REPLY_MESSAGE.id);
     // Now replying to your own earlier message — the strip reflects the new target.
     expect(tree.queryByText('Replying to Wren')).toBeNull();
     expect(tree.getByText('Replying to You')).toBeTruthy();

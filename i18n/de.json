@@ -12,6 +12,7 @@
     "privacy": "Datenschutz",
     "and": "und",
     "delete": "Löschen",
+    "reply": "Antworten",
     "cancel": "Abbrechen"
   },
   "auth": {
@@ -213,6 +214,7 @@
     }
   },
   "messages": {
+    "messageOptionsTitle": "Nachrichtenoptionen",
     "deleteChoiceTitle": "Diese Nachricht löschen?",
     "deleteForMe": "Für mich löschen",
     "deleteForEveryone": "Für alle löschen",
