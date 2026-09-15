@@ -20,10 +20,13 @@ import { AppColors } from '@/constants/theme';
 
 export default function TabsLayout() {
   const { total } = useUnread();
-  // Native badge: an empty string renders as an oversized dot (uncontrollable size),
-  // so use the actual count → iOS draws a proper small numbered pill. Recoloured to
-  // INK (not system red) via badgeBackgroundColor below, to stay on-brand.
-  const badge = total > 0 ? String(total) : undefined;
+  // Binary presence dot, never a count (product line: no unread counts, no
+  // streaks — private.tsx:6). Per expo-router's NativeTabTrigger, a <Badge>
+  // with no `children` and `hidden={false}` gets `badgeValue = ' '` (a single
+  // space), which iOS/Android render as a small dot; `hidden={true}` omits
+  // the badge entirely. Passing `String(total)` here would render the actual
+  // unread count as a numbered pill — exactly what the roadmap forbids.
+  const hasUnread = total > 0;
 
   return (
     <NativeTabs
@@ -44,7 +47,7 @@ export default function TabsLayout() {
       <NativeTabs.Trigger name="private">
         <Label>Private</Label>
         <Icon sf={{ default: 'lock', selected: 'lock.fill' }} />
-        <Badge>{badge}</Badge>
+        <Badge hidden={!hasUnread} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="you">

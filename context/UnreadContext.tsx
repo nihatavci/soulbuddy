@@ -22,38 +22,7 @@ import { queryKeys } from '@/store/queryClient';
 import { usePrivateSpaces } from '@/hooks/useSpaces';
 import { setAppBadge } from '@/lib/push';
 import { Prefs } from '@/store/mmkv';
-
-type UnreadSpaceLike = {
-  id?: string | null;
-  last_message_at?: string | null;
-  last_message_sender_id?: string | null;
-};
-
-/**
- * A space counts as unread only when the last message is from the OTHER
- * person AND it's newer than my stored last-read time.
- *
- * BUG-4 fix: this used to compare last_message_at against lastRead alone,
- * with no awareness of who sent it. markSpaceRead stamps lastRead with a
- * client-side "now" at send time, but the server's created_at for that same
- * message (assigned at INSERT, after the network round trip) can land
- * slightly LATER than that client stamp — so the sender's own just-sent
- * message could read as "newer than lastRead" once spaces() refetched with
- * the real timestamp, firing the badge/dot for a message the user sent to
- * themselves. Checking the sender directly makes this immune to any clock
- * or latency skew, rather than just narrowing the race window.
- */
-function isSpaceUnread(space: UnreadSpaceLike, lastRead: Record<string, string>, myUserId: string): boolean {
-  if (!space.id || !space.last_message_at) return false;
-  if (space.last_message_sender_id === myUserId) return false;
-  const read = lastRead[space.id];
-  return !read || new Date(space.last_message_at).getTime() > new Date(read).getTime();
-}
-
-/** True if any space has an unread message from the other person. */
-function hasUnread(spaces: UnreadSpaceLike[], lastRead: Record<string, string>, myUserId: string): boolean {
-  return spaces.some((s) => isSpaceUnread(s, lastRead, myUserId));
-}
+import { isSpaceUnread, hasUnread } from '@/context/spaceUnread';
 
 const LAST_READ_KEY = 'unread_last_read_v1';
 
@@ -126,6 +95,21 @@ export function UnreadProvider({ children }: { children: React.ReactNode }) {
           (payload) => {
             const msg = payload.new as { sender_id?: string; space_id?: string };
             if (!msg?.sender_id || msg.sender_id === myId) return; // ignore my own
+            qc.invalidateQueries({ queryKey: queryKeys.spaces(myId) });
+          },
+        )
+        .on(
+          // FEAT-3: a reply just opened a private space. The signal author
+          // (user_a) currently hears nothing in-app until this — invalidate
+          // their spaces() so the new (message-less) space and its badge
+          // appear immediately. No server-side `filter:` on purpose (see
+          // migration 022 proposal §5) — the recipient check stays
+          // client-side, mirroring the messages guard directly above.
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'private_spaces' },
+          (payload) => {
+            const space = payload.new as { user_a?: string; user_b?: string };
+            if (space?.user_a !== myId) return; // I'm not the notified party (I'm the creator, or unrelated)
             qc.invalidateQueries({ queryKey: queryKeys.spaces(myId) });
           },
         )

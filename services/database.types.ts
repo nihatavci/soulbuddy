@@ -71,7 +71,7 @@ export type Database = {
           created_at: string
           id: string
           pair_key: string | null
-          signal_id: string
+          signal_id: string | null
           user_a: string
           user_b: string
         }
@@ -79,7 +79,7 @@ export type Database = {
           created_at?: string
           id?: string
           pair_key?: string | null
-          signal_id: string
+          signal_id?: string | null
           user_a: string
           user_b: string
         }
@@ -87,7 +87,7 @@ export type Database = {
           created_at?: string
           id?: string
           pair_key?: string | null
-          signal_id?: string
+          signal_id?: string | null
           user_a?: string
           user_b?: string
         }

@@ -40,14 +40,17 @@ import { useSpaceEvents, useSendSlowDown } from '@/hooks/useSpaceEvents';
 import { useReplyOwedPrompt } from '@/hooks/useReplyOwedPrompt';
 import { hideMessageForMe, getHiddenIds } from '@/lib/localMessageHide';
 import { Toast } from '@/components/glow';
+import { RevealSystemMessage } from '@/components/private-space/RevealSystemMessage';
 import type { Message } from '@/services/supabase';
 import {
   REPLY_SWIPE_MAX_OFFSET,
   buildThreadBubbleGesture,
   buildThreadBubbleCallbacks,
 } from '@/app/(app)/private-space-gestures';
+import { buildTimeline } from '@/app/(app)/private-space-timeline';
+import { composeBubbleStyles } from '@/app/(app)/private-space-bubble-style';
 
-function ThreadBubble({
+export function ThreadBubble({
   message, mine, onDeletePress, onSwipeReply, allMessages, alias, currentUserId,
 }: {
   message: Message;
@@ -93,6 +96,12 @@ function ThreadBubble({
     ? allMessages?.find((m) => m.id === message.reply_to_id)
     : undefined;
 
+  // Composed once per render from the extracted, invariant-checked module
+  // (private-space-bubble-style.ts) — see its module doc for the FEAT-1
+  // root cause and the INV-1 fix this replaced the raw `styles.bubble*`
+  // lookups with.
+  const composedStyles = composeBubbleStyles({ mine, pending, deleted });
+
   // key={pending/deleted} forces a clean remount of this row instead of an
   // in-place reconcile when a bubble transitions pending -> confirmed (the
   // clock icon disappearing changes the row from 2 children to 1). Without
@@ -103,12 +112,7 @@ function ThreadBubble({
   const bubbleBox = (
     <View
       key={pending ? 'pending' : deleted ? 'deleted' : 'confirmed'}
-      style={[
-        styles.bubble,
-        mine ? styles.bubbleMine : styles.bubbleTheirs,
-        pending && styles.bubblePending,
-        deleted && styles.bubbleDeleted,
-      ]}
+      style={composedStyles.bubbleContainer}
     >
       {quoted && (
         <View style={styles.quotePreview}>
@@ -129,14 +133,8 @@ function ThreadBubble({
           </View>
         </View>
       )}
-      <View style={styles.bubbleInnerRow}>
-        <Text
-          style={[
-            styles.bubbleText,
-            mine ? styles.bubbleTextMine : styles.bubbleTextTheirs,
-            deleted && styles.bubbleTextDeleted,
-          ]}
-        >
+      <View style={composedStyles.innerRow}>
+        <Text style={composedStyles.text}>
           {deleted ? t('messages.deletedPlaceholder') : message.text}
         </Text>
         {pending && !deleted && (
@@ -144,7 +142,7 @@ function ThreadBubble({
             name="clock"
             size={10}
             color={mine ? AppColors.text : AppColors.background}
-            style={styles.bubblePendingIcon}
+            style={composedStyles.pendingIcon}
           />
         )}
       </View>
@@ -157,9 +155,9 @@ function ThreadBubble({
   // non-gesture-handler responder, so it can never contend with the Pan
   // gesture wrapping it.
   return (
-    <View style={[styles.bubbleRow, mine ? styles.bubbleRowMine : styles.bubbleRowTheirs]}>
-      <View style={styles.bubbleSwipeAnchor}>
-        <Animated.View style={[styles.replyAffordanceIcon, replyIconAnimatedStyle]} pointerEvents="none">
+    <View style={composedStyles.row}>
+      <View style={composedStyles.anchor}>
+        <Animated.View style={[composedStyles.replyIcon, replyIconAnimatedStyle]} pointerEvents="none">
           <Icon name="reply" size={16} color={AppColors.textSecondary} />
         </Animated.View>
         <GestureDetector gesture={panGesture}>
@@ -300,24 +298,26 @@ export default function PrivateSpaceScreen() {
     Alert.alert(t('messages.messageOptionsTitle'), undefined, buttons);
   };
 
-  // Messages + pace nudges woven into one time-ordered timeline. Locally
-  // "deleted for me" messages are filtered out entirely — the other person's
-  // copy is untouched (see lib/localMessageHide.ts).
-  const timeline = React.useMemo(() => {
-    const items: (
-      | { kind: 'msg'; at: string; msg: Message }
-      | { kind: 'event'; at: string; id: string; mine: boolean }
-    )[] = [
-      ...messages
-        .filter((m) => !locallyHiddenIds.has(m.id))
-        .map((m) => ({ kind: 'msg' as const, at: m.created_at, msg: m })),
-      ...events
-        .filter((e) => e.kind === 'slow_down')
-        .map((e) => ({ kind: 'event' as const, at: e.created_at, id: e.id, mine: e.actor_id === user?.id })),
-    ];
-    items.sort((a, b) => a.at.localeCompare(b.at));
-    return items;
-  }, [messages, events, user?.id, locallyHiddenIds]);
+  // Messages + pace nudges + reveal notices woven into one time-ordered
+  // timeline. Locally "deleted for me" messages are filtered out entirely —
+  // the other person's copy is untouched (see lib/localMessageHide.ts).
+  // Extracted into buildTimeline (private-space-timeline.ts) — a pure
+  // reducer, unit-tested there; this screen only supplies live values.
+  // `iRevealed`/`bothRevealed` are new dependencies here (deliberate,
+  // FEAT-4 §5.1/§5.2): the attached reveal-notice `outcome` depends on
+  // reveal state, so omitting them would serve a stale outcome.
+  const timeline = React.useMemo(
+    () =>
+      buildTimeline({
+        messages,
+        events,
+        myUserId: user?.id,
+        locallyHiddenIds,
+        iRevealed,
+        bothRevealed,
+      }),
+    [messages, events, user?.id, locallyHiddenIds, iRevealed, bothRevealed],
+  );
 
   const [text, setText] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
@@ -464,6 +464,15 @@ export default function PrivateSpaceScreen() {
                   allMessages={messages}
                   alias={alias}
                   currentUserId={user?.id}
+                />
+              ) : it.eventKind === 'reveal' ? (
+                <RevealSystemMessage
+                  key={it.id}
+                  mine={it.mine}
+                  alias={alias}
+                  outcome={it.outcome}
+                  onConfirmReveal={openReveal}
+                  at={it.at}
                 />
               ) : (
                 <SystemNote
@@ -621,51 +630,13 @@ const styles = StyleSheet.create({
   sysNoteDismiss: {
     marginLeft: 2,
   },
-  bubbleRow: { flexDirection: 'row', marginBottom: 10 },
-  bubbleRowMine: { justifyContent: 'flex-end' },
-  bubbleRowTheirs: { justifyContent: 'flex-start' },
-  // Wraps the reply-affordance icon + the swipeable bubble so the icon can be
-  // absolutely positioned just to the bubble's left, fading in as the drag
-  // (translateX, applied to the bubble only) moves the bubble away from it.
-  bubbleSwipeAnchor: { position: 'relative', maxWidth: '92%' },
-  replyAffordanceIcon: {
-    position: 'absolute',
-    left: -26,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-  },
-  bubble: {
-    maxWidth: '92%',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-  },
-  bubbleInnerRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
-  // Optimistic (not-yet-confirmed) bubble — same shape, quieter presence.
-  bubblePending: { opacity: 0.55 },
-  bubblePendingIcon: { marginBottom: 2 },
-  // Tombstone (deleted-for-everyone) — same shape, quieter and italic, no tail color distinction needed.
-  bubbleDeleted: { backgroundColor: 'transparent', borderColor: 'rgba(13,13,16,0.12)' },
-  bubbleTextDeleted: { fontStyle: 'italic', color: AppColors.textSecondary },
-  // Mine → right, paper with a subtle ink hairline, tail at bottom-right.
-  bubbleMine: {
-    backgroundColor: '#ECE5D9',
-    borderWidth: 1,
-    borderColor: 'rgba(13,13,16,0.1)',
-    borderBottomRightRadius: 6,
-    borderBottomLeftRadius: 16,
-  },
-  // Theirs → left, dark ink, tail at bottom-left.
-  bubbleTheirs: {
-    backgroundColor: '#212125',
-    borderBottomRightRadius: 16,
-    borderBottomLeftRadius: 6,
-  },
-  bubbleText: { fontFamily: Typography.fonts.body, fontSize: 15, lineHeight: 22, flexShrink: 1 },
-  bubbleTextMine: { color: '#0D0D10' },
-  bubbleTextTheirs: { color: '#F3EFE6' },
+  // bubbleRow/bubbleRowMine/bubbleRowTheirs/bubbleSwipeAnchor/
+  // replyAffordanceIcon/bubble/bubbleInnerRow/bubblePending/
+  // bubblePendingIcon/bubbleDeleted/bubbleMine/bubbleTheirs/bubbleText/
+  // bubbleTextMine/bubbleTextTheirs/bubbleTextDeleted moved to
+  // app/(app)/private-space-bubble-style.ts (FEAT-1) — see that module's
+  // doc for the width-constraint invariant (INV-1) this extraction exists
+  // to enforce and test in isolation.
 
   // Quote preview — a small, dimmer, left-accent-barred block above a reply
   // bubble's own text (WhatsApp-style). Additive only.

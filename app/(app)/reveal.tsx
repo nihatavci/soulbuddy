@@ -22,8 +22,10 @@ import { PaperBackground } from '@/components/ui/PaperBackground';
 import { GoldDisc } from '@/components/ui/GoldDisc';
 import { Toast } from '@/components/glow';
 import { useReveal, useRevealActions } from '@/hooks/useReveal';
+import { useSendRevealEvent } from '@/hooks/useSpaceEvents';
 import { usePrivateSpaces, otherAlias } from '@/hooks/useSpaces';
 import { useAuth } from '@/context/AuthContext';
+import { useT } from '@/context/LanguageContext';
 
 const SHARED_ITEMS = [
   'A verified 18+ status',
@@ -39,8 +41,10 @@ export default function RevealScreen() {
   const space = spaces?.find((s) => s.id === spaceId);
   const alias = space && user?.id ? otherAlias(space, user.id) : 'them';
 
+  const t = useT();
   const { iRevealed, bothRevealed, other } = useReveal(spaceId);
   const { reveal, withdraw } = useRevealActions(spaceId ?? '');
+  const { mutateAsync: sendRevealEvent } = useSendRevealEvent(spaceId ?? '');
 
   const [agreed, setAgreed] = useState(false);
   const [firstName, setFirstName] = useState('');
@@ -49,11 +53,22 @@ export default function RevealScreen() {
     if (!agreed || !spaceId) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
+      // Source of truth first (§5.6): the reveal itself must succeed before
+      // any notice is posted.
       await reveal.mutateAsync(firstName || undefined);
       Toast.show(
         `You chose to reveal. ${alias} will only see it once they choose to, too.`,
         { type: 'success', position: 'top', duration: 3600 },
       );
+      try {
+        // Notice second. If this fails, the reveal itself is NOT rolled
+        // back — undoing a consented act would be worse than a missing
+        // notice (§5.6). Surface a distinct error, no silent swallow, no
+        // auto-retry.
+        await sendRevealEvent();
+      } catch {
+        Toast.show(t('reveal.noticeError', { alias }), { type: 'error', position: 'top', duration: 3600 });
+      }
     } catch (e: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Toast.show(e?.message || 'Could not reveal. Try again.', { type: 'error', position: 'top', duration: 3600 });

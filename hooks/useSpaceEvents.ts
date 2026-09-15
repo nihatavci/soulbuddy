@@ -61,3 +61,27 @@ export function useSendSlowDown(spaceId: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.spaceEvents(spaceId) }),
   });
 }
+
+/**
+ * FEAT-4: posts the visible "reveal" notice into `space_events`. Mirrors
+ * `useSendSlowDown` exactly — `actor_id` defaults to `auth.uid()` (see the
+ * `space_events.actor_id` column default in migration
+ * `014_resense_reveal_slowdown.sql`; a symbol reference, not `file:line`, so
+ * it cannot go stale if the migration is reformatted). `networkMode:
+ * 'always'` so offline fails visibly rather than queuing silently. Requires
+ * migration 023 (widens the `kind` CHECK to admit `'reveal'`) to be applied
+ * first; `space_reveals` remains the sole source of truth for reveal state —
+ * this only carries the visible notice.
+ */
+export function useSendRevealEvent(spaceId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    networkMode: 'always',
+    mutationFn: async () => {
+      if (!spaceId) throw new Error('Not ready.');
+      const { error } = await supabase.from('space_events').insert({ space_id: spaceId, kind: 'reveal' });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.spaceEvents(spaceId) }),
+  });
+}

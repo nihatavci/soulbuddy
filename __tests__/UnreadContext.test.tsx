@@ -33,7 +33,11 @@ jest.mock('@/store/mmkv', () => ({
   Prefs: { get: jest.fn(() => null), set: jest.fn() },
 }));
 
-let postgresChangesHandler: ((payload: unknown) => void) | null = null;
+// Keyed by `table` so a single channel can carry multiple `.on('postgres_changes', ...)`
+// bindings (FEAT-3 adds a second one for `private_spaces`, alongside the existing
+// `messages` binding) — each binding's handler is captured under its own table name
+// instead of being clobbered by whichever `.on(...)` call happened to run last.
+const postgresChangesHandlers: Record<string, (payload: unknown) => void> = {};
 const mockSubscribe = jest.fn().mockReturnValue({ unsubscribe: jest.fn() });
 let mockGetSession = jest.fn();
 const mockSetAuth = jest.fn();
@@ -42,12 +46,22 @@ jest.mock('@/services/supabase', () => ({
   supabase: {
     auth: { getSession: (...args: unknown[]) => mockGetSession(...args) },
     realtime: { setAuth: (...args: unknown[]) => mockSetAuth(...args) },
-    channel: jest.fn(() => ({
-      on: (_event: string, _filter: unknown, handler: (payload: unknown) => void) => {
-        postgresChangesHandler = handler;
-        return { subscribe: mockSubscribe };
-      },
-    })),
+    channel: jest.fn(() => {
+      // Self-referencing so `.on(...).on(...).subscribe()` chains exactly like the
+      // real supabase-js `RealtimeChannel` — `on()` returns `this`, not a narrower
+      // `{ subscribe }` object that only tolerates a single binding.
+      const mockChannel: {
+        on: (event: string, filter: { table?: string }, handler: (payload: unknown) => void) => typeof mockChannel;
+        subscribe: typeof mockSubscribe;
+      } = {
+        on: (_event, filter, handler) => {
+          if (filter?.table) postgresChangesHandlers[filter.table] = handler;
+          return mockChannel;
+        },
+        subscribe: mockSubscribe,
+      };
+      return mockChannel;
+    }),
     removeChannel: jest.fn(),
   },
 }));
@@ -67,7 +81,7 @@ function wrapper(qc: QueryClient) {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  postgresChangesHandler = null;
+  for (const key of Object.keys(postgresChangesHandlers)) delete postgresChangesHandlers[key];
   mockGetSession = jest.fn().mockResolvedValue({ data: { session: { access_token: 'tok_x' } } });
 });
 
@@ -83,10 +97,10 @@ describe('UnreadContext realtime channel (H1 + H2 fixes)', () => {
     const qc = new QueryClient();
     const invalidateSpy = jest.spyOn(qc, 'invalidateQueries');
     renderHook(() => useUnreadContext(), { wrapper: wrapper(qc) });
-    await waitFor(() => expect(postgresChangesHandler).not.toBeNull());
+    await waitFor(() => expect(postgresChangesHandlers.messages).toBeDefined());
 
     act(() => {
-      postgresChangesHandler!({ new: { sender_id: 'user_b', space_id: 'space_1' } });
+      postgresChangesHandlers.messages({ new: { sender_id: 'user_b', space_id: 'space_1' } });
     });
 
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.spaces('user_a') });
@@ -100,13 +114,53 @@ describe('UnreadContext realtime channel (H1 + H2 fixes)', () => {
     const qc = new QueryClient();
     const invalidateSpy = jest.spyOn(qc, 'invalidateQueries');
     renderHook(() => useUnreadContext(), { wrapper: wrapper(qc) });
-    await waitFor(() => expect(postgresChangesHandler).not.toBeNull());
+    await waitFor(() => expect(postgresChangesHandlers.messages).toBeDefined());
 
     act(() => {
-      postgresChangesHandler!({ new: { sender_id: 'user_a', space_id: 'space_1' } });
+      postgresChangesHandlers.messages({ new: { sender_id: 'user_a', space_id: 'space_1' } });
     });
 
     expect(invalidateSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('UnreadContext realtime channel — private_spaces INSERT (FEAT-3: notify the signal author a space just opened)', () => {
+  it('user_a === myId (I am the signal author, the space just opened for me) invalidates spaces(myId)', async () => {
+    const qc = new QueryClient();
+    const invalidateSpy = jest.spyOn(qc, 'invalidateQueries');
+    renderHook(() => useUnreadContext(), { wrapper: wrapper(qc) });
+    await waitFor(() => expect(postgresChangesHandlers.private_spaces).toBeDefined());
+
+    act(() => {
+      postgresChangesHandlers.private_spaces({ new: { id: 'space_2', user_a: 'user_a', user_b: 'user_b' } });
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: queryKeys.spaces('user_a') }),
+    );
+  });
+
+  it('user_b === myId (I am the creator who just opened it myself) does NOT invalidate spaces() — the creator is never notified about their own action', async () => {
+    const qc = new QueryClient();
+    const invalidateSpy = jest.spyOn(qc, 'invalidateQueries');
+    renderHook(() => useUnreadContext(), { wrapper: wrapper(qc) });
+    await waitFor(() => expect(postgresChangesHandlers.private_spaces).toBeDefined());
+
+    act(() => {
+      postgresChangesHandlers.private_spaces({ new: { id: 'space_2', user_a: 'other_user', user_b: 'user_a' } });
+    });
+
+    expect(invalidateSpy).not.toHaveBeenCalled();
+  });
+
+  it('the messages binding is unaffected by the new private_spaces binding on the same channel (both bindings coexist)', async () => {
+    const qc = new QueryClient();
+    renderHook(() => useUnreadContext(), { wrapper: wrapper(qc) });
+    await waitFor(() => {
+      expect(postgresChangesHandlers.messages).toBeDefined();
+      expect(postgresChangesHandlers.private_spaces).toBeDefined();
+    });
+    expect(postgresChangesHandlers.messages).not.toBe(postgresChangesHandlers.private_spaces);
   });
 });
 

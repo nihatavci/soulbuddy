@@ -333,7 +333,7 @@
     "deleteSignal": "Löschen",
     "deleteConfirmTitle": "Dieses Signal löschen?",
     "deleteConfirmBody": "Das kann nicht rückgängig gemacht werden.",
-    "deleteConfirmBodyWithConversation": "Das beendet auch die private Unterhaltung, die daraus entstanden ist — die andere Person verliert sie ebenfalls. Das kann nicht rückgängig gemacht werden.",
+    "deleteConfirmBodyWithConversation": "Die Antworten auf dieses Signal werden entfernt. Ein daraus entstandener privater Raum bleibt bestehen — die andere Person behält eure Unterhaltung. Das kann nicht rückgängig gemacht werden.",
     "deleteConfirmConfirm": "Löschen"
   },
   "onboarding": {
@@ -365,5 +365,23 @@
     "closureTitle": "Ist still geworden",
     "closureBody": "Das hier ist still geworden — das passiert. Kein Druck, es wieder aufzugreifen.",
     "closureDismiss": "Verstanden"
+  },
+  "notifications": {
+    "spaceOpened": {
+      "title": "re:sense",
+      "body": "{{alias}} hat zu deinem Signal beigetragen - gerade ist ein privater Raum entstanden"
+    }
+  },
+  "reveal": {
+    "eventMine": "Du hast dich entschieden, dich zu offenbaren",
+    "eventTheirs": "{{alias}} hat sich entschieden, sich zu offenbaren",
+    "promptTitle": "{{alias}} hat um {{time}} Uhr den eigenen Namen offenbart",
+    "promptBody": "Nichts wird geteilt, bis du dich auch entscheidest zu offenbaren — und es gibt keine Garantie, dass die Offenbarung von {{alias}} noch aktiv ist.",
+    "promptConfirm": "Zurück offenbaren",
+    "mutualTitle": "Ihr habt euch beide offenbart",
+    "mutualBody": "Du kannst bereits sehen, was {{alias}} geteilt hat — zurück zur Unterhaltung.",
+    "passiveTitle": "Du hast dich bereits offenbart",
+    "passiveBody": "Hier gibt es nichts weiter zu tun — {{alias}} hat sich noch nicht offenbart. Kein Druck, kein Timer.",
+    "noticeError": "Deine Offenbarung wurde übermittelt, aber der Hinweis konnte nicht gesendet werden. {{alias}} sieht ihn eventuell noch nicht."
   }
 }

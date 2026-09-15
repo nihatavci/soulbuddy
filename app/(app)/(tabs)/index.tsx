@@ -110,11 +110,14 @@ function BoardScreenInner() {
     router.push({ pathname: '/(app)/reply-composer', params: { signalId: id } } as any);
   };
 
-  // Explicit product decision: always deletable, cascade included — if a
-  // reply already opened a private space from this signal, deleting it
-  // removes that conversation for the other person too (see migration
-  // 018_resense_delete_message_signal.sql and hooks/useSignals.ts). The
-  // confirm copy says so plainly rather than hiding the consequence.
+  // Explicit product decision: always deletable. Its public replies are
+  // removed (see hooks/useSignals.ts), but a private space this signal
+  // opened is never destroyed as a side effect of the delete — migration
+  // 021_resense_signal_delete_preserves_space.sql (which reverses the
+  // "cascade included" note 018_resense_delete_message_signal.sql used to
+  // record) detaches the space instead. The confirm copy states the reply
+  // loss plainly, without claiming a conversation loss that no longer
+  // happens.
   const confirmDeleteSignal = (id: string, hasReplies: boolean) => {
     Alert.alert(
       t('board.deleteConfirmTitle'),
