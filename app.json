@@ -34,7 +34,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.terra.resense",
-      "buildNumber": "27",
+      "buildNumber": "28",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSUserTrackingUsageDescription": "We use this data to improve your experience and show you more relevant content.",
