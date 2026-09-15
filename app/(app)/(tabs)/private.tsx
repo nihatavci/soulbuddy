@@ -57,7 +57,13 @@ function SpaceCard({ space, onPress }: { space: SpaceCardData; onPress: () => vo
       <Text style={styles.lastLine}>{space.lastLine}</Text>
 
       <View style={styles.cardFoot}>
-        <Text style={styles.footText}>from your signal · {space.fromSignal}</Text>
+        {/* A detached space (its originating signal was deleted, migration 021)
+            has an empty fromSignal — omit the label entirely rather than
+            render a dangling "from your signal · " separator with nothing
+            after it. */}
+        {space.fromSignal ? (
+          <Text style={styles.footText}>from your signal · {space.fromSignal}</Text>
+        ) : null}
         <View style={styles.footRight}>
           <Icon name="chevron-right" size={16} color={AppColors.textSecondary} />
         </View>
@@ -168,7 +174,7 @@ const styles = StyleSheet.create({
   meta: { fontFamily: Typography.fonts.body, fontSize: 12, color: AppColors.textSecondary },
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#E5484D', marginLeft: 2 },
   lastLine: { fontFamily: 'SpecialElite', fontSize: 16, lineHeight: 24, color: AppColors.text },
-  cardFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 14 },
+  cardFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, marginTop: 14 },
   footText: { flex: 1, fontFamily: Typography.fonts.body, fontSize: 12, color: AppColors.textSecondary },
   footRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   revealPill: {

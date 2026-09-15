@@ -212,6 +212,75 @@ describe('RevealSystemMessage — styling + a11y contract', () => {
   });
 });
 
+describe('RevealSystemMessage — shipped default formatter path (T1.5/N-7)', () => {
+  // Every render above INJECTS `formatEventTime` (FIXED_UTC_FORMATTER), so
+  // none of them exercise the component's own `formatEventTime =
+  // formatEventTimeLocal` default-argument branch — the exact path real
+  // users get.
+  //
+  // A prior version of this block set `process.env.TZ = 'Europe/Berlin'` in
+  // `beforeAll` and asserted a hardcoded '16:32' literal. That assignment is
+  // INERT here: measured directly (a minimal probe test in this same
+  // jest-expo environment), `Intl.DateTimeFormat().resolvedOptions().timeZone`
+  // stays pinned to whatever zone the process actually started in — ICU's
+  // timezone resolution is already cached before any `beforeAll` in a test
+  // file runs, and a later `process.env.TZ` write from inside the sandbox
+  // never invalidates that cache. So the old assertion only ever passed on a
+  // machine that happened to start in Europe/Berlin, and was RED under
+  // TZ=UTC, TZ=America/New_York and TZ=Asia/Tokyo — the opposite of the
+  // determinism its comment claimed.
+  //
+  // The fix: never hardcode the expected clock string. DERIVE it from the
+  // runtime's own local-time resolution (`Date#getHours`/`getMinutes`,
+  // zero-padded — the same 24h leading-zero shape `Intl`'s `en-GB` 2-digit
+  // hour/minute rendering produces, verified equal across UTC, Europe/Berlin,
+  // America/New_York and Asia/Tokyo). That makes the assertion correct under
+  // whatever ambient zone the test runner actually has — including CI's
+  // default UTC — without reintroducing a hardcoded `timeZone` into shipped
+  // code (that hardcoding is precisely what the R2 fix removed).
+  //
+  // This does not replace the real protection: the constructor-spy test
+  // below (`never passes a hardcoded timeZone…`) independently asserts, on
+  // ANY machine including one whose ambient zone happens to be UTC, that no
+  // `timeZone` option is ever passed to `Intl.DateTimeFormat` — the one
+  // check that stays meaningful even in the one zone where a hardcoded
+  // 'UTC' would otherwise coincidentally match this test's derived
+  // expectation. This test's job is the complementary one: proving the
+  // default-argument + Alert + i18n wiring actually renders that local
+  // value end to end, not just that the formatter's own call arguments look
+  // right in isolation.
+  const EVENT_AT = '2026-09-01T14:32:00.000Z';
+
+  function expectedLocalHHMM(iso: string): string {
+    const d = new Date(iso);
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+
+  it('prompt-reciprocal renders the real device-local time via the default formatEventTimeLocal, with no formatEventTime prop passed at all', async () => {
+    await i18nInstance.changeLanguage('en');
+    const tree = render(
+      <LanguageProvider>
+        <RevealSystemMessage
+          mine={false}
+          alias="Wren"
+          outcome="prompt-reciprocal"
+          onConfirmReveal={jest.fn()}
+          at={EVENT_AT}
+          // formatEventTime deliberately omitted — this is the shipped path.
+        />
+      </LanguageProvider>,
+    );
+
+    fireEvent.press(tree.getByRole('button'));
+
+    const [title] = (Alert.alert as jest.Mock).mock.calls[0];
+    // Proves the component's own default resolved and formatted the real
+    // local time (whatever zone this process actually runs in), not the
+    // FIXED_UTC_FORMATTER every other test in this file injects.
+    expect(title).toBe(`Wren revealed their name at ${expectedLocalHHMM(EVENT_AT)}`);
+  });
+});
+
 describe('formatEventTimeLocal — production default renders the host/device local timezone (R2 fix)', () => {
   afterEach(() => {
     jest.restoreAllMocks();

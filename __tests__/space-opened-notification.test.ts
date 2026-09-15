@@ -54,7 +54,18 @@ jest.mock('@/lib/push', () => ({
 }));
 
 jest.mock('@/store/mmkv', () => ({
-  Prefs: { get: jest.fn(() => null), set: jest.fn() },
+  // F-6: getInt/setInt back the UnreadProvider's unreadEpoch watermark. A
+  // fixed already-set epoch (rather than the absent/0 sentinel) keeps these
+  // FEAT-3 badge/ordering assertions exactly as they were before F-6 existed.
+  // F5 correction: this is NOT because none of this file's fixtures set
+  // `created_at` — the `brandNewMessageLess` and `messageLessButOlder`
+  // fixtures below do set it. Those two only ever feed
+  // `compareSpacesByActivity`, which never consults the watermark. Every
+  // fixture that actually flows through the unread predicate below relies on
+  // the `space()` factory's default (`created_at: null`), which is what
+  // actually keeps the watermark from ever suppressing them here — this
+  // default is just the least surprising choice.
+  Prefs: { get: jest.fn(() => null), set: jest.fn(), getInt: jest.fn(() => 1_700_000_000_000), setInt: jest.fn() },
 }));
 
 // Real `compareSpacesByActivity` preserved; only `usePrivateSpaces` is faked so

@@ -56,16 +56,22 @@ export default function RevealScreen() {
       // Source of truth first (§5.6): the reveal itself must succeed before
       // any notice is posted.
       await reveal.mutateAsync(firstName || undefined);
-      Toast.show(
-        `You chose to reveal. ${alias} will only see it once they choose to, too.`,
-        { type: 'success', position: 'top', duration: 3600 },
-      );
       try {
         // Notice second. If this fails, the reveal itself is NOT rolled
         // back — undoing a consented act would be worse than a missing
-        // notice (§5.6). Surface a distinct error, no silent swallow, no
-        // auto-retry.
+        // notice (§5.6). The success toast is shown only once the notice
+        // also posts (T1.3/F-9): showing it immediately and then replacing
+        // it with the error toast a beat later meant the user never read
+        // "you chose to reveal" and was left looking only at an error, even
+        // though the reveal itself genuinely succeeded. On failure, exactly
+        // one toast fires — the notice-error, whose own copy stays truthful
+        // that the reveal "went through" — never the generic reveal-failure
+        // copy, no silent swallow, no auto-retry.
         await sendRevealEvent();
+        Toast.show(
+          `You chose to reveal. ${alias} will only see it once they choose to, too.`,
+          { type: 'success', position: 'top', duration: 3600 },
+        );
       } catch {
         Toast.show(t('reveal.noticeError', { alias }), { type: 'error', position: 'top', duration: 3600 });
       }

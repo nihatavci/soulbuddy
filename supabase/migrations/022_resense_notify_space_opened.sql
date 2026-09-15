@@ -1,7 +1,6 @@
 -- Migration: 022_resense_notify_space_opened
--- FILE EXISTS in this repo, but has NOT been applied to any database (no
--- local/branch/production run). Requires explicit user approval before it is
--- applied.
+-- Applied to the production database on 2026-09-15, alongside 021 and 023,
+-- after a rolled-back-transaction validation. This file is live.
 -- Mirror of the live message-push pipeline (013_resense_message_push_alias.sql:8-43),
 -- lifted one level up: notify on SPACE CREATION, not on message insert.
 --

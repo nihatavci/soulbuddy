@@ -197,7 +197,7 @@ describe('RevealScreen.handleReveal — FEAT-4 write path (R1)', () => {
     qc.clear();
   });
 
-  it('the reveal itself succeeds and is NOT rolled back even when the notice insert fails (pre-023 CHECK violation) — distinct error toast shown instead', async () => {
+  it('the reveal itself succeeds and is NOT rolled back even when the notice insert fails (pre-023 CHECK violation) — exactly ONE toast fires (the notice-error), never a redundant success toast first (T1.3/F-9)', async () => {
     mockRevealsUpsert.mockResolvedValue({ error: null });
     mockSpaceEventsInsert.mockResolvedValue({
       error: { message: 'new row for relation "space_events" violates check constraint "space_events_kind_check"' },
@@ -211,7 +211,7 @@ describe('RevealScreen.handleReveal — FEAT-4 write path (R1)', () => {
       fireEvent.press(tree.getByRole('button', { name: 'Choose to reveal' }));
     });
 
-    await waitFor(() => expect(mockToastShow).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mockSpaceEventsInsert).toHaveBeenCalled());
 
     // The reveal write itself genuinely completed — no compensating delete,
     // no retry, no rollback call of any kind was made against space_reveals.
@@ -221,23 +221,31 @@ describe('RevealScreen.handleReveal — FEAT-4 write path (R1)', () => {
       { onConflict: 'space_id,user_id' },
     );
 
-    // First toast: the real success message (reveal genuinely went through).
-    expect(mockToastShow.mock.calls[0][0]).toEqual(expect.stringContaining('You chose to reveal'));
-    expect(mockToastShow.mock.calls[0][1]).toEqual(expect.objectContaining({ type: 'success' }));
+    // F-9: the old code showed the success toast FIRST, then immediately
+    // replaced it with the error toast — the user never read "you chose to
+    // reveal" and was left looking only at an error, even though the reveal
+    // itself succeeded. Fixed by only showing the success toast once the
+    // notice post also succeeds; on failure, exactly ONE toast fires (the
+    // notice-error), and it must never be presented as a failed reveal.
+    await waitFor(() => expect(mockToastShow).toHaveBeenCalledTimes(1));
 
-    // Second toast: the REAL i18n-interpolated notice-error string (proves
+    // The REAL i18n-interpolated notice-error string (proves
     // `t('reveal.noticeError', { alias })` actually ran against the real
     // i18n instance — a stub `t` returning the raw key would fail this).
-    expect(mockToastShow.mock.calls[1][0]).toBe(
+    // Its own copy stays truthful that the reveal "went through".
+    expect(mockToastShow.mock.calls[0][0]).toBe(
       "Your reveal went through, but the notice couldn't be posted. Wren may not see it yet.",
     );
-    expect(mockToastShow.mock.calls[1][1]).toEqual(expect.objectContaining({ type: 'error' }));
+    expect(mockToastShow.mock.calls[0][1]).toEqual(expect.objectContaining({ type: 'error' }));
 
-    // The OUTER catch (generic "Could not reveal") must never fire — the
-    // inner try/catch around sendRevealEvent() must fully swallow this
-    // failure rather than letting it propagate past the reveal's own success.
+    // Never presented as a FAILED REVEAL: neither the generic outer-catch
+    // toast nor the (now-suppressed) success toast may fire alongside it.
     expect(mockToastShow).not.toHaveBeenCalledWith(
       expect.stringContaining('Could not reveal'),
+      expect.anything(),
+    );
+    expect(mockToastShow).not.toHaveBeenCalledWith(
+      expect.stringContaining('You chose to reveal'),
       expect.anything(),
     );
 

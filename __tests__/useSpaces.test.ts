@@ -91,6 +91,18 @@ describe('fetchSpaces via usePrivateSpaces — the .sort(compareSpacesByActivity
     qc.clear();
   });
 
+  it('falls back to an empty array when PostgREST resolves null data with no error (T1.4/F-12, the `data ?? []` arm)', async () => {
+    mockOrder.mockResolvedValue({ data: null, error: null });
+    const qc = makeTestQueryClient();
+
+    const { result, unmount } = renderHook(() => usePrivateSpaces(), { wrapper: wrapper(qc) });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual([]);
+    unmount();
+    qc.clear();
+  });
+
   it('propagates a PostgREST error instead of silently returning an empty list', async () => {
     mockOrder.mockResolvedValue({ data: null, error: { message: 'permission denied' } });
     const qc = makeTestQueryClient();
