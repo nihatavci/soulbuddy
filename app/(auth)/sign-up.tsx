@@ -34,6 +34,7 @@ import { GoldDisc } from '@/components/ui/GoldDisc';
 import { AppleSignInButton } from '@/components/ui/AppleSignInButton';
 import { useAuth } from '@/context/AuthContext';
 import { useT } from '@/context/LanguageContext';
+import { PRIVACY_URL, TERMS_URL } from '@/constants/legal';
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -252,9 +253,9 @@ export default function SignUpScreen() {
               {/* Terms note */}
               <Text style={styles.terms}>
                 {t('auth.signUp.termsPrefix')}{' '}
-                <Text style={styles.termsLink} onPress={() => Linking.openURL('https://example.com/terms')}>{t('common.termsOfService')}</Text>
+                <Text style={styles.termsLink} onPress={() => Linking.openURL(TERMS_URL)}>{t('common.termsOfService')}</Text>
                 {' '}{t('common.and')}{' '}
-                <Text style={styles.termsLink} onPress={() => Linking.openURL('https://example.com/privacy')}>{t('common.privacyPolicy')}</Text>.
+                <Text style={styles.termsLink} onPress={() => Linking.openURL(PRIVACY_URL)}>{t('common.privacyPolicy')}</Text>.
               </Text>
 
               {/* Switch to Sign In */}

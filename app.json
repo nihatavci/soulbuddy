@@ -37,7 +37,7 @@
       "buildNumber": "29",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSUserTrackingUsageDescription": "We use this data to improve your experience and show you more relevant content.",
+        "NSUserTrackingUsageDescription": "This lets us measure which of our ads on other apps brought you to re:sense. re:sense itself shows no ads.",
         "NSAdvertisingAttributionReportEndpoint": "https://appsflyer-skadnetwork.com/",
         "NSLocationWhenInUseUsageDescription": "This app does not use your location. This string is required by a third-party SDK.",
         "SKAdNetworkItems": [
@@ -58,7 +58,6 @@
       },
       "package": "com.terra.resense",
       "permissions": [
-        "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
@@ -84,13 +83,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow access to your photo library to analyze chat screenshots."
-        }
-      ],
-      [
-        "expo-audio",
-        {
-          "microphonePermission": "Allow access to your microphone for voice features."
+          "photosPermission": "re:sense uses your photos only so you can pick a profile picture. The picture stays on your device.",
+          "cameraPermission": "re:sense does not use the camera. iOS asks for this note because of a system component.",
+          "microphonePermission": "re:sense does not record audio. iOS asks for this note because of a system component."
         }
       ],
       [

@@ -12,6 +12,7 @@
  *   3. Use track* helpers throughout the app
  */
 
+import { analyticsAllowed, onConsentChange } from '@/lib/consent';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { Mixpanel } from 'mixpanel-react-native';
@@ -56,6 +57,15 @@ const mixpanel: Mixpanel = TOKEN
  * Initialize Mixpanel. Call once at app boot, before any other calls.
  * Uses EU data residency endpoint to match GDPR requirements.
  */
+let mixpanelReady = false;
+
+// Opt in or out as soon as the user saves a consent choice (accept, reject, customize, Profile toggles).
+onConsentChange((prefs) => {
+  if (!mixpanelReady) return; // initMixpanel() applies the saved choice itself
+  if (prefs.analytics) mixpanel.optInTracking();
+  else mixpanel.optOutTracking();
+});
+
 export async function initMixpanel(): Promise<void> {
   if (!TOKEN) {
     if (__DEV__) console.warn('[Mixpanel] No token configured — analytics disabled. Set EXPO_PUBLIC_MIXPANEL_TOKEN.');
@@ -64,7 +74,7 @@ export async function initMixpanel(): Promise<void> {
   try {
     // init(optOutTrackingDefault, superProperties, serverURL, useGzipCompression)
     await mixpanel.init(
-      false,                           // optOutTrackingDefault — start tracking immediately
+      !analyticsAllowed(),             // optOutTrackingDefault — nothing is tracked until the user agrees
       {},                              // superProperties — set below after init
       'https://api-eu.mixpanel.com',  // EU data residency
       false                            // useGzipCompression
@@ -80,6 +90,7 @@ export async function initMixpanel(): Promise<void> {
       // and identifyMixpanelUser() once we know the values
     });
 
+    mixpanelReady = true;
     if (__DEV__) console.log('[Mixpanel] initialized ✓');
     if (__DEV__) mixpanel.track('app_opened', { debug: true });
   } catch (e: any) {
@@ -124,15 +135,9 @@ export async function getMixpanelDistinctId(): Promise<string | null> {
  * Associate all future events with the Supabase user ID.
  * Call after sign-in / sign-up.
  */
-export function identifyMixpanelUser(
-  userId: string,
-  properties?: { email?: string; name?: string },
-): void {
+export function identifyMixpanelUser(userId: string): void {
+  // The id only. Email and name are never sent to analytics.
   mixpanel.identify(userId);
-  if (properties) {
-    if (properties.email) mixpanel.getPeople().set('$email', properties.email);
-    if (properties.name)  mixpanel.getPeople().set('$name', properties.name);
-  }
 }
 
 /**

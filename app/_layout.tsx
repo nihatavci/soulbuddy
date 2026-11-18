@@ -31,7 +31,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 
-import { setGeminiAuthProvider } from '@/services/gemini';
 import { supabase } from '@/services/supabase';
 import { ErrorBoundary } from '../components/shared/ErrorBoundary';
 import { loadFonts } from '@/constants/fonts';
@@ -96,18 +95,6 @@ function AuthGuard() {
 // screen group ((app) vs (auth)) before the AuthGuard navigates.
 
 function AuthGatedApp({ colorScheme }: { colorScheme: ReturnType<typeof useColorScheme> }) {
-  const { isAuthenticated } = useAuth();
-
-  // Always register the token provider — it returns null if no session exists,
-  // which is fine (Gemini service handles the error). Previously this was guarded
-  // by isAuthenticated, which meant it was never set during unauthenticated flows.
-  useEffect(() => {
-    setGeminiAuthProvider(async () => {
-      const { data } = await supabase.auth.getSession();
-      return data.session?.access_token ?? null;
-    });
-  }, [isAuthenticated]);
-
   return (
     <LanguageProvider>
       <ToastSetupProvider>

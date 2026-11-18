@@ -377,7 +377,10 @@
       "not_looking_to_meet_yet": "Noch nicht auf der Suche nach einem Treffen",
       "go_slow": "Es langsam angehen",
       "text_only": "Nur schreiben"
-    }
+    },
+    "ageConfirmTitle": "Alter bestätigen",
+    "ageConfirmBody": "re:sense ist für Menschen ab 18. Bist du 18 oder älter?",
+    "ageConfirmYes": "Ich bin 18 oder älter"
   },
   "checkIn": {
     "closureTitle": "Ist still geworden",

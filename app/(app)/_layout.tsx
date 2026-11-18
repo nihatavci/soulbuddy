@@ -80,14 +80,12 @@ export default function AppLayout() {
       '/(app)/(tabs)',
       '/(app)/profile',
       '/(app)/account',
-      '/(app)/paywall',
       '/(app)/onboarding',
     ]);
 
     const DEEP_LINK_SLUGS: Record<string, string> = {
       test_link: '/(app)/(tabs)',
       home:      '/(app)/(tabs)',
-      paywall:   '/(app)/paywall',
       profile:   '/(app)/profile',
     };
 
@@ -187,7 +185,7 @@ export default function AppLayout() {
   // Identify user in Mixpanel
   useEffect(() => {
     if (user?.id) {
-      identifyMixpanelUser(user.id, { email: user.email, name: user.name });
+      identifyMixpanelUser(user.id);
     } else {
       resetMixpanelIdentity();
     }
@@ -230,30 +228,6 @@ export default function AppLayout() {
           animation: 'fade',
           headerShown: false,
           gestureEnabled: false,
-        }}
-      />
-      <Stack.Screen
-        name="paywall"
-        options={{
-          animation: 'fade',
-          headerShown: false,
-          gestureEnabled: false,
-        }}
-      />
-      <Stack.Screen
-        name="subscription-success"
-        options={{
-          animation: 'fade',
-          headerShown: false,
-          gestureEnabled: false,
-        }}
-      />
-      <Stack.Screen
-        name="subscription-cancelled"
-        options={{
-          animation: 'slide_from_bottom',
-          headerShown: false,
-          gestureEnabled: true,
         }}
       />
 

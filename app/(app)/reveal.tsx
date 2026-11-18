@@ -134,7 +134,7 @@ export default function RevealScreen() {
                     color={other?.age_verified ? AppColors.success : AppColors.textSecondary}
                   />
                   <Text style={styles.shareLabel}>
-                    {other?.age_verified ? 'Verified 18+' : '18+ not verified'}
+                    {other?.age_verified ? 'Confirmed 18+' : '18+ not confirmed'}
                   </Text>
                 </View>
               </View>
