@@ -24,7 +24,6 @@ import React, {
 } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import type { Session, User } from '@supabase/supabase-js';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import { supabase, startAutoRefresh, stopAutoRefresh } from '@/services/supabase';
@@ -137,7 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Keep RevenueCat identity in lock-step with Supabase identity so any
-      // sign-in path (Google, Apple, email OTP, signUp/signIn) automatically
+      // sign-in path (Apple, email OTP, signUp/signIn) automatically
       // aliases the RC anon user to the real user. Idempotent.
       const user = newSession?.user;
       if (user && !user.is_anonymous && lastRcUserIdRef.current !== user.id) {
@@ -323,14 +322,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     lastRcUserIdRef.current = null;
 
-    // 3. Clear Google cached session so next sign-in shows account picker
-    try {
-      await GoogleSignin.signOut();
-    } catch {
-      // Google sign-out is best-effort — user may not have used Google
-    }
-
-    // 4. Wipe TanStack Query cache (no stale user data or entitlements)
+    // 3. Wipe TanStack Query cache (no stale user data or entitlements)
     try {
       queryClient.clear();
     } catch {

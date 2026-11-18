@@ -3,7 +3,7 @@
  *
  * Supabase password reset flow:
  * 1. User clicks the reset link in their email (sent by forgot-password.tsx)
- * 2. The deep link (myapp://reset-password) opens this screen
+ * 2. The deep link (resense://reset-password) opens this screen
  * 3. Supabase fires a PASSWORD_RECOVERY auth state change event
  * 4. User enters new password, we call supabase.auth.updateUser({ password })
  */
@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/Button';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import { AppColors, Typography } from '@/constants/theme';
 import { Space, Relation } from '@/constants/spacing';
 import { supabase } from '@/services/supabase';
@@ -168,7 +168,7 @@ export default function ResetPasswordScreen() {
                     autoFocus
                   />
                   <Pressable onPress={() => setShowNew(v => !v)} style={styles.eyeBtn}>
-                    <Feather name={showNew ? 'eye-off' : 'eye'} size={18} color={AppColors.textSecondary} />
+                    <Icon name={showNew ? 'eye-off' : 'eye'} size={18} color={AppColors.textSecondary} />
                   </Pressable>
                 </AnimatedInputWrapper>
               </View>
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(232,93,86,0.1)', borderRadius: Space.sm, padding: Space.sm + 2,
     marginBottom: Space.sm + 2, borderWidth: 1, borderColor: 'rgba(232,93,86,0.25)',
   },
-  errorText: { fontFamily: Typography.fonts.body, fontSize: 13, color: AppColors.accent },
+  errorText: { fontFamily: Typography.fonts.body, fontSize: 13, color: AppColors.error },
   // Override for Button to match original dark-bg style
   btnOverride: {
     backgroundColor: AppColors.text, borderRadius: 14, marginBottom: Space['2xs'],

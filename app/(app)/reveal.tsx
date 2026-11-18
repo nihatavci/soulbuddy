@@ -10,16 +10,22 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH, Space } from '@/constants/spacing';
 import { Button } from '@/components/ui/Button';
 import { PaperBackground } from '@/components/ui/PaperBackground';
 import { GoldDisc } from '@/components/ui/GoldDisc';
+import { Toast } from '@/components/glow';
+import { useReveal, useRevealActions } from '@/hooks/useReveal';
+import { useSendRevealEvent } from '@/hooks/useSpaceEvents';
+import { usePrivateSpaces, otherAlias } from '@/hooks/useSpaces';
+import { useAuth } from '@/context/AuthContext';
+import { useT } from '@/context/LanguageContext';
 
 const SHARED_ITEMS = [
   'A verified 18+ status',
@@ -29,12 +35,60 @@ const SHARED_ITEMS = [
 
 export default function RevealScreen() {
   const router = useRouter();
-  const [agreed, setAgreed] = useState(false);
+  const { spaceId } = useLocalSearchParams<{ spaceId?: string }>();
+  const { user } = useAuth();
+  const { data: spaces } = usePrivateSpaces();
+  const space = spaces?.find((s) => s.id === spaceId);
+  const alias = space && user?.id ? otherAlias(space, user.id) : 'them';
 
-  const handleReveal = () => {
-    if (!agreed) return;
+  const t = useT();
+  const { iRevealed, bothRevealed, other } = useReveal(spaceId);
+  const { reveal, withdraw } = useRevealActions(spaceId ?? '');
+  const { mutateAsync: sendRevealEvent } = useSendRevealEvent(spaceId ?? '');
+
+  const [agreed, setAgreed] = useState(false);
+  const [firstName, setFirstName] = useState('');
+
+  const handleReveal = async () => {
+    if (!agreed || !spaceId) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.back(); // mock
+    try {
+      // Source of truth first (§5.6): the reveal itself must succeed before
+      // any notice is posted.
+      await reveal.mutateAsync(firstName || undefined);
+      try {
+        // Notice second. If this fails, the reveal itself is NOT rolled
+        // back — undoing a consented act would be worse than a missing
+        // notice (§5.6). The success toast is shown only once the notice
+        // also posts (T1.3/F-9): showing it immediately and then replacing
+        // it with the error toast a beat later meant the user never read
+        // "you chose to reveal" and was left looking only at an error, even
+        // though the reveal itself genuinely succeeded. On failure, exactly
+        // one toast fires — the notice-error, whose own copy stays truthful
+        // that the reveal "went through" — never the generic reveal-failure
+        // copy, no silent swallow, no auto-retry.
+        await sendRevealEvent();
+        Toast.show(
+          `You chose to reveal. ${alias} will only see it once they choose to, too.`,
+          { type: 'success', position: 'top', duration: 3600 },
+        );
+      } catch {
+        Toast.show(t('reveal.noticeError', { alias }), { type: 'error', position: 'top', duration: 3600 });
+      }
+    } catch (e: any) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Toast.show(e?.message || 'Could not reveal. Try again.', { type: 'error', position: 'top', duration: 3600 });
+    }
+  };
+
+  const handleWithdraw = async () => {
+    Haptics.selectionAsync();
+    try {
+      await withdraw.mutateAsync();
+      Toast.show('You’re anonymous again. Nothing was shared.', { type: 'info', position: 'top', duration: 3200 });
+    } catch (e: any) {
+      Toast.show(e?.message || 'Could not undo. Try again.', { type: 'error', position: 'top', duration: 3200 });
+    }
   };
 
   return (
@@ -48,7 +102,7 @@ export default function RevealScreen() {
             accessibilityRole="button"
             accessibilityLabel="Close"
           >
-            <Feather name="x" size={24} color={AppColors.textSecondary} />
+            <Icon name="x" size={24} color={AppColors.textSecondary} />
           </Pressable>
         </View>
 
@@ -57,63 +111,124 @@ export default function RevealScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.emblem}>
-            <Feather name="eye" size={26} color={AppColors.accent} />
+            <Icon name="eye" size={26} color={AppColors.accent} />
           </View>
 
-          <Text style={styles.title}>Choose to reveal</Text>
-
-          <Text style={styles.body}>
-            Revealing is mutual and reversible in spirit — you only move as far as
-            you both agree. Nothing is shared until the other person also chooses
-            to. Take your time.
-          </Text>
-
-          <View style={styles.card}>
-            <View style={styles.cardHead}>
-              <Feather name="shield" size={16} color={AppColors.textSecondary} />
-              <Text style={styles.cardTitle}>What gets shared</Text>
-            </View>
-            {SHARED_ITEMS.map((item) => (
-              <View key={item} style={styles.shareRow}>
-                <Feather name="check" size={16} color={AppColors.success} />
-                <Text style={styles.shareLabel}>{item}</Text>
+          {bothRevealed ? (
+            <>
+              <Text style={styles.title}>You’ve both revealed</Text>
+              <Text style={styles.body}>
+                You each chose this, in your own time. Here’s what {alias} shared.
+              </Text>
+              <View style={styles.card}>
+                <View style={styles.shareRow}>
+                  <Icon name="person" size={16} color={AppColors.accent} />
+                  <Text style={styles.shareLabel}>
+                    {other?.first_name?.trim() || 'No name shared — that’s okay'}
+                  </Text>
+                </View>
+                <View style={styles.shareRow}>
+                  <Icon
+                    name={other?.age_verified ? 'check' : 'x'}
+                    size={16}
+                    color={other?.age_verified ? AppColors.success : AppColors.textSecondary}
+                  />
+                  <Text style={styles.shareLabel}>
+                    {other?.age_verified ? 'Verified 18+' : '18+ not verified'}
+                  </Text>
+                </View>
               </View>
-            ))}
-          </View>
+              <Button label="Back to the conversation" variant="primary" size="lg" onPress={() => router.back()} style={styles.cta} />
+            </>
+          ) : iRevealed ? (
+            <>
+              <Text style={styles.title}>Waiting for {alias}</Text>
+              <Text style={styles.body}>
+                You’ve revealed. Nothing is shared until {alias} also chooses to —
+                no pressure, no timer. This can sit here as long as it needs to.
+              </Text>
+              <View style={styles.waitRow}>
+                <ActivityIndicator color={AppColors.accent} />
+                <Text style={styles.waitText}>Their choice, their time.</Text>
+              </View>
+              <Button
+                label="Undo — stay anonymous"
+                variant="secondary"
+                size="lg"
+                onPress={handleWithdraw}
+                loading={withdraw.isPending}
+                style={styles.cta}
+              />
+              <Pressable style={styles.secondary} onPress={() => router.back()} accessibilityRole="button">
+                <Text style={styles.secondaryText}>Back to the conversation</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Text style={styles.title}>Choose to reveal</Text>
+              <Text style={styles.body}>
+                Revealing is mutual and reversible in spirit — you only move as far
+                as you both agree. Nothing is shared until {alias} also chooses to.
+                Take your time.
+              </Text>
 
-          <Pressable
-            style={styles.checkRow}
-            onPress={() => {
-              Haptics.selectionAsync();
-              setAgreed((v) => !v);
-            }}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: agreed }}
-          >
-            <View style={[styles.checkbox, agreed && styles.checkboxOn]}>
-              {agreed && <Feather name="check" size={15} color={AppColors.ink} />}
-            </View>
-            <Text style={styles.checkLabel}>
-              I understand revealing is my choice, and I can stop here.
-            </Text>
-          </Pressable>
+              <View style={styles.card}>
+                <View style={styles.cardHead}>
+                  <Icon name="shield" size={16} color={AppColors.textSecondary} />
+                  <Text style={styles.cardTitle}>What gets shared</Text>
+                </View>
+                {SHARED_ITEMS.map((item) => (
+                  <View key={item} style={styles.shareRow}>
+                    <Icon name="check" size={16} color={AppColors.success} />
+                    <Text style={styles.shareLabel}>{item}</Text>
+                  </View>
+                ))}
+              </View>
 
-          <Button
-            label="Choose to reveal"
-            variant="primary"
-            size="lg"
-            onPress={handleReveal}
-            disabled={!agreed}
-            style={styles.cta}
-          />
+              <Text style={styles.inputLabel}>Your first name (optional)</Text>
+              <TextInput
+                style={styles.input}
+                value={firstName}
+                onChangeText={setFirstName}
+                placeholder="Only if you want to"
+                placeholderTextColor={AppColors.textSecondary}
+                maxLength={40}
+                autoCapitalize="words"
+                returnKeyType="done"
+              />
 
-          <Pressable
-            style={styles.secondary}
-            onPress={() => router.back()}
-            accessibilityRole="button"
-          >
-            <Text style={styles.secondaryText}>Stay anonymous for now</Text>
-          </Pressable>
+              <Pressable
+                style={styles.checkRow}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setAgreed((v) => !v);
+                }}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: agreed }}
+              >
+                <View style={[styles.checkbox, agreed && styles.checkboxOn]}>
+                  {agreed && <Icon name="check" size={15} color={AppColors.ink} />}
+                </View>
+                <Text style={styles.checkLabel}>
+                  I understand revealing is my choice, and I can stop here.
+                </Text>
+              </Pressable>
+
+              <Button
+                label="Choose to reveal"
+                variant="primary"
+                size="lg"
+                onPress={handleReveal}
+                disabled={!agreed}
+                loading={reveal.isPending}
+                style={styles.cta}
+              />
+
+              <Pressable style={styles.secondary} onPress={() => router.back()} accessibilityRole="button">
+                <Text style={styles.secondaryText}>Stay anonymous for now</Text>
+              </Pressable>
+            </>
+          )}
         </ScrollView>
       </SafeAreaView>
     </PaperBackground>
@@ -226,6 +341,37 @@ const styles = StyleSheet.create({
   secondaryText: {
     fontFamily: Typography.fonts.body,
     fontSize: 15,
+    color: AppColors.textSecondary,
+  },
+  inputLabel: {
+    fontFamily: Typography.fonts.body,
+    fontSize: 12,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    color: AppColors.textSecondary,
+    marginBottom: Space.sm,
+  },
+  input: {
+    backgroundColor: AppColors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: AppColors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontFamily: Typography.fonts.body,
+    fontSize: 16,
+    color: AppColors.text,
+    marginBottom: Space.lg,
+  },
+  waitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: Space.xl,
+  },
+  waitText: {
+    fontFamily: Typography.fonts.body,
+    fontSize: 14,
     color: AppColors.textSecondary,
   },
 });

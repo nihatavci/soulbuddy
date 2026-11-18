@@ -21,7 +21,7 @@ import { AnimatedInputWrapper } from '@/components/ui/AnimatedPressable';
 import { Button } from '@/components/ui/Button';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/context/AuthContext';
 import { AppColors, Typography } from '@/constants/theme';
@@ -121,7 +121,7 @@ export default function AccountScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={22} color={AppColors.text} />
+          <Icon name="chevron-back" size={22} color={AppColors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>{t('account.passwordSecurity')}</Text>
         <View style={{ width: 34 }} />
@@ -212,7 +212,7 @@ export default function AccountScreen() {
 
           <Button
             label={t('account.updatePassword')}
-            variant="primary"
+            variant="dark"
             size="lg"
             onPress={handleChangePassword}
             disabled={pwLoading}
@@ -228,11 +228,11 @@ export default function AccountScreen() {
           <Pressable style={styles.menuRow} onPress={handleSignOut}>
             <View style={styles.menuRowLeft}>
               <View style={[styles.menuIcon, { backgroundColor: 'rgba(232,93,86,0.08)' }]}>
-                <Ionicons name="log-out-outline" size={18} color="#E85D56" />
+                <Icon name="log-out-outline" size={18} color="#E85D56" />
               </View>
               <Text style={[styles.menuLabel, styles.menuLabelStrong, { color: '#E85D56' }]}>{t('account.signOut')}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="rgba(232,93,86,0.45)" />
+            <Icon name="chevron-forward" size={16} color="rgba(232,93,86,0.45)" />
           </Pressable>
         </View>
 
@@ -250,7 +250,7 @@ export default function AccountScreen() {
                 <ActivityIndicator size="small" color="#C0392B" style={{ marginRight: 14 }} />
               ) : (
                 <View style={[styles.menuIcon, { backgroundColor: 'rgba(192,57,43,0.12)' }]}>
-                  <Ionicons name="trash-outline" size={18} color="#C0392B" />
+                  <Icon name="trash-outline" size={18} color="#C0392B" />
                 </View>
               )}
               <View>
@@ -258,7 +258,7 @@ export default function AccountScreen() {
                 <Text style={styles.dangerSubtext}>{t('account.deleteAccountSubtext')}</Text>
               </View>
             </View>
-            {!delLoading && <Ionicons name="chevron-forward" size={16} color="rgba(192,57,43,0.5)" />}
+            {!delLoading && <Icon name="chevron-forward" size={16} color="rgba(192,57,43,0.5)" />}
           </Pressable>
         </View>
       </ScrollView>

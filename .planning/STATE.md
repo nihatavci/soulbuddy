@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-07-12)
 Phase: 01 (identity-foundation) — EXECUTING
 Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-07-12
+Last activity: 2026-08-30 - Completed quick task 260830-llm: notification tap deeplink not routing to private-space thread (code complete, pending human on-device verification)
 
 Progress: [███░░░░░░░] 33%
 
@@ -72,6 +72,19 @@ None yet.
 ### Blockers/Concerns
 
 - REQUIREMENTS.md header states "16 total" but actually lists 18 distinct requirement IDs. Roadmap maps all 18. Requirements count should be reconciled to 18 in REQUIREMENTS.md.
+
+## Quick Tasks Completed
+
+| Date | Slug | Description | Status |
+|------|------|-------------|--------|
+| 2026-07-15 | harden-messaging-db | Remediate Supabase advisors on messaging DB (RLS initplan, search_path, SECURITY DEFINER RPC surface) | complete ✓ |
+| 2026-07-15 | wire-message-push | Wire live message push (expo-notifications plugin, foreground handler, presence badge, tap deep-link, alias push trigger) — needs native rebuild | complete ✓ |
+| 2026-07-15 | paperwhite-icons | Replace all Feather/Ionicons with baked Paperwhite pen-drawn icon set (bake script + Icon component + 25 files converted) | complete ✓ |
+| 2026-07-15 | nativetabs-glass | Restore expo-router NativeTabs liquid-glass tab bar (blog approach); verifying via iOS 26.5 native build | complete ✓ |
+| 2026-07-15 | renkler-grain | Fix invisible black-on-black button + add Renkler grain overlay (global + textured buttons) | complete ✓ |
+| 2026-07-15 | compose-edgeframe-seal | Compose screen: edge-tracing frame draw-on-open, bigger seal (scaled SealMark), pulsing tap-hint; fix grain tiling regression | complete ✓ |
+| 2026-07-15 | reveal-slowdown | Build mutual Reveal (space_reveals + mutual-gate RLS) + Slow-down (space_events) for real; consolidate Report/shield; feedback toasts | complete ✓ |
+| 2026-08-30 | notification-tap-deeplink-not-routing-to | Fix notification-tap deep link not routing to private-space thread — root cause: AppGate's unconditional `router.replace('/(app)/(tabs)')` clobbers the push route landed from `getLastNotificationResponseAsync()`. New `lib/pushDeepLink.ts` pending-link handoff module (13 tests), rewired `lib/push.ts` + `app/(app)/_layout.tsx` + `app/(app)/index.tsx` | code complete — pending human on-device verification (Task 3) |
 
 ## Deferred Items
 

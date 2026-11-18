@@ -14,7 +14,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Pressable, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH } from '@/constants/spacing';
@@ -25,6 +25,9 @@ import { GoldDisc } from '@/components/ui/GoldDisc';
 import { SIGNAL_MAX_CHARS } from '@/constants/signals';
 import { useSignal } from '@/hooks/useSignals';
 import { useAddReply } from '@/hooks/useReplies';
+import { describeReplyOutcome } from '@/lib/replyOutcome';
+import { ReplyStatusNote } from '@/components/ui/ReplyStatusNote';
+import { useT } from '@/context/LanguageContext';
 
 const MIN_ADDITION = 3;
 const NEAR_LIMIT = SIGNAL_MAX_CHARS - 15;
@@ -34,10 +37,12 @@ export default function ReplyComposerScreen() {
   const { signalId } = useLocalSearchParams<{ signalId?: string }>();
   const { data: original } = useSignal(signalId);
   const { mutateAsync: addReply, isPending } = useAddReply();
+  const t = useT();
 
   const [addition, setAddition] = useState('');
   const [focused, setFocused] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showPendingStatus, setShowPendingStatus] = useState(false);
 
   const canSubmit = addition.trim().length >= MIN_ADDITION && !isPending;
   const nearLimit = addition.length >= NEAR_LIMIT;
@@ -48,14 +53,19 @@ export default function ReplyComposerScreen() {
     setSubmitError(null);
     try {
       const { space } = await addReply({ signalId, text: addition });
-      if (space?.id) {
+      const outcome = describeReplyOutcome(space);
+      if (outcome === 'resonance' && space?.id) {
         // Showcase the resonance arc: signal → response → mutual resonance.
         router.replace({ pathname: '/(app)/resonance-unlock', params: { spaceId: space.id } });
       } else {
-        // Reply succeeded but the space read-back failed — don't push a broken
-        // private-space with an empty id. The spaces query is already
-        // invalidated, so the Private tab will show it once it settles.
-        router.replace('/(app)/(tabs)/private');
+        // No mutual resonance yet (or the space read-back failed — the two
+        // are indistinguishable from useAddReply's current return shape, see
+        // lib/replyOutcome.ts). Either way the reply itself succeeded and
+        // there's no space to show, so show the honest "sent, not yet
+        // mutual" state instead of silently redirecting. The spaces query is
+        // already invalidated, so the Private tab will reflect reality once
+        // the other person adds back.
+        setShowPendingStatus(true);
       }
     } catch (e: any) {
       setSubmitError(e?.message ?? 'Something went wrong. Try again.');
@@ -76,72 +86,83 @@ export default function ReplyComposerScreen() {
               accessibilityRole="button"
               accessibilityLabel="Close"
             >
-              <Feather name="x" size={22} color={AppColors.text} />
+              <Icon name="x" size={22} color={AppColors.text} />
             </Pressable>
           </View>
 
-          <ScrollView
-            contentContainerStyle={styles.scroll}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={styles.title}>Add to this</Text>
-
-            {/* Original signal — read-only */}
-            {original == null ? (
-              <View style={[styles.card, styles.cardLoading]}>
-                <ActivityIndicator color={AppColors.accent} />
-              </View>
-            ) : (
-              <View style={styles.card}>
-                <Text style={styles.alias}>{original.alias}</Text>
-                <Text style={styles.originalText}>{original.text}</Text>
-              </View>
-            )}
-
-            {/* Composer */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Your addition</Text>
-              <Text style={styles.explainer}>
-                Don’t reply — add to it. Continue the thought, don’t judge it.
-              </Text>
-
-              <AnimatedInputWrapper focused={focused} style={styles.input}>
-                <TextInput
-                  style={styles.inputInner}
-                  placeholder="pick up where it left off…"
-                  placeholderTextColor={AppColors.textSecondary}
-                  value={addition}
-                  onChangeText={setAddition}
-                  multiline
-                  maxLength={SIGNAL_MAX_CHARS}
-                  textAlignVertical="top"
-                  autoCorrect
-                  onFocus={() => setFocused(true)}
-                  onBlur={() => setFocused(false)}
-                />
-              </AnimatedInputWrapper>
-
-              <Text style={[styles.counter, nearLimit && styles.counterNear]}>
-                {addition.length}/{SIGNAL_MAX_CHARS}
-              </Text>
-
-              {submitError != null && (
-                <Text style={styles.errorText}>{submitError}</Text>
-              )}
-            </View>
-          </ScrollView>
-
-          <View style={styles.footer}>
-            <Button
-              label={isPending ? 'Adding…' : 'Add to the signal'}
-              variant="primary"
-              size="lg"
-              onPress={handleSubmit}
-              disabled={!canSubmit || original == null}
-              style={styles.cta}
+          {showPendingStatus ? (
+            <ReplyStatusNote
+              title={t('replyComposer.status.sentTitle')}
+              body={t('replyComposer.status.sentBody')}
+              ctaLabel={t('replyComposer.status.cta')}
+              onContinue={() => router.replace('/(app)/(tabs)/private')}
             />
-          </View>
+          ) : (
+            <>
+              <ScrollView
+                contentContainerStyle={styles.scroll}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                <Text style={styles.title}>Add to this</Text>
+
+                {/* Original signal — read-only */}
+                {original == null ? (
+                  <View style={[styles.card, styles.cardLoading]}>
+                    <ActivityIndicator color={AppColors.accent} />
+                  </View>
+                ) : (
+                  <View style={styles.card}>
+                    <Text style={styles.alias}>{original.alias}</Text>
+                    <Text style={styles.originalText}>{original.text}</Text>
+                  </View>
+                )}
+
+                {/* Composer */}
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Your addition</Text>
+                  <Text style={styles.explainer}>
+                    Don’t reply — add to it. Continue the thought, don’t judge it.
+                  </Text>
+
+                  <AnimatedInputWrapper focused={focused} style={styles.input}>
+                    <TextInput
+                      style={styles.inputInner}
+                      placeholder="pick up where it left off…"
+                      placeholderTextColor={AppColors.textSecondary}
+                      value={addition}
+                      onChangeText={setAddition}
+                      multiline
+                      maxLength={SIGNAL_MAX_CHARS}
+                      textAlignVertical="top"
+                      autoCorrect
+                      onFocus={() => setFocused(true)}
+                      onBlur={() => setFocused(false)}
+                    />
+                  </AnimatedInputWrapper>
+
+                  <Text style={[styles.counter, nearLimit && styles.counterNear]}>
+                    {addition.length}/{SIGNAL_MAX_CHARS}
+                  </Text>
+
+                  {submitError != null && (
+                    <Text style={styles.errorText}>{submitError}</Text>
+                  )}
+                </View>
+              </ScrollView>
+
+              <View style={styles.footer}>
+                <Button
+                  label={isPending ? 'Adding…' : 'Add to the signal'}
+                  variant="primary"
+                  size="lg"
+                  onPress={handleSubmit}
+                  disabled={!canSubmit || original == null}
+                  style={styles.cta}
+                />
+              </View>
+            </>
+          )}
         </KeyboardAvoidingView>
       </SafeAreaView>
     </PaperBackground>

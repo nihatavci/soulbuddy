@@ -2,7 +2,7 @@
  * Forgot Password screen
  *
  * Sends a password reset email via Supabase Auth.
- * The email contains a magic link that redirects to myapp://reset-password.
+ * The email contains a magic link that redirects to resense://reset-password.
  */
 
 import React, { useState } from 'react';
@@ -49,7 +49,7 @@ export default function ForgotPasswordScreen() {
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email.trim().toLowerCase(),
-        { redirectTo: 'myapp://reset-password' },
+        { redirectTo: 'resense://reset-password' },
       );
 
       if (resetError) {
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(232,93,86,0.1)', borderRadius: Space.sm, padding: Space.sm + 2,
     marginBottom: Space.sm + 2, borderWidth: 1, borderColor: 'rgba(232,93,86,0.25)',
   },
-  errorText: { fontFamily: Typography.fonts.body, fontSize: 13, color: AppColors.accent },
+  errorText: { fontFamily: Typography.fonts.body, fontSize: 13, color: AppColors.error },
   // Override for Button to match original dark-bg style
   btnOverride: {
     backgroundColor: AppColors.text, borderRadius: 14, marginBottom: Space.md,

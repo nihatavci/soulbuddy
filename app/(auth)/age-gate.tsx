@@ -12,7 +12,7 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { PaperBackground } from '@/components/ui/PaperBackground';
 import { GoldDisc } from '@/components/ui/GoldDisc';
@@ -65,7 +65,7 @@ export default function AgeGateScreen() {
           accessibilityState={{ checked: confirmed }}
         >
           <View style={[styles.checkbox, confirmed && styles.checkboxOn]}>
-            {confirmed && <Ionicons name="checkmark" size={16} color={INK} />}
+            {confirmed && <Icon name="checkmark" size={16} color={INK} />}
           </View>
           <Text style={styles.checkLabel}>{t('ageGate.checkbox')}</Text>
         </Pressable>

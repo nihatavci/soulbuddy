@@ -8,6 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/services/supabase';
 import { queryKeys } from '@/store/queryClient';
+import { useAuth } from '@/context/AuthContext';
 import type { PublicSignal, Signal } from '@/services/supabase';
 import type { SignalFormat } from '@/constants/signals';
 
@@ -60,6 +61,40 @@ export function useCreateSignal() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.signals() });
+    },
+  });
+}
+
+/**
+ * Deletes one of the caller's own signals. `signals_delete_own` (migration
+ * 018_resense_delete_message_signal.sql) scopes the DELETE to
+ * author_id = auth.uid(), so the server rejects any other signal.
+ *
+ * Explicit product decision (reversed by migration
+ * 021_resense_signal_delete_preserves_space.sql, which supersedes the
+ * "cascade included" note this docstring used to carry): deleting a signal
+ * still removes its public replies (`replies.signal_id` keeps cascading),
+ * but a private space that grew from this signal is never destroyed as a
+ * side effect — `private_spaces.signal_id` detaches to NULL instead, and the
+ * space keeps its messages, reveals and events. The UI still confirms before
+ * calling this — see the Alert.alert in app/(app)/(tabs)/index.tsx — because
+ * the reply loss is real, even though the space is not.
+ */
+export function useDeleteSignal() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (signalId: string): Promise<void> => {
+      const { error } = await supabase.from('signals').delete().eq('id', signalId);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.signals() });
+      // Post-021: no space vanishes here — a detached space's `signal_text`
+      // just became null, so the Private list still needs a refetch to pick
+      // that up (see docstring above).
+      if (user?.id) qc.invalidateQueries({ queryKey: queryKeys.spaces(user.id) });
     },
   });
 }

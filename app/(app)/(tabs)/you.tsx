@@ -11,7 +11,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { AppColors, Typography } from '@/constants/theme';
@@ -27,7 +27,7 @@ import { useT } from '@/context/LanguageContext';
 import { Prefs } from '@/store/mmkv';
 
 type Row = {
-  icon: React.ComponentProps<typeof Feather>['name'];
+  icon: string;
   label: string;
   route: string;
 };
@@ -71,6 +71,13 @@ export default function YouScreen() {
 
   const openRoute = (route: string) => {
     Haptics.selectionAsync();
+    // growth-3-space-closure-ritual design note: check-in.tsx now accepts an
+    // OPTIONAL `spaceId` route param (see private-space.tsx's openCheckIn())
+    // to show a per-space "quieted naturally" prompt. This row is a GLOBAL
+    // "Safety & check-in" entry with no single space in context, so it
+    // deliberately omits spaceId — check-in.tsx already handles that
+    // absence by simply not rendering the space-closure section (self
+    // check-in + Safety sections still work exactly as before).
     router.push(route as any);
   };
 
@@ -152,10 +159,10 @@ export default function YouScreen() {
                 accessibilityRole="button"
               >
                 <View style={styles.rowLeft}>
-                  <Feather name={row.icon} size={18} color={AppColors.text} />
+                  <Icon name={row.icon} size={18} color={AppColors.text} />
                   <Text style={styles.rowLabel}>{row.label}</Text>
                 </View>
-                <Feather name="chevron-right" size={18} color={AppColors.textSecondary} />
+                <Icon name="chevron-right" size={18} color={AppColors.textSecondary} />
               </Pressable>
             ))}
           </View>

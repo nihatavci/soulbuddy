@@ -21,12 +21,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import Svg, { Path } from 'react-native-svg';
 import Animated, {
-  useSharedValue, useAnimatedStyle, withTiming, withRepeat, cancelAnimation, runOnJS,
-  interpolateColor, Easing,
+  useSharedValue, useAnimatedStyle, useAnimatedProps, withTiming, withRepeat, cancelAnimation,
+  runOnJS, interpolateColor, Easing,
 } from 'react-native-reanimated';
 import { AppColors, Typography } from '@/constants/theme';
 import { PaperBackground } from '@/components/ui/PaperBackground';
@@ -43,6 +43,7 @@ const WET_INK = '#0D0D10';   // fresh ink while writing (deep, glossy)
 const DRY_INK = '#2A2A30';   // dried ink after sealing (lighter, matte)
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 // A quiet poetic line that fades in while you hold the seal.
 const HOLD_LINES = [
@@ -87,6 +88,27 @@ export default function CreateScreen() {
   const pageFade = useSharedValue(1);
   const pageLift = useSharedValue(0);
   const ghostOpacity = useSharedValue(1);
+  const ruleDraw = useSharedValue(0);   // margin rule inks itself down to the edge, once
+
+  // Draw the margin rule slowly toward the bottom edge, once, when the zone is measured.
+  const zoneReady = zoneH > 0;
+  useEffect(() => {
+    if (!zoneReady) return;
+    ruleDraw.value = 0;
+    ruleDraw.value = withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.cubic) });
+  }, [zoneReady]);
+  const pulse = useSharedValue(0);       // tap-hint ripple 0→1, looping
+
+  // Gentle looping ripple for the seal tap-hint (a breathing ink ring).
+  useEffect(() => {
+    pulse.value = 0;
+    pulse.value = withRepeat(
+      withTiming(1, { duration: 1600, easing: Easing.out(Easing.quad) }),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(pulse);
+  }, []);
 
   // Rotate the unfinished-sentence prompts while the page is empty. Gentle
   // crossfade; pauses the moment you start writing.
@@ -226,10 +248,21 @@ export default function CreateScreen() {
     transform: [{ translateY: pageLift.value }],
   }));
   const ghostStyle = useAnimatedStyle(() => ({ opacity: ghostOpacity.value * 0.5 }));
+  // Tap-hint ripple: an ink ring that expands + fades on a loop, above the seal.
+  // Only invites while you're NOT holding, and only when there's something to seal.
+  const hintStyle = useAnimatedStyle(() => {
+    const gate = (canLeave ? 1 : 0.4) * (1 - hold.value);
+    return {
+      opacity: (0.5 - pulse.value * 0.5) * gate,
+      transform: [{ scale: 0.7 + pulse.value * 0.7 }],
+    };
+  });
 
   // Hand-drawn geometry (deterministic — no runtime randomness).
   const ruleH = zoneH || 320;
   const rulePath = `M8 2 Q4 ${ruleH * 0.28} 8 ${ruleH * 0.5} T8 ${ruleH - 2}`;
+  const ruleLen = ruleH + 24; // ≥ path length so the whole rule dashes off, then draws in
+  const ruleAnimProps = useAnimatedProps(() => ({ strokeDashoffset: ruleLen * (1 - ruleDraw.value) }));
   const underlinePath = wordW > 4
     ? `M0 5 Q ${wordW * 0.28} 0 ${wordW * 0.52} 5 T ${wordW} 4`
     : '';
@@ -241,7 +274,7 @@ export default function CreateScreen() {
         {/* back to the board + faint dateline — like the corner of a page */}
         <View style={styles.head}>
           <Pressable onPress={goBack} hitSlop={14} style={styles.backBtn} accessibilityRole="button" accessibilityLabel="Back to the board">
-            <Feather name="chevron-left" size={22} color={AppColors.text} />
+            <Icon name="chevron-left" size={22} color={AppColors.text} />
           </Pressable>
           <Text style={styles.dateline}>today</Text>
         </View>
@@ -268,7 +301,16 @@ export default function CreateScreen() {
           {/* The writing zone — paper only, one hand-drawn margin rule + travelling ink */}
           <View style={styles.zone} onLayout={(e) => setZoneH(e.nativeEvent.layout.height)}>
             <Svg width={16} height={ruleH} style={styles.rule} pointerEvents="none">
-              <Path d={rulePath} stroke={AppColors.text} strokeWidth={1} strokeOpacity={0.18} fill="none" strokeLinecap="round" />
+              <AnimatedPath
+                d={rulePath}
+                stroke={AppColors.text}
+                strokeWidth={1}
+                strokeOpacity={0.18}
+                fill="none"
+                strokeLinecap="round"
+                strokeDasharray={[ruleLen, ruleLen]}
+                animatedProps={ruleAnimProps}
+              />
             </Svg>
             <Animated.View style={[styles.inkDrop, dropStyle]} pointerEvents="none" />
 
@@ -296,6 +338,8 @@ export default function CreateScreen() {
           <Animated.Text style={[styles.holdLine, holdLineStyle]} pointerEvents="none">
             {holdLine}
           </Animated.Text>
+          {/* tap-hint: a breathing ink ring just above the seal, inviting the press */}
+          <Animated.View style={[styles.hintRing, hintStyle]} pointerEvents="none" />
           <AnimatedPressable
             ref={sealRef}
             onPressIn={beginHold}
@@ -311,7 +355,7 @@ export default function CreateScreen() {
             accessibilityRole="button"
             accessibilityLabel="Press and hold to leave this signal on the board"
           >
-            <SealMark hold={hold} spin={spin} enabled={canLeave} size={96} />
+            <SealMark hold={hold} spin={spin} enabled={canLeave} size={140} />
           </AnimatedPressable>
           <Text style={[styles.sealCaption, { opacity: canLeave ? 1 : 0.5 }]}>
             {canLeave ? 'press & hold the seal' : 'write a few words first'}
@@ -377,7 +421,11 @@ const styles = StyleSheet.create({
     fontFamily: 'SpecialElite', fontSize: 15, lineHeight: 21, color: AppColors.text,
     textAlign: 'center', height: 44, marginBottom: 2, paddingHorizontal: 24,
   },
-  seal: { width: 96, height: 96, alignItems: 'center', justifyContent: 'center' },
+  hintRing: {
+    width: 22, height: 22, borderRadius: 11, borderWidth: 1.6,
+    borderColor: AppColors.text, backgroundColor: 'transparent', marginBottom: -24,
+  },
+  seal: { width: 140, height: 140, alignItems: 'center', justifyContent: 'center' },
   sealCaption: {
     fontFamily: Typography.fonts.body, fontSize: 12, letterSpacing: 0.3,
     color: AppColors.textSecondary, marginTop: 8,

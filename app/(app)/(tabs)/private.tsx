@@ -9,11 +9,11 @@
  * usePrivateSpaces().
  */
 
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH } from '@/constants/spacing';
@@ -47,7 +47,7 @@ function SpaceCard({ space, onPress }: { space: SpaceCardData; onPress: () => vo
     <Pressable style={styles.card} onPress={onPress} accessibilityRole="button">
       <View style={styles.cardHead}>
         <View style={styles.headLeft}>
-          <Feather name="lock" size={12} color={AppColors.textSecondary} />
+          <Icon name="lock" size={12} color={AppColors.textSecondary} />
           <Text style={styles.alias}>{space.alias}</Text>
           {space.unread && <View style={styles.unreadDot} />}
         </View>
@@ -57,9 +57,15 @@ function SpaceCard({ space, onPress }: { space: SpaceCardData; onPress: () => vo
       <Text style={styles.lastLine}>{space.lastLine}</Text>
 
       <View style={styles.cardFoot}>
-        <Text style={styles.footText}>from your signal · {space.fromSignal}</Text>
+        {/* A detached space (its originating signal was deleted, migration 021)
+            has an empty fromSignal — omit the label entirely rather than
+            render a dangling "from your signal · " separator with nothing
+            after it. */}
+        {space.fromSignal ? (
+          <Text style={styles.footText}>from your signal · {space.fromSignal}</Text>
+        ) : null}
         <View style={styles.footRight}>
-          <Feather name="chevron-right" size={16} color={AppColors.textSecondary} />
+          <Icon name="chevron-right" size={16} color={AppColors.textSecondary} />
         </View>
       </View>
     </Pressable>
@@ -69,8 +75,24 @@ function SpaceCard({ space, onPress }: { space: SpaceCardData; onPress: () => vo
 export default function PrivateScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { data: spaces = [], isFetching, refetch } = usePrivateSpaces();
+  const { data: spaces = [], refetch } = usePrivateSpaces();
   const { unreadSpaceIds, markSpaceRead } = useUnread();
+
+  // Local, pull-gesture-scoped refresh state — deliberately decoupled from
+  // `isFetching`. Other hooks (useMessages.ts, UnreadContext.tsx) invalidate
+  // this same query in the background on realtime events; if the spinner
+  // were tied to `isFetching` it would spin every time, even when the user
+  // never pulled to refresh.
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
 
   const openSpace = (id: string) => {
     Haptics.selectionAsync();
@@ -103,7 +125,7 @@ export default function PrivateScreen() {
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={AppColors.textSecondary} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={AppColors.textSecondary} />
           }
         >
           <Text style={styles.title}>Private</Text>
@@ -152,7 +174,7 @@ const styles = StyleSheet.create({
   meta: { fontFamily: Typography.fonts.body, fontSize: 12, color: AppColors.textSecondary },
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#E5484D', marginLeft: 2 },
   lastLine: { fontFamily: 'SpecialElite', fontSize: 16, lineHeight: 24, color: AppColors.text },
-  cardFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 14 },
+  cardFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, marginTop: 14 },
   footText: { flex: 1, fontFamily: Typography.fonts.body, fontSize: 12, color: AppColors.textSecondary },
   footRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   revealPill: {

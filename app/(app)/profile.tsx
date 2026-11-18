@@ -21,26 +21,22 @@ import {
 import { AnimatedInputWrapper } from '@/components/ui/AnimatedPressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { AppColors, Typography, CardThemes } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/services/supabase';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Toast } from '@/components/glow/index';
-import { presentCustomerCenter } from '@/lib/revenuecat';
-import { useEntitlements } from '@/hooks/useEntitlements';
 import {
   isPushOptedIn,
   optInPush,
   optOutPush,
   requestPushPermission,
   hasPushPermission,
-  sendTestPushNotification,
-} from '@/lib/onesignal';
+} from '@/lib/push';
 import { trackMixpanelPushPermissionGranted as trackPushPermissionGranted, trackMixpanelPushPermissionDenied as trackPushPermissionDenied, optInMixpanel, optOutMixpanel } from '@/lib/mixpanel';
 import { useT } from '@/context/LanguageContext';
-import { Feather } from '@expo/vector-icons';
 import {
   getConsentPreferences,
   saveConsentPreferences,
@@ -49,6 +45,9 @@ import {
   type ConsentPreferences,
 } from '@/lib/consent';
 import { useAccountDeletion } from '@/hooks/useAccountDeletion';
+import { SelectableChip } from '@/components/ui/SelectableChip';
+import i18nInstance, { getLangOverride, type SupportedLang } from '@/i18n';
+import { resolveLangSelection, persistLangOverride } from '@/lib/langSelect';
 
 
 function getInitials(name: string | null | undefined, email: string): string {
@@ -64,8 +63,6 @@ export default function ProfileScreen() {
   const t = useT();
   const router = useRouter();
   const { user, isLoading, isAnonymous } = useAuth();
-  const { data: entitlements } = useEntitlements();
-  const isPro = entitlements?.isPro ?? false;
   const { loading: deletingAccount, confirmDelete } = useAccountDeletion();
 
   const displayName = user?.name ?? '';
@@ -84,7 +81,7 @@ export default function ProfileScreen() {
     Haptics.selectionAsync();
     if (value) {
       // If OS permission hasn't been granted yet, request it
-      if (!hasPushPermission()) {
+      if (!(await hasPushPermission())) {
         const granted = await requestPushPermission();
         if (!granted) {
           trackPushPermissionDenied();
@@ -97,15 +94,10 @@ export default function ProfileScreen() {
         }
         trackPushPermissionGranted();
       }
-      optInPush();
+      if (user?.id) await optInPush(user.id);
       setPushEnabled(true);
-      // Send a real push after a 2s delay — gives OneSignal time to register
-      // the subscription before delivery. This proves the pipeline works.
-      if (user?.id) {
-        setTimeout(() => sendTestPushNotification(user.id), 2000);
-      }
     } else {
-      optOutPush();
+      if (user?.id) await optOutPush(user.id);
       setPushEnabled(false);
     }
   }, [user?.id]);
@@ -150,6 +142,25 @@ export default function ProfileScreen() {
       { type: 'success', duration: 1500, position: 'top' },
     );
   }, [consent]);
+
+  // ─── Language preference ────────────────────────────────────────────────
+  const [activeLang, setActiveLang] = useState<SupportedLang>(
+    () => getLangOverride() ?? (i18nInstance.language as SupportedLang) ?? 'en',
+  );
+
+  const handleSelectLang = useCallback((lang: SupportedLang) => {
+    const { shouldApply, nextLang } = resolveLangSelection(activeLang, lang);
+    if (!shouldApply || !nextLang) return; // no-op on the already-active language
+    Haptics.selectionAsync();
+    i18nInstance.changeLanguage(nextLang);
+    setActiveLang(nextLang);
+    const persisted = persistLangOverride(nextLang);
+    if (!persisted && __DEV__) {
+      // Persistence failure shouldn't block the in-session language switch;
+      // still surface it via the repo's dev-only console.warn convention.
+      console.warn('[profile] Failed to persist language override');
+    }
+  }, [activeLang]);
 
   // ─── Name editing ─────────────────────────────────────────────────────────
   const [editingName, setEditingName] = useState(false);
@@ -199,7 +210,7 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={22} color={AppColors.text} />
+          <Icon name="chevron-back" size={22} color={AppColors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>{t('profile.title')}</Text>
         <View style={{ width: 34 }} />
@@ -215,20 +226,14 @@ export default function ProfileScreen() {
             {/* Avatar — light cream circle with gold profile icon */}
             <View style={styles.avatarSection}>
               <View style={[styles.avatarCircle, styles.localAvatarCircle]}>
-                <Feather name="user" size={32} color={AppColors.accent} />
+                <Icon name="user" size={32} color={AppColors.accent} />
               </View>
-              {isPro && (
-                <View style={styles.proBadge}>
-                  <Feather name="star" size={10} color="#FFFFFF" />
-                  <Text style={styles.proBadgeText}>MyApp Pro</Text>
-                </View>
-              )}
             </View>
 
             {/* Back-up hero — framed as protection, not "create account from nothing" */}
             <Animated.View entering={FadeInDown.duration(300).springify()} style={styles.guestHero}>
               <View style={styles.guestHeroIconWrap}>
-                <Feather name="shield" size={18} color={AppColors.accentDeep} />
+                <Icon name="shield" size={18} color={AppColors.accentDeep} />
               </View>
               <Text style={styles.guestHeroHeadline}>{t('profile.backUpAccount')}</Text>
               <Text style={styles.guestHeroBody}>
@@ -242,7 +247,7 @@ export default function ProfileScreen() {
                 }}
               >
                 <Text style={styles.guestHeroCTAText}>{t('account.backUpWithEmail')}</Text>
-                <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                <Icon name="arrow-forward" size={16} color="#FFFFFF" />
               </Pressable>
             </Animated.View>
           </>
@@ -303,7 +308,7 @@ export default function ProfileScreen() {
                     style={styles.editBtn}
                     onPress={() => { setEditingName(true); Haptics.selectionAsync(); }}
                   >
-                    <Ionicons name="pencil-outline" size={18} color={AppColors.textSecondary} />
+                    <Icon name="pencil-outline" size={18} color={AppColors.textSecondary} />
                   </Pressable>
                 )}
               </View>
@@ -330,58 +335,29 @@ export default function ProfileScreen() {
           </>
         )}
 
-        {/* Account Settings */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t('profile.account')}</Text>
-        </View>
+        {/* Account Settings — nothing to show a guest (no password to manage, no upsell) */}
+        {!isAnonymous && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>{t('profile.account')}</Text>
+            </View>
 
-        <Animated.View entering={FadeInDown.duration(300).delay(80).springify()} style={[styles.card, styles.premiumCard]}>
-          {!isAnonymous && (
-            <>
+            <Animated.View entering={FadeInDown.duration(300).delay(80).springify()} style={[styles.card, styles.premiumCard]}>
               <Pressable
                 style={styles.menuRow}
                 onPress={() => router.push('/(app)/account')}
               >
                 <View style={styles.menuRowLeft}>
                   <View style={styles.menuIcon}>
-                    <Ionicons name="lock-closed-outline" size={18} color="#FFFFFF" />
+                    <Icon name="lock-closed-outline" size={18} color="#FFFFFF" />
                   </View>
                   <Text style={styles.menuLabel}>{t('profile.passwordSecurity')}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={AppColors.textSecondary} />
+                <Icon name="chevron-forward" size={16} color={AppColors.textSecondary} />
               </Pressable>
-
-              <View style={styles.divider} />
-            </>
-          )}
-
-          {/* Enhance your replies */}
-          <View style={styles.enhanceWrap}>
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push({ pathname: '/(app)/paywall', params: { source: 'profile_powerup' } });
-              }}
-              style={{ width: '100%', backgroundColor: '#FFF8E6', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(201,168,76,0.2)', paddingVertical: 14, paddingHorizontal: 16 }}
-            >
-              <View style={styles.enhanceInner}>
-                <View style={styles.enhanceIconChip}>
-                  <Feather name="zap" size={18} color="#FFFFFF" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.enhanceLabel}>{t('profile.enhanceReplies')}</Text>
-                  <Text style={styles.enhanceSub}>
-                    {t('profile.enhanceReplies_inactive')}
-                  </Text>
-                </View>
-                <View style={styles.enhanceStartChip}>
-                  <Text style={styles.enhanceStartChipText}>{t('common.start')}</Text>
-                  <Ionicons name="arrow-forward" size={12} color="#FFFFFF" />
-                </View>
-              </View>
-            </Pressable>
-          </View>
-        </Animated.View>
+            </Animated.View>
+          </>
+        )}
 
         {/* Notifications */}
         <View style={styles.sectionHeader}>
@@ -392,7 +368,7 @@ export default function ProfileScreen() {
           <View style={styles.menuRow}>
             <View style={styles.menuRowLeft}>
               <View style={styles.menuIcon}>
-                <Ionicons name="notifications-outline" size={18} color="#FFFFFF" />
+                <Icon name="notifications-outline" size={18} color="#FFFFFF" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.menuLabel}>{t('profile.pushNotifications')}</Text>
@@ -408,6 +384,26 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
+        {/* Language */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>{t('profile.language')}</Text>
+        </View>
+
+        <Animated.View entering={FadeInDown.duration(300).delay(180).springify()} style={[styles.card, styles.premiumCard]}>
+          <View style={styles.languageRow}>
+            <SelectableChip
+              label={t('profile.languageEnglish')}
+              selected={activeLang === 'en'}
+              onPress={() => handleSelectLang('en')}
+            />
+            <SelectableChip
+              label={t('profile.languageGerman')}
+              selected={activeLang === 'de'}
+              onPress={() => handleSelectLang('de')}
+            />
+          </View>
+        </Animated.View>
+
         {/* Privacy */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{t('common.privacy')}</Text>
@@ -418,7 +414,7 @@ export default function ProfileScreen() {
           <View style={styles.menuRow}>
             <View style={styles.menuRowLeft}>
               <View style={styles.menuIcon}>
-                <Feather name="bar-chart-2" size={18} color="#FFFFFF" />
+                <Icon name="bar-chart-2" size={18} color="#FFFFFF" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.menuLabel}>{t('profile.analytics')}</Text>
@@ -439,7 +435,7 @@ export default function ProfileScreen() {
           <View style={styles.menuRow}>
             <View style={styles.menuRowLeft}>
               <View style={styles.menuIcon}>
-                <Feather name="alert-triangle" size={18} color="#FFFFFF" />
+                <Icon name="alert-triangle" size={18} color="#FFFFFF" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.menuLabel}>{t('profile.crashReports')}</Text>
@@ -460,7 +456,7 @@ export default function ProfileScreen() {
           <View style={styles.menuRow}>
             <View style={styles.menuRowLeft}>
               <View style={styles.menuIcon}>
-                <Feather name="cpu" size={18} color="#FFFFFF" />
+                <Icon name="cpu" size={18} color="#FFFFFF" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.menuLabel}>{t('profile.aiProcessing')}</Text>
@@ -485,7 +481,7 @@ export default function ProfileScreen() {
           <View style={styles.menuRow}>
             <View style={styles.menuRowLeft}>
               <View style={styles.menuIcon}>
-                <Feather name="slash" size={18} color="#FFFFFF" />
+                <Icon name="slash" size={18} color="#FFFFFF" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.menuLabel}>{t('profile.doNotSell')}</Text>
@@ -501,57 +497,11 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
-        {/* Subscription */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t('profile.subscription')}</Text>
-        </View>
-
-        <Animated.View entering={FadeInDown.duration(300).delay(300).springify()} style={[styles.card, styles.premiumCard]}>
-          {/* Current plan row */}
-          <View style={styles.menuRow}>
-            <View style={styles.menuRowLeft}>
-              <View style={styles.menuIcon}>
-                <Ionicons name="star-outline" size={18} color="#FFFFFF" />
-              </View>
-              <View>
-                <Text style={styles.menuLabel}>{t('profile.currentPlan')}</Text>
-                <Text style={styles.menuSub}>{isPro ? 'MyApp Pro' : t('profile.free')}</Text>
-              </View>
-            </View>
-            {!isPro && (
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push({ pathname: '/(app)/paywall', params: { source: 'profile' } });
-                }}
-                style={{ backgroundColor: AppColors.accent, borderRadius: 14, paddingVertical: 9, paddingHorizontal: 16 }}
-              >
-                <Text style={{ fontFamily: Typography.fonts.heading, fontSize: 12.5, color: '#FFFFFF', letterSpacing: 0.3 }}>
-                  {t('profile.upgrade')}
-                </Text>
-              </Pressable>
-            )}
-          </View>
-
-          {isPro && (
-            <>
-              <View style={styles.divider} />
-              {/* Manage Subscription — opens RevenueCat Customer Center */}
-              <Pressable
-                style={styles.menuRow}
-                onPress={() => presentCustomerCenter()}
-              >
-                <View style={styles.menuRowLeft}>
-                  <View style={styles.menuIcon}>
-                    <Ionicons name="card-outline" size={18} color="#FFFFFF" />
-                  </View>
-                  <Text style={styles.menuLabel}>{t('profile.manageSubscription')}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={AppColors.textSecondary} />
-              </Pressable>
-            </>
-          )}
-        </Animated.View>
+        {/* Subscription section removed: re:sense has no monetization live yet
+            (PRD: "Payments: RevenueCat — the only source of payment status,
+            when monetization is added (deferred)") — showing a paywall entry
+            point with no real product behind it was boilerplate left over
+            from the base template, not a re:sense feature. */}
 
         {/* Delete / Reset account — Apple 5.1.1(v) compliance */}
         <Animated.View entering={FadeInDown.duration(300).delay(400).springify()} style={styles.card}>
@@ -564,7 +514,7 @@ export default function ProfileScreen() {
           >
             <View style={styles.menuRowLeft}>
               <View style={[styles.menuIcon, { backgroundColor: '#FFE5EA' }]}>
-                <Feather name="trash-2" size={18} color="#E11D48" />
+                <Icon name="trash-2" size={18} color="#E11D48" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.menuLabel, { color: '#E11D48' }]}>
@@ -675,6 +625,10 @@ const styles = StyleSheet.create({
   },
   menuRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 18, paddingVertical: 16,
+  },
+  languageRow: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 10,
     paddingHorizontal: 18, paddingVertical: 16,
   },
   menuRowLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14 },

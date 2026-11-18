@@ -7,44 +7,48 @@
  *
  * Responsible for:
  * – Initializing RevenueCat anonymously (no userId required)
- * – Initializing OneSignal + registering user for push notifications (when authenticated)
  * – Identifying the user in Sentry so crash reports are linked (when authenticated)
  * – Initializing AppsFlyer for install attribution + OneLink deep linking
  * – Clearing stale onboarding state from previous A/B gate bug
  */
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useRootNavigationState } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { initRevenueCat, linkRevenueCatIdentifiers } from '@/lib/revenuecat';
 import { identifySentryUser, clearSentryUser } from '@/lib/sentry';
-import {
-  initOneSignal,
-  registerPushUser,
-  unregisterPushUser,
-  onNotificationClicked,
-  onForegroundNotification,
-  setNotificationTags,
-} from '@/lib/onesignal';
 import { initAppsFlyer, setAppsFlyerUserId, clearAppsFlyerUserId } from '@/lib/appsflyer';
 import { initFacebook, setFacebookUserId, clearFacebookUserId } from '@/lib/facebook';
 import { requestTrackingPermissionsAsync, PermissionStatus } from 'expo-tracking-transparency';
 import {
   identifyMixpanelUser,
   resetMixpanelIdentity,
-  trackMixpanelNotificationOpened,
   setSuperPropertyIsPro,
   trackMixpanelAppOpened,
 } from '@/lib/mixpanel';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { Prefs } from '@/store/mmkv';
 import { UnreadProvider } from '@/context/UnreadContext';
-import { registerPushToken } from '@/lib/push';
+import { registerPushToken, configureNotifications, addPushResponseListener } from '@/lib/push';
+import { setPendingSpaceDeepLink } from '@/lib/pushDeepLink';
 
 export default function AppLayout() {
   const { user } = useAuth();
   const router = useRouter();
-  const oneSignalInitialized = useRef(false);
+  const rootState = useRootNavigationState();
+
+  // The push-response listener is registered once (mount-only effect below) but
+  // fires asynchronously, possibly long after mount — it must always read the
+  // LATEST nav-hydration / auth state, not whatever was captured in the effect's
+  // closure at registration time. Refs give it a live read without re-subscribing.
+  const navKeyRef = useRef<string | undefined>(rootState?.key);
+  const userIdRef = useRef<string | undefined>(user?.id);
+  useEffect(() => {
+    navKeyRef.current = rootState?.key;
+  }, [rootState?.key]);
+  useEffect(() => {
+    userIdRef.current = user?.id;
+  }, [user?.id]);
 
   const { data: entitlements } = useEntitlements();
   const isPro = entitlements?.isPro ?? false;
@@ -59,33 +63,6 @@ export default function AppLayout() {
       Prefs.setInt('onboarding_version', 0);
       Prefs.setBool('onboarding_complete', false);
     }
-  }, []);
-
-  // Initialize OneSignal once on mount
-  useEffect(() => {
-    if (oneSignalInitialized.current) return;
-    oneSignalInitialized.current = true;
-
-    initOneSignal();
-
-    // M3: Validate deep link screens against allowlist to prevent open redirect
-    const SAFE_DEEP_LINK_SCREENS = new Set([
-      '/(app)/(tabs)',
-      '/(app)/profile',
-      '/(app)/account',
-      '/(app)/paywall',
-      '/(app)/onboarding',
-    ]);
-
-    onNotificationClicked((notification) => {
-      trackMixpanelNotificationOpened(notification.notificationId ?? 'unknown');
-      const data = notification.additionalData as Record<string, string> | undefined;
-      if (data?.screen && SAFE_DEEP_LINK_SCREENS.has(data.screen)) {
-        router.push(data.screen as any);
-      }
-    });
-
-    onForegroundNotification(() => true);
   }, []);
 
   // Initialize RevenueCat anonymously on mount (no userId required).
@@ -149,25 +126,36 @@ export default function AppLayout() {
     })();
   }, []);
 
-  // Register / unregister OneSignal user
-  useEffect(() => {
-    if (user?.id) {
-      registerPushUser(user.id);
-    } else {
-      unregisterPushUser();
-    }
-  }, [user?.id]);
-
   // Register the Expo push token for message notifications (no-op until the app
   // is rebuilt with expo-notifications + a real EAS projectId).
   useEffect(() => {
     if (user?.id) registerPushToken(user.id);
   }, [user?.id]);
 
-  // Sync subscription tier as a OneSignal tag
+  // Message-notification behavior: suppress foreground banners (in-app update +
+  // tab dot handle it), and route notification taps to the private-space thread.
   useEffect(() => {
-    setNotificationTags({ is_pro: isPro ? 'true' : 'false' });
-  }, [isPro]);
+    configureNotifications();
+    const unsubscribe = addPushResponseListener((spaceId) => {
+      const navReady = navKeyRef.current != null;
+      const userResolved = userIdRef.current != null;
+      if (__DEV__) {
+        console.log(
+          `[push-dl] ${Date.now()} handler spaceId=${spaceId} navKey=${navKeyRef.current} userId=${userIdRef.current}`,
+        );
+      }
+      if (!navReady || !userResolved) {
+        // Nav tree not hydrated yet, or the user hasn't cleared the auth gate —
+        // hold the link instead of navigating. AppGate replays it once it lands
+        // the user on the tabs (authenticated + onboarded branch only).
+        if (__DEV__) console.log(`[push-dl] ${Date.now()} holding pending spaceId=${spaceId} (navReady=${navReady} userResolved=${userResolved})`);
+        setPendingSpaceDeepLink(spaceId);
+        return;
+      }
+      router.push({ pathname: '/(app)/private-space', params: { spaceId } } as any);
+    });
+    return unsubscribe;
+  }, [router]);
 
   // Identify user in Sentry (ID only — no PII)
   useEffect(() => {

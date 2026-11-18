@@ -10,33 +10,64 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
-  public: {
+  resense: {
     Tables: {
+      blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           created_at: string
+          deleted_at: string | null
           id: string
+          reply_to_id: string | null
           sender_id: string
           space_id: string
           text: string
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
+          reply_to_id?: string | null
           sender_id?: string
           space_id: string
           text: string
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
+          reply_to_id?: string | null
           sender_id?: string
           space_id?: string
           text?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "messages_space_id_fkey"
             columns: ["space_id"]
@@ -58,7 +89,7 @@ export type Database = {
           created_at: string
           id: string
           pair_key: string | null
-          signal_id: string
+          signal_id: string | null
           user_a: string
           user_b: string
         }
@@ -66,7 +97,7 @@ export type Database = {
           created_at?: string
           id?: string
           pair_key?: string | null
-          signal_id: string
+          signal_id?: string | null
           user_a: string
           user_b: string
         }
@@ -74,7 +105,7 @@ export type Database = {
           created_at?: string
           id?: string
           pair_key?: string | null
-          signal_id?: string
+          signal_id?: string | null
           user_a?: string
           user_b?: string
         }
@@ -224,6 +255,84 @@ export type Database = {
         }
         Relationships: []
       }
+      space_events: {
+        Row: {
+          actor_id: string
+          created_at: string
+          id: string
+          kind: string
+          space_id: string
+        }
+        Insert: {
+          actor_id?: string
+          created_at?: string
+          id?: string
+          kind: string
+          space_id: string
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          space_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_events_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "private_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "space_events_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "space_overview"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      space_reveals: {
+        Row: {
+          age_verified: boolean
+          created_at: string
+          first_name: string | null
+          space_id: string
+          user_id: string
+        }
+        Insert: {
+          age_verified?: boolean
+          created_at?: string
+          first_name?: string | null
+          space_id: string
+          user_id?: string
+        }
+        Update: {
+          age_verified?: boolean
+          created_at?: string
+          first_name?: string | null
+          space_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_reveals_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "private_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "space_reveals_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "space_overview"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       public_profiles: {
@@ -267,6 +376,7 @@ export type Database = {
           id: string | null
           last_message: string | null
           last_message_at: string | null
+          last_message_sender_id: string | null
           signal_id: string | null
           signal_text: string | null
           user_a: string | null
@@ -291,8 +401,18 @@ export type Database = {
       }
     }
     Functions: {
-      is_space_member: { Args: { p_space_id: string }; Returns: boolean }
-      signal_author: { Args: { p_signal_id: string }; Returns: string }
+      claim_push_token: {
+        Args: { p_platform?: string; p_token: string }
+        Returns: undefined
+      }
+      delete_my_account: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      submit_report: {
+        Args: { p_note?: string; p_reason: string; p_signal_id?: string; p_space_id?: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
@@ -305,7 +425,7 @@ export type Database = {
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "resense">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
@@ -421,7 +541,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  public: {
+  resense: {
     Enums: {},
   },
 } as const

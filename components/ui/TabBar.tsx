@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import { BlurView } from 'expo-blur';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import * as Haptics from 'expo-haptics';
@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppColors, Typography } from '../../constants/theme';
 import { useUnread } from '../../context/UnreadContext';
 
-type FeatherIcon = React.ComponentProps<typeof Feather>['name'];
+type FeatherIcon = string;
 
 const TAB_CONFIG: Record<string, { label: string; icon: FeatherIcon; activeIcon: FeatherIcon }> = {
   index:     { label: 'Board',   icon: 'grid',   activeIcon: 'grid'   },
@@ -52,7 +52,7 @@ function TabItem({
         {isFocused && <View style={styles.activePill} />}
 
         <View style={styles.iconWrap}>
-          <Feather
+          <Icon
             name={isFocused ? config.activeIcon : config.icon}
             size={18}
             color={isFocused ? AppColors.accent : AppColors.textSecondary}

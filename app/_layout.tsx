@@ -23,7 +23,6 @@ import { LogBox } from 'react-native';
 
 // Suppress red-box for native modules that degrade gracefully in Expo Go
 LogBox.ignoreLogs([
-  'Could not load RNOneSignal native module',
   '[RevenueCat]',
 ]);
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -43,6 +42,7 @@ import { useNetworkSync } from '@/hooks/useNetworkSync';
 import { initSentry, SentryWrap, sentryRoutingInstrumentation } from '@/lib/sentry';
 import { useTrackingTransparency } from '@/hooks/useTrackingTransparency';
 import { ToastSetupProvider, ToastOverlay } from '@/components/glow/index';
+import { Grain } from '@/components/ui/Grain';
 import { AnimatedSplash } from '@/components/ui/AnimatedSplash';
 import { getConsentPreferences, hasGivenConsent } from '@/lib/consent';
 import { initMixpanel, optInMixpanel, optOutMixpanel } from '@/lib/mixpanel';
@@ -119,6 +119,10 @@ function AuthGatedApp({ colorScheme }: { colorScheme: ReturnType<typeof useColor
           <Stack.Screen name="(app)"  options={{ animation: 'fade' }} />
         </Stack>
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        {/* Renkler grain — static GPU film/paper grain over every screen. Symmetric
+            zero-mean noise (modulates, doesn't veil) so it reads as texture in the
+            surface, not fog on top. pointer-transparent; above content, below toasts. */}
+        <Grain opacity={0.1} />
         {/* ToastOverlay MUST be last — rendered after Stack so it floats above all native screens */}
         <ToastOverlay />
       </ToastSetupProvider>

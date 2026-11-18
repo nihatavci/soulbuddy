@@ -4,68 +4,6 @@ MyApp — React Native (Expo) boilerplate. Replace this with your app's descript
 
 ---
 
-## Stack
-
-| Category | Technology |
-|---|---|
-| Mobile SDK | Expo SDK 54 / React Native 0.81 / React 19 |
-| Navigation | expo-router 6 |
-| UI | NativeWind 4 (Tailwind 3) |
-| Auth | Supabase Auth (email OTP + Google + Apple) |
-| Database | Supabase Postgres + RLS |
-| Edge / Server | Cloudflare Workers + teenybase (server/) |
-| Data fetching | TanStack Query + react-query-persist + MMKV |
-| AI | Gemini Live API, via Cloudflare Worker proxy |
-| Payments | RevenueCat |
-| Push | OneSignal |
-| Analytics | Mixpanel + AppsFlyer |
-| Error tracking | Sentry |
-| i18n | i18next |
-
----
-
-## Folder Structure
-
-```
-/
-├── app/                    # Expo Router screens
-│   ├── (app)/              # Authenticated app shell
-│   │   ├── (tabs)/         # Main tab navigator
-│   │   ├── account.tsx     # Account management screen
-│   │   ├── consent.tsx     # Privacy consent screen
-│   │   ├── onboarding.tsx  # Onboarding flow
-│   │   ├── paywall.tsx     # Subscription paywall
-│   │   ├── profile.tsx     # User profile screen
-│   │   └── ...
-│   ├── (auth)/             # Unauthenticated auth flows
-│   │   ├── sign-in.tsx
-│   │   ├── sign-up.tsx
-│   │   ├── forgot-password.tsx
-│   │   └── reset-password.tsx
-│   ├── _layout.tsx         # Root layout (providers)
-│   └── +not-found.tsx
-├── components/             # Reusable UI components (NativeWind)
-│   ├── chroma-ring/        # Animated processing ring
-│   ├── elastic-slider/     # Custom slider
-│   ├── glow/               # Glow effect
-│   ├── icons/              # Icon wrappers
-│   ├── mesh-gradient/      # Mesh gradient background
-│   ├── shared/             # Shared primitives
-│   └── ui/                 # Core UI elements
-├── constants/              # Design tokens (fonts, spacing, theme)
-├── context/                # React contexts (Auth, Language)
-├── hooks/                  # TanStack Query hooks and utilities
-├── i18n/                   # i18next translations (en, ro, tr)
-├── lib/                    # SDK wrappers (appsflyer, mixpanel, sentry, etc.)
-├── plugins/                # Expo config plugins
-├── server/                 # Cloudflare Worker (teenybase backend)
-├── services/               # Supabase client + Gemini client + DB types
-├── store/                  # MMKV persistent store + queryClient config
-└── CLAUDE.md               # This file
-```
-
----
-
 ## Locked Decisions
 
 - **UI:** NativeWind (Tailwind 3). Do not suggest Tamagui, Gluestack, or other UI libs.
@@ -86,7 +24,6 @@ MyApp — React Native (Expo) boilerplate. Replace this with your app's descript
    - Set `@react-native-google-signin/google-signin` `iosUrlScheme`.
    - Set `react-native-fbsdk-next` `appID` and `clientToken` if using Facebook.
    - Set `@sentry/react-native/expo` `project` and `organization`.
-   - Set `onesignal-expo-plugin` `devTeam` (Apple Team ID).
 4. Run `npx expo prebuild` to regenerate native projects.
 5. Run `npm run typecheck` to verify types pass.
 6. Fill Supabase: create your schema, regenerate types with:
@@ -110,7 +47,7 @@ The product slug/package name is `resense`; the display brand is `re:sense`.
 - **Tech stack**: Expo SDK 54 / React Native 0.81 / React 19, expo-router 6 — locked by the boilerplate.
 - **UI**: NativeWind 4 (Tailwind 3) — locked. Do not introduce other UI libraries. Apply the `re:sense` design tokens from `PRD/design.md`.
 - **Auth**: Supabase Auth (email + Google + Apple) — locked. Do not introduce other auth providers.
-- **Database**: Supabase Postgres + RLS on the remote `re:sense` project (eu-west-1). RLS + alias/trust-state separation is the anonymity enforcement point.
+- **Database**: Supabase Postgres + RLS, schema `resense` on the shared Terra database (see `supabase/terra/RUNBOOK.md`; the old `re:sense` project is retired once builds up to 29 are gone). RLS + alias/trust-state separation is the anonymity enforcement point. `auth.users` is shared with other Terra apps: never delete a user with an admin call, use `resense.delete_my_account()`.
 - **Edge/Server**: Cloudflare Workers + teenybase available for server-side logic when needed.
 - **AI**: Gemini via Cloudflare Worker proxy only — key never ships in the client. Not used in the human-to-human loop for v1.
 - **Payments**: RevenueCat — the only source of payment status, when monetization is added (deferred).

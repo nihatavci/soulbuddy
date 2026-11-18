@@ -24,7 +24,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import { AppColors, Typography } from '@/constants/theme';
 import { Space, Relation, ScreenPaddingH, ScreenPaddingTop, ScreenPaddingBottom } from '@/constants/spacing';
 import { supabase } from '@/services/supabase';
@@ -197,7 +197,7 @@ export default function SignUpScreen() {
                     editable={!loading}
                   />
                   <Pressable onPress={() => setShowPass((v) => !v)} style={styles.eyeBtn}>
-                    <Feather name={showPass ? 'eye-off' : 'eye'} size={18} color={AppColors.textSecondary} />
+                    <Icon name={showPass ? 'eye-off' : 'eye'} size={18} color={AppColors.textSecondary} />
                   </Pressable>
                 </AnimatedInputWrapper>
               </View>
@@ -320,5 +320,5 @@ const styles = StyleSheet.create({
   termsLink: { fontFamily: Typography.fonts.heading, textDecorationLine: 'underline', color: AppColors.text },
   switchRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   switchLabel: { fontFamily: Typography.fonts.body, fontSize: 14, color: AppColors.textSecondary },
-  switchLink:  { fontFamily: Typography.fonts.heading, fontSize: 14, color: AppColors.accent, textDecorationLine: 'underline' },
+  switchLink:  { fontFamily: Typography.fonts.heading, fontSize: 14, color: AppColors.text, textDecorationLine: 'underline' },
 });

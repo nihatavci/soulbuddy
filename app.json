@@ -33,8 +33,8 @@
     "jsEngine": "hermes",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.nihtavci.resense",
-      "buildNumber": "7",
+      "bundleIdentifier": "com.terra.resense",
+      "buildNumber": "29",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSUserTrackingUsageDescription": "We use this data to improve your experience and show you more relevant content.",
@@ -49,14 +49,14 @@
           }
         ]
       },
-      "appleTeamId": "DN6Q7MMM66"
+      "appleTeamId": "G9PF4M8VP8"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.nihtavci.resense",
+      "package": "com.terra.resense",
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
@@ -79,6 +79,7 @@
       "./plugins/withGradleMemory",
       "expo-router",
       "expo-apple-authentication",
+      "expo-notifications",
       "expo-font",
       [
         "expo-image-picker",
@@ -110,26 +111,7 @@
       "expo-tracking-transparency",
       "expo-dev-client",
       "expo-asset",
-      "expo-localization",
-      [
-        "@react-native-google-signin/google-signin",
-        {
-          "iosUrlScheme": "com.googleusercontent.apps.REPLACE_ME"
-        }
-      ],
-      [
-        "react-native-fbsdk-next",
-        {
-          "appID": "REPLACE_ME",
-          "clientToken": "REPLACE_ME",
-          "displayName": "MyApp",
-          "scheme": "fbREPLACE_ME",
-          "advertiserIDCollectionEnabled": true,
-          "autoLogAppEventsEnabled": true,
-          "isAutoInitEnabled": false,
-          "iosUserTrackingPermission": false
-        }
-      ]
+      "expo-localization"
     ],
     "owner": "nihtavci"
   }

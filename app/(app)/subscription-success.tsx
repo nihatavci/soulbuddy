@@ -28,7 +28,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 
 import { AppColors, Typography, Space } from '@/constants/theme';
 import { logAppsFlyerEvent } from '@/lib/appsflyer';
@@ -89,7 +89,7 @@ export default function SubscriptionSuccessScreen() {
 
       {/* Animated checkmark */}
       <Animated.View entering={ZoomIn.delay(100).springify()} style={styles.iconWrap}>
-        <Ionicons name="checkmark-circle" size={88} color={AppColors.success} />
+        <Icon name="checkmark-circle" size={88} color={AppColors.success} />
       </Animated.View>
 
       {/* Heading */}

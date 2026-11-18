@@ -9,18 +9,24 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { AppColors, Typography } from '@/constants/theme';
 import { ScreenPaddingH } from '@/constants/spacing';
 import { Wordmark } from '@/components/ui/Wordmark';
 import { PaperBackground } from '@/components/ui/PaperBackground';
 import { GoldDisc } from '@/components/ui/GoldDisc';
-import { useSignals } from '@/hooks/useSignals';
+import { SwipeToDelete } from '@/components/ui/SwipeToDelete';
+import { useSignals, useDeleteSignal } from '@/hooks/useSignals';
+import { useFreshStart } from '@/hooks/useFreshStart';
+import { useBlockUser, useReport, REPORT_REASONS, type ReportReason } from '@/hooks/useSafety';
 import { useAuth } from '@/context/AuthContext';
+import { useT } from '@/context/LanguageContext';
+import { SignalUnreadProvider, useSignalUnread } from '@/context/SignalUnreadContext';
+import { Toast } from '@/components/glow';
 import type { PublicSignal } from '@/services/supabase';
 
 function timeAgo(iso: string): string {
@@ -31,33 +37,165 @@ function timeAgo(iso: string): string {
   return `${Math.floor(s / 86400)}d`;
 }
 
-function SignalCard({ signal, onPress, isMine }: { signal: PublicSignal; onPress: () => void; isMine: boolean }) {
+function SignalCard({
+  signal, onPress, isMine, unseenCount, onMarkSeen, onDelete, onSafety,
+}: {
+  signal: PublicSignal;
+  onPress: () => void;
+  isMine: boolean;
+  unseenCount: number;
+  onMarkSeen: () => void;
+  onDelete: () => void;
+  onSafety: () => void;
+}) {
+  const t = useT();
   const replyCount = signal.reply_count ?? 0;
-  return (
-    <Pressable style={styles.card} onPress={isMine ? undefined : onPress} accessibilityRole="button" disabled={isMine}>
+  // My own signals aren't tappable into the reply composer (nothing to add to
+  // your own signal) — but tapping still "opens" it, which is what clears the
+  // unseen-addition marker (Zeigarnik-style unfinished state → resolved on view,
+  // no read receipt is ever sent back to the replier — this only updates MY
+  // local last-seen-count, nothing is written server-side or shown to them).
+  const handlePress = isMine ? onMarkSeen : onPress;
+  const card = (
+    <Pressable style={styles.card} onPress={handlePress} accessibilityRole="button">
       <View style={styles.cardHead}>
         <Text style={styles.alias}>{signal.alias}</Text>
-        <Text style={styles.meta}>{signal.created_at ? timeAgo(signal.created_at) : ''}</Text>
+        <View style={styles.headRight}>
+          <Text style={styles.meta}>{signal.created_at ? timeAgo(signal.created_at) : ''}</Text>
+          {!isMine && (
+            <Pressable
+              onPress={onSafety}
+              accessibilityRole="button"
+              accessibilityLabel={t('board.moreActions')}
+              hitSlop={12}
+            >
+              <Icon name="flag" size={16} color={AppColors.textSecondary} />
+            </Pressable>
+          )}
+        </View>
       </View>
       <Text style={styles.signalText}>{signal.text}</Text>
       <View style={styles.cardFoot}>
-        <Feather name="corner-up-left" size={14} color={AppColors.textSecondary} />
+        <Icon name="corner-up-left" size={14} color={AppColors.textSecondary} />
         <Text style={styles.footText}>
           {isMine ? 'your signal' : replyCount === 0 ? 'add to this' : `${replyCount} added`}
         </Text>
+        {isMine && unseenCount > 0 && (
+          <View style={styles.unseenMarker} accessibilityLabel={t('board.unreadAddition', { count: unseenCount })}>
+            <View style={styles.unseenDot} />
+            <Text style={styles.unseenText}>{t('board.unreadAddition', { count: unseenCount })}</Text>
+          </View>
+        )}
       </View>
     </Pressable>
   );
+
+  // Only your own signal can be deleted — swiping someone else's card does nothing.
+  if (!isMine) return card;
+  return (
+    <SwipeToDelete label={t('board.deleteSignal')} onPress={onDelete}>
+      {card}
+    </SwipeToDelete>
+  );
 }
 
+// SignalUnreadProvider is mounted here, scoped to the Board screen — the
+// marker has no cross-tab surface (unlike UnreadContext's private-space
+// badge), so there's no need to hoist it to the app-root layout.
 export default function BoardScreen() {
+  return (
+    <SignalUnreadProvider>
+      <BoardScreenInner />
+    </SignalUnreadProvider>
+  );
+}
+
+function BoardScreenInner() {
   const router = useRouter();
   const { user } = useAuth();
+  const t = useT();
   const { data: signals = [], isFetching, refetch } = useSignals();
+  const { isFreshStart, todayCount } = useFreshStart(signals, user?.id);
+  const { countFor, markSignalRead } = useSignalUnread();
+  const { mutateAsync: deleteSignal } = useDeleteSignal();
+  const { mutateAsync: sendReport } = useReport();
+  const { mutateAsync: blockUser } = useBlockUser();
+
+  const failToast = (e: any) =>
+    Toast.show(e?.message || t('board.actionFailed'), { type: 'error', position: 'top', duration: 3200 });
+
+  // Report or block the person behind a signal. Both are one tap away on every card that is not mine.
+  const openSafety = (signal: PublicSignal) => {
+    if (!signal.id || !signal.author_id) return;
+    const { id, author_id, alias } = signal;
+    Haptics.selectionAsync();
+    const pickReason = () =>
+      Alert.alert(
+        t('board.reportTitle'),
+        undefined,
+        [
+          ...REPORT_REASONS.map((reason: ReportReason) => ({
+            text: t(`board.reportReasons.${reason}`),
+            onPress: () => {
+              sendReport({ signalId: id, reason })
+                .then(() => Toast.show(t('board.reportSent'), { type: 'success', position: 'top', duration: 3200 }))
+                .catch(failToast);
+            },
+          })),
+          { text: t('common.cancel'), style: 'cancel' as const },
+        ],
+      );
+    const confirmBlock = () =>
+      Alert.alert(t('board.blockConfirmTitle', { alias }), t('board.blockConfirmBody'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('board.blockConfirmConfirm'),
+          style: 'destructive',
+          onPress: () => {
+            blockUser(author_id)
+              .then(() => Toast.show(t('board.blocked'), { type: 'success', position: 'top', duration: 3200 }))
+              .catch(failToast);
+          },
+        },
+      ]);
+    Alert.alert(t('board.safetyTitle'), undefined, [
+      { text: t('board.report'), onPress: pickReason },
+      { text: t('board.block', { alias }), style: 'destructive', onPress: confirmBlock },
+      { text: t('common.cancel'), style: 'cancel' },
+    ]);
+  };
 
   const openReply = (id: string) => {
     Haptics.selectionAsync();
     router.push({ pathname: '/(app)/reply-composer', params: { signalId: id } } as any);
+  };
+
+  // Explicit product decision: always deletable. Its public replies are
+  // removed (see hooks/useSignals.ts), but a private space this signal
+  // opened is never destroyed as a side effect of the delete — migration
+  // 021_resense_signal_delete_preserves_space.sql (which reverses the
+  // "cascade included" note 018_resense_delete_message_signal.sql used to
+  // record) detaches the space instead. The confirm copy states the reply
+  // loss plainly, without claiming a conversation loss that no longer
+  // happens.
+  const confirmDeleteSignal = (id: string, hasReplies: boolean) => {
+    Alert.alert(
+      t('board.deleteConfirmTitle'),
+      hasReplies ? t('board.deleteConfirmBodyWithConversation') : t('board.deleteConfirmBody'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('board.deleteConfirmConfirm'),
+          style: 'destructive',
+          onPress: () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            deleteSignal(id).catch((e: any) => {
+              Toast.show(e?.message || 'Could not delete. Try again.', { type: 'error', position: 'top', duration: 3200 });
+            });
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -76,14 +214,29 @@ export default function BoardScreen() {
           }
         >
           <Text style={styles.title}>The board</Text>
-          <Text style={styles.subtitle}>Short signals from others. Read, and add to one.</Text>
+          <Text style={styles.subtitle}>
+            {isFreshStart
+              ? todayCount > 0
+                ? t('board.freshStart.subtitleWithCount', { count: todayCount })
+                : t('board.freshStart.subtitleEmpty')
+              : 'Short signals from others. Read, and add to one.'}
+          </Text>
 
           {signals.map((s, i) => {
             const isMine = !!user?.id && s.author_id === user.id;
+            const replyCount = s.reply_count ?? 0;
             return (
               <React.Fragment key={s.id ?? i}>
                 {i > 0 && <View style={styles.rule} />}
-                <SignalCard signal={s} onPress={() => s.id && openReply(s.id)} isMine={isMine} />
+                <SignalCard
+                  signal={s}
+                  onPress={() => s.id && openReply(s.id)}
+                  isMine={isMine}
+                  unseenCount={countFor(s.id)}
+                  onMarkSeen={() => s.id && markSignalRead(s.id, replyCount)}
+                  onDelete={() => s.id && confirmDeleteSignal(s.id, replyCount > 0)}
+                  onSafety={() => openSafety(s)}
+                />
               </React.Fragment>
             );
           })}
@@ -117,10 +270,17 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fonts.body, fontSize: 12, letterSpacing: 0.4,
     textTransform: 'uppercase', color: AppColors.textSecondary,
   },
+  headRight: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   meta: { fontFamily: Typography.fonts.body, fontSize: 12, color: AppColors.textSecondary },
   signalText: { fontFamily: 'SpecialElite', fontSize: 17, lineHeight: 25, color: AppColors.text },
   cardFoot: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
   footText: { fontFamily: Typography.fonts.body, fontSize: 13, color: AppColors.textSecondary },
+  // Calm, persistent "unseen addition" marker — a small ink dot + short label,
+  // distinct from the "N added" popularity-flavored footText above. Signals
+  // "not yet seen by you", never a streak/urgency/points callout.
+  unseenMarker: { flexDirection: 'row', alignItems: 'center', gap: 5, marginLeft: 8 },
+  unseenDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: AppColors.text, opacity: 0.6 },
+  unseenText: { fontFamily: Typography.fonts.body, fontSize: 13, color: AppColors.text, fontStyle: 'italic' },
   end: {
     fontFamily: Typography.fonts.body, fontSize: 13, color: AppColors.textSecondary,
     textAlign: 'center', marginTop: 16, opacity: 0.7,

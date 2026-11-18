@@ -16,7 +16,7 @@ import React from 'react';
 import { View, Text, Pressable, Image, StyleSheet, useWindowDimensions } from 'react-native';
 import { Canvas, Image as SkiaImage, useImage, Blur, ColorMatrix, Paint, Group, Fill } from '@shopify/react-native-skia';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Feather } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 
 const CHARCOAL = '#151518';
 const PAPER = '#F3EFE6';
@@ -97,10 +97,10 @@ export function IdentityCard({ alias, role, photoUri, onPress }: IdentityCardPro
         <View style={styles.content}>
           <View style={styles.header}>
             <View style={styles.badge}>
-              <Feather name="lock" size={12} color={PAPER} />
+              <Icon name="lock" size={12} color={PAPER} />
               <Text style={styles.badgeText}>PRIVATE · 18+</Text>
             </View>
-            <Feather name="activity" size={18} color={PAPER} style={{ opacity: 0.8 }} />
+            <Icon name="activity" size={18} color={PAPER} style={{ opacity: 0.8 }} />
           </View>
 
           <View style={styles.body}>
@@ -114,7 +114,7 @@ export function IdentityCard({ alias, role, photoUri, onPress }: IdentityCardPro
               <Text style={styles.label}>ALIAS ID</Text>
               <Text style={styles.value}>{aliasId(alias || 'anon')}</Text>
             </View>
-            <Feather name="shield" size={28} color={PAPER} style={{ opacity: 0.45 }} />
+            <Icon name="shield" size={28} color={PAPER} style={{ opacity: 0.45 }} />
           </View>
         </View>
 

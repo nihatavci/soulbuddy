@@ -15,7 +15,7 @@ A production-grade, app-agnostic **React Native (Expo) boilerplate** — the pro
 | Data / cache | TanStack Query + react-query-persist + MMKV |
 | AI | Gemini, oriented toward the [Live API](https://ai.google.dev/gemini-api/docs/live-api) via a Worker proxy |
 | Payments | RevenueCat (+ paywall) |
-| Push | OneSignal |
+| Push | Expo Notifications |
 | Analytics | Mixpanel + AppsFlyer |
 | Error monitoring | Sentry |
 | i18n | i18next |
@@ -37,7 +37,7 @@ A production-grade, app-agnostic **React Native (Expo) boilerplate** — the pro
 - Tab + stack navigation shell with a neutral Home screen.
 - Generic shells: onboarding, paywall, account, profile, consent, subscription success/cancelled.
 - Tokenized design system (`constants/{theme,spacing,fonts}.ts`) — neutral palette, light theme.
-- SDK wrappers in `lib/` (RevenueCat, OneSignal, Mixpanel, AppsFlyer, Facebook, Sentry, consent).
+- SDK wrappers in `lib/` (RevenueCat, Mixpanel, AppsFlyer, Facebook, Sentry, consent) + Expo push registration (`lib/push.ts`).
 - Lean Gemini client (`services/gemini.ts`) with a Live-API seam.
 - Cloudflare Worker skeleton (`server/`) with a `/health` endpoint.
 - Tooling: TypeScript, ESLint, Prettier, Jest (passing infra tests).

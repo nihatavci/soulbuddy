@@ -11,7 +11,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Icon } from '@/components/icons/Icon';
 import * as Haptics from 'expo-haptics';
 import { AppColors } from '@/constants/theme';
 import { PaperBackground } from '@/components/ui/PaperBackground';
@@ -54,7 +54,7 @@ export default function WelcomeScreen() {
             accessibilityRole="button"
             accessibilityLabel={t('welcome.primary')}
           >
-            <Ionicons name="add" size={28} color={AppColors.ink} />
+            <Icon name="add" size={28} color={AppColors.ink} />
           </Pressable>
           <Text style={styles.primaryLabel}>{t('welcome.primary')}</Text>
           <Pressable onPress={() => router.push('/(auth)/sign-in')} hitSlop={12}>
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     fontFamily: 'PlayfairDisplay', fontSize: 34, lineHeight: 41,
     letterSpacing: -0.6, color: AppColors.text,
   },
-  headlineEmphasis: { fontFamily: 'PlayfairDisplay-Italic', color: GOLD },
+  headlineEmphasis: { fontFamily: 'PlayfairDisplay-Italic', color: AppColors.text },
   actions: { alignItems: 'center', gap: 16 },
   fab: {
     width: 64, height: 64, borderRadius: 999, backgroundColor: GOLD,

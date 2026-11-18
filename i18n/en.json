@@ -10,7 +10,10 @@
     "termsOfUse": "Terms of Use",
     "terms": "Terms",
     "privacy": "Privacy",
-    "and": "and"
+    "and": "and",
+    "delete": "Delete",
+    "reply": "Reply",
+    "cancel": "Cancel"
   },
   "auth": {
     "signIn": {
@@ -120,6 +123,9 @@
     "notifications": "Notifications",
     "pushNotifications": "Push Notifications",
     "pushNotificationsSubtitle": "Reminders and tips",
+    "language": "Language",
+    "languageEnglish": "English",
+    "languageGerman": "Deutsch",
     "subscription": "Subscription",
     "currentPlan": "Current Plan",
     "free": "Free",
@@ -199,6 +205,22 @@
     "somethingWrong": "Something went wrong",
     "crashBody": "We hit an unexpected error. You can try again or restart the app.",
     "restartApp": "Restart App"
+  },
+  "replyComposer": {
+    "status": {
+      "sentTitle": "Sent",
+      "sentBody": "Your addition was sent. They haven't added back yet.",
+      "cta": "Continue"
+    }
+  },
+  "messages": {
+    "messageOptionsTitle": "Message options",
+    "deleteChoiceTitle": "Delete this message?",
+    "deleteForMe": "Delete for me",
+    "deleteForEveryone": "Delete for everyone",
+    "deletedPlaceholder": "This message was deleted",
+    "replyOwedNudge": "it's your turn — {{alias}} is waiting to hear back",
+    "replyingTo": "Replying to {{alias}}"
   },
   "consent": {
     "customizeTitle": "Customize Preferences",
@@ -301,6 +323,37 @@
     "privacyNote": "We never show your real name by default. You share a sentence and an intent — not a profile. Location is approximate; identity stays yours.",
     "underageMessage": "You must be 18 or older to use re:sense."
   },
+  "board": {
+    "freshStart": {
+      "subtitleEmpty": "Today's board is new. Read, and add to one.",
+      "subtitleWithCount": "Today's board is new. You've added {{count}} so far."
+    },
+    "unreadAddition_one": "new addition",
+    "unreadAddition_other": "{{count}} new additions",
+    "deleteSignal": "Delete",
+    "deleteConfirmTitle": "Delete this signal?",
+    "deleteConfirmBody": "This can't be undone.",
+    "deleteConfirmBodyWithConversation": "The replies to this signal will be removed. Any private space it opened stays — the other person keeps your conversation. This can't be undone.",
+    "deleteConfirmConfirm": "Delete",
+    "safetyTitle": "Safety",
+    "report": "Report this signal",
+    "reportTitle": "What is wrong with this signal?",
+    "reportReasons": {
+      "harassment": "Harassment or threats",
+      "sexual": "Sexual or unwanted content",
+      "hate": "Hate or discrimination",
+      "spam": "Spam or scam",
+      "other": "Something else"
+    },
+    "reportSent": "Report sent. Thank you.",
+    "block": "Block {{alias}}",
+    "blockConfirmTitle": "Block {{alias}}?",
+    "blockConfirmBody": "You will not see each other's signals again, and any private conversation between you ends. You can't undo this here.",
+    "blockConfirmConfirm": "Block",
+    "blocked": "Blocked. You will not see each other again.",
+    "actionFailed": "Could not send. Try again.",
+    "moreActions": "Report or block"
+  },
   "onboarding": {
     "title": "Set your alias",
     "subtitle": "This is how you'll appear. Your real name isn't needed.",
@@ -325,5 +378,28 @@
       "go_slow": "Go slow",
       "text_only": "Text only"
     }
+  },
+  "checkIn": {
+    "closureTitle": "Went quiet",
+    "closureBody": "This one went quiet — that happens. No pressure to pick it back up.",
+    "closureDismiss": "Got it"
+  },
+  "notifications": {
+    "spaceOpened": {
+      "title": "re:sense",
+      "body": "{{alias}} added to your signal - a private space just opened"
+    }
+  },
+  "reveal": {
+    "eventMine": "You chose to reveal",
+    "eventTheirs": "{{alias}} chose to reveal",
+    "promptTitle": "{{alias}} revealed their name at {{time}}",
+    "promptBody": "Nothing is shared until you also choose to reveal — and there's no guarantee {{alias}}'s reveal is still active.",
+    "promptConfirm": "Reveal back",
+    "mutualTitle": "You've both revealed",
+    "mutualBody": "You can already see what {{alias}} shared — head back to the conversation.",
+    "passiveTitle": "You've already revealed",
+    "passiveBody": "Nothing more to do here — {{alias}} hasn't revealed yet. No pressure, no timer.",
+    "noticeError": "Your reveal went through, but the notice couldn't be posted. {{alias}} may not see it yet."
   }
 }

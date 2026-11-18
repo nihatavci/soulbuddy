@@ -24,13 +24,14 @@ interface SealMarkProps {
 
 export function SealMark({ hold, spin, enabled, size = 96 }: SealMarkProps) {
   const c = size / 2;
+  const k = size / 96; // scale all ink geometry with size so a bigger canvas = bigger seal
 
   // Ink blob grows + roughens with the hold.
-  const rDisc = useDerivedValue(() => 18 + hold.value * 28);
-  const disp = useDerivedValue(() => 4 + hold.value * 11);
+  const rDisc = useDerivedValue(() => k * (18 + hold.value * 28));
+  const disp = useDerivedValue(() => k * (4 + hold.value * 11));
 
   // White dots orbit and spiral inward to collide.
-  const orbit = useDerivedValue(() => REST_ORBIT * (1 - hold.value * 0.85) + 0.8);
+  const orbit = useDerivedValue(() => k * (REST_ORBIT * (1 - hold.value * 0.85) + 0.8));
   const a1 = useDerivedValue(() => spin.value - Math.PI / 2);
   const a2 = useDerivedValue(() => spin.value + Math.PI / 2);
   const d1x = useDerivedValue(() => c + Math.cos(a1.value) * orbit.value);
@@ -62,8 +63,8 @@ export function SealMark({ hold, spin, enabled, size = 96 }: SealMarkProps) {
         </Group>
 
         {/* white colon dots */}
-        <Circle cx={d1x} cy={d1y} r={2.9} color={DOT} />
-        <Circle cx={d2x} cy={d2y} r={2.9} color={DOT} />
+        <Circle cx={d1x} cy={d1y} r={2.9 * k} color={DOT} />
+        <Circle cx={d2x} cy={d2y} r={2.9 * k} color={DOT} />
       </Group>
     </Canvas>
   );
