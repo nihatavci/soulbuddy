@@ -2,7 +2,7 @@
  * Forgot Password screen
  *
  * Sends a password reset email via Supabase Auth.
- * The email contains a magic link that redirects to myapp://reset-password.
+ * The email contains a magic link that redirects to resense://reset-password.
  */
 
 import React, { useState } from 'react';
@@ -49,7 +49,7 @@ export default function ForgotPasswordScreen() {
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email.trim().toLowerCase(),
-        { redirectTo: 'myapp://reset-password' },
+        { redirectTo: 'resense://reset-password' },
       );
 
       if (resetError) {

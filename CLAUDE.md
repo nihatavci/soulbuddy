@@ -47,7 +47,7 @@ The product slug/package name is `resense`; the display brand is `re:sense`.
 - **Tech stack**: Expo SDK 54 / React Native 0.81 / React 19, expo-router 6 — locked by the boilerplate.
 - **UI**: NativeWind 4 (Tailwind 3) — locked. Do not introduce other UI libraries. Apply the `re:sense` design tokens from `PRD/design.md`.
 - **Auth**: Supabase Auth (email + Google + Apple) — locked. Do not introduce other auth providers.
-- **Database**: Supabase Postgres + RLS on the remote `re:sense` project (eu-west-1). RLS + alias/trust-state separation is the anonymity enforcement point.
+- **Database**: Supabase Postgres + RLS, schema `resense` on the shared Terra database (see `supabase/terra/RUNBOOK.md`; the old `re:sense` project is retired once builds up to 29 are gone). RLS + alias/trust-state separation is the anonymity enforcement point. `auth.users` is shared with other Terra apps: never delete a user with an admin call, use `resense.delete_my_account()`.
 - **Edge/Server**: Cloudflare Workers + teenybase available for server-side logic when needed.
 - **AI**: Gemini via Cloudflare Worker proxy only — key never ships in the client. Not used in the human-to-human loop for v1.
 - **Payments**: RevenueCat — the only source of payment status, when monetization is added (deferred).

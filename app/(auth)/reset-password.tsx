@@ -3,7 +3,7 @@
  *
  * Supabase password reset flow:
  * 1. User clicks the reset link in their email (sent by forgot-password.tsx)
- * 2. The deep link (myapp://reset-password) opens this screen
+ * 2. The deep link (resense://reset-password) opens this screen
  * 3. Supabase fires a PASSWORD_RECOVERY auth state change event
  * 4. User enters new password, we call supabase.auth.updateUser({ password })
  */

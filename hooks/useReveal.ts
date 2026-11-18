@@ -14,7 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { queryKeys } from '@/store/queryClient';
 import type { Database } from '@/services/database.types';
 
-export type RevealRow = Database['public']['Tables']['space_reveals']['Row'];
+export type RevealRow = Database['resense']['Tables']['space_reveals']['Row'];
 
 async function fetchReveals(spaceId: string): Promise<RevealRow[]> {
   const { data, error } = await supabase.from('space_reveals').select('*').eq('space_id', spaceId);
@@ -49,7 +49,7 @@ export function useReveal(spaceId: string | undefined) {
       .channel(`reveals:${spaceId}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'space_reveals', filter: `space_id=eq.${spaceId}` },
+        { event: '*', schema: 'resense', table: 'space_reveals', filter: `space_id=eq.${spaceId}` },
         () => qc.invalidateQueries({ queryKey: queryKeys.spaceReveals(spaceId) }),
       )
       .subscribe();

@@ -12,7 +12,7 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.17"
   }
-  public: {
+  resense: {
     Tables: {
       blocks: {
         Row: {
@@ -405,6 +405,10 @@ export type Database = {
         Args: { p_platform?: string; p_token: string }
         Returns: undefined
       }
+      delete_my_account: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       submit_report: {
         Args: { p_note?: string; p_reason: string; p_signal_id?: string; p_space_id?: string }
         Returns: string
@@ -421,7 +425,7 @@ export type Database = {
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "resense">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
@@ -537,7 +541,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  public: {
+  resense: {
     Enums: {},
   },
 } as const

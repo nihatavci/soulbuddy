@@ -9,7 +9,7 @@ import { supabase } from '@/services/supabase';
 import { queryKeys } from '@/store/queryClient';
 import type { Database } from '@/services/database.types';
 
-export type SpaceEvent = Database['public']['Tables']['space_events']['Row'];
+export type SpaceEvent = Database['resense']['Tables']['space_events']['Row'];
 
 async function fetchEvents(spaceId: string): Promise<SpaceEvent[]> {
   const { data, error } = await supabase
@@ -39,7 +39,7 @@ export function useSpaceEvents(spaceId: string | undefined) {
       .channel(`events:${spaceId}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'space_events', filter: `space_id=eq.${spaceId}` },
+        { event: 'INSERT', schema: 'resense', table: 'space_events', filter: `space_id=eq.${spaceId}` },
         () => qc.invalidateQueries({ queryKey: queryKeys.spaceEvents(spaceId) }),
       )
       .subscribe();

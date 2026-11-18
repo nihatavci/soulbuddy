@@ -99,7 +99,7 @@ export function SignalUnreadProvider({ children }: { children: React.ReactNode }
         .channel('unread:replies')
         .on(
           'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'replies' },
+          { event: 'INSERT', schema: 'resense', table: 'replies' },
           (payload) => {
             const reply = payload.new as { author_id?: string; signal_id?: string };
             if (!reply?.signal_id || reply.author_id === myId) return; // ignore my own replies

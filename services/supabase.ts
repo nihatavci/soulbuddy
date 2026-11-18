@@ -65,7 +65,9 @@ const mmkvAdapter = {
 
 // ─── Supabase client ─────────────────────────────────────────────────────────
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+// re:sense lives in its own schema on the shared Terra database (supabase/terra/0001_resense_schema.sql).
+export const supabase = createClient<Database, 'resense'>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  db: { schema: 'resense' },
   auth: {
     storage: mmkvAdapter,
     autoRefreshToken: true,
@@ -99,8 +101,8 @@ export function stopAutoRefresh(): void {
 
 // ─── Typed helpers ───────────────────────────────────────────────────────────
 
-export type Tables        = Database['public']['Tables'];
-export type Views         = Database['public']['Views'];
+export type Tables        = Database['resense']['Tables'];
+export type Views         = Database['resense']['Views'];
 export type Profile       = Tables['profiles']['Row'];
 export type PublicProfile = Views['public_profiles']['Row']; // alias + intent + boundaries only (no identity)
 

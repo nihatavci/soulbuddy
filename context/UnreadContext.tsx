@@ -145,7 +145,7 @@ export function UnreadProvider({ children }: { children: React.ReactNode }) {
         .channel('unread:messages')
         .on(
           'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'messages' },
+          { event: 'INSERT', schema: 'resense', table: 'messages' },
           (payload) => {
             const msg = payload.new as { sender_id?: string; space_id?: string };
             if (!msg?.sender_id || msg.sender_id === myId) return; // ignore my own
@@ -168,7 +168,7 @@ export function UnreadProvider({ children }: { children: React.ReactNode }) {
           // the recipient check stays client-side, mirroring the messages
           // guard directly above.
           'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'private_spaces' },
+          { event: 'INSERT', schema: 'resense', table: 'private_spaces' },
           (payload) => {
             const space = payload.new as { user_a?: string; user_b?: string };
             if (space?.user_a !== myId) return; // I'm not the notified party (I'm the creator, or unrelated)

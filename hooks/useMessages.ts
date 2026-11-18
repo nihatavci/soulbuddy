@@ -136,7 +136,7 @@ export function useMessages(spaceId: string | undefined) {
         .channel(`messages:${spaceId}`)
         .on(
           'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'messages', filter: `space_id=eq.${spaceId}` },
+          { event: 'INSERT', schema: 'resense', table: 'messages', filter: `space_id=eq.${spaceId}` },
           (payload) => {
             qc.setQueryData<Message[]>(
               queryKeys.spaceMessages(spaceId),
@@ -148,7 +148,7 @@ export function useMessages(spaceId: string | undefined) {
           // Delivers a "delete for everyone" (deleted_at stamp) to the other
           // person live, instead of waiting on the next poll tick.
           'postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: 'messages', filter: `space_id=eq.${spaceId}` },
+          { event: 'UPDATE', schema: 'resense', table: 'messages', filter: `space_id=eq.${spaceId}` },
           (payload) => {
             qc.setQueryData<Message[]>(
               queryKeys.spaceMessages(spaceId),
