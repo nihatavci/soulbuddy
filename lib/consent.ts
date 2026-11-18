@@ -52,6 +52,27 @@ export function getConsentPreferences(): ConsentPreferences {
   };
 }
 
+/** True only once the user has agreed to analytics. Nothing is sent before that. */
+export function analyticsAllowed(): boolean {
+  return hasGivenConsent() && getConsentPreferences().analytics;
+}
+
+/** True only once the user has agreed to crash reporting. Nothing is sent before that. */
+export function crashReportsAllowed(): boolean {
+  return hasGivenConsent() && getConsentPreferences().crashReport;
+}
+
+// ─── Subscribers ─────────────────────────────────────────────────────────────
+
+type ConsentListener = (prefs: ConsentPreferences) => void;
+const listeners = new Set<ConsentListener>();
+
+/** Run `listener` whenever consent is saved (accept, reject, customize, or changed in Profile). Returns an unsubscribe. */
+export function onConsentChange(listener: ConsentListener): () => void {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+}
+
 // ─── Write ───────────────────────────────────────────────────────────────────
 
 /** Save consent preferences and mark consent as given. */
@@ -60,6 +81,7 @@ export function saveConsentPreferences(prefs: ConsentPreferences): void {
   Prefs.setBool(CONSENT_CRASH_KEY, prefs.crashReport);
   Prefs.setBool(CONSENT_AI_KEY, prefs.aiProcessing);
   Prefs.setBool(CONSENT_GIVEN_KEY, true);
+  listeners.forEach((l) => l(prefs));
 }
 
 /** Accept all non-essential data processing. */
@@ -67,7 +89,7 @@ export function acceptAllConsent(): void {
   saveConsentPreferences({
     analytics: true,
     crashReport: true,
-    aiProcessing: true,
+    aiProcessing: false, // no AI feature exists; ask when one does
   });
 }
 

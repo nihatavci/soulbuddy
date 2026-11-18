@@ -9,7 +9,7 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -24,8 +24,8 @@ import { ChipGroup } from '@/components/ui/SelectableChip';
 import { useUpdateProfile } from '@/hooks/useProfile';
 import { validateAlias } from '@/lib/alias';
 import { INTENT_OPTIONS, BOUNDARY_OPTIONS } from '@/constants/onboarding';
-import { Prefs } from '@/store/mmkv';
 import { useT } from '@/context/LanguageContext';
+import { ensureAdult } from '@/lib/age';
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -62,7 +62,20 @@ export default function OnboardingScreen() {
     setError(null);
     setSubmitting(true);
 
-    const ageConfirmed = Prefs.getBool('age_confirmed_18_plus');
+    // No profile without an 18+ confirmation (an account made before the gate, or via Apple, may lack it).
+    const adult = await ensureAdult(
+      () =>
+        new Promise<boolean>((resolve) => {
+          Alert.alert(t('onboarding.ageConfirmTitle'), t('onboarding.ageConfirmBody'), [
+            { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
+            { text: t('onboarding.ageConfirmYes'), onPress: () => resolve(true) },
+          ], { cancelable: false });
+        }),
+    );
+    if (!adult) {
+      setSubmitting(false);
+      return;
+    }
 
     try {
       await mutateAsync({
@@ -70,7 +83,7 @@ export default function OnboardingScreen() {
         intent,
         boundaries,
         onboarded: true,
-        age_confirmed_at: ageConfirmed ? new Date().toISOString() : null,
+        age_confirmed_at: new Date().toISOString(),
       });
       // Success → re-enter AppGate, which routes an onboarded user into the app shell.
       router.replace('/(app)/' as any);

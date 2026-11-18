@@ -31,6 +31,7 @@ import { useRouter } from 'expo-router';
 import { AppColors, Typography, BorderRadius } from '@/constants/theme';
 import { Space } from '@/constants/spacing';
 import { useT } from '@/context/LanguageContext';
+import { PRIVACY_URL as PRIVACY_POLICY_URL } from '@/constants/legal';
 import {
   acceptAllConsent,
   rejectNonEssentialConsent,
@@ -43,7 +44,6 @@ import {
   trackMixpanelConsentCustomized,
 } from '@/lib/mixpanel';
 
-const PRIVACY_POLICY_URL = 'https://example.com/privacy';
 
 // ─── Consent category definitions ────────────────────────────────────────────
 
@@ -70,18 +70,12 @@ export default function ConsentScreen() {
       title: t('consent.categories.crashReport.title'),
       description: t('consent.categories.crashReport.description'),
     },
-    {
-      key: 'aiProcessing',
-      icon: 'cpu',
-      title: t('consent.categories.aiProcessing.title'),
-      description: t('consent.categories.aiProcessing.description'),
-    },
   ];
   const [showCustomize, setShowCustomize] = useState(false);
   const [preferences, setPreferences] = useState<ConsentPreferences>({
     analytics: true,
     crashReport: true,
-    aiProcessing: true,
+    aiProcessing: false, // no AI feature exists; consent is asked for when one does
   });
 
   const handleAcceptAll = () => {

@@ -377,7 +377,10 @@
       "not_looking_to_meet_yet": "Not looking to meet yet",
       "go_slow": "Go slow",
       "text_only": "Text only"
-    }
+    },
+    "ageConfirmTitle": "Confirm your age",
+    "ageConfirmBody": "re:sense is for people 18 and over. Are you 18 or older?",
+    "ageConfirmYes": "I am 18 or older"
   },
   "checkIn": {
     "closureTitle": "Went quiet",

@@ -450,26 +450,6 @@ export default function ProfileScreen() {
             />
           </View>
 
-          <View style={styles.divider} />
-
-          {/* AI Processing toggle */}
-          <View style={styles.menuRow}>
-            <View style={styles.menuRowLeft}>
-              <View style={styles.menuIcon}>
-                <Icon name="cpu" size={18} color="#FFFFFF" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.menuLabel}>{t('profile.aiProcessing')}</Text>
-                <Text style={styles.menuSub}>{t('profile.aiProcessingSubtitle')}</Text>
-              </View>
-            </View>
-            <Switch
-              value={consent.aiProcessing}
-              onValueChange={(v) => handleToggleConsent('aiProcessing', v)}
-              trackColor={{ false: AppColors.border, true: AppColors.accent }}
-              thumbColor="#fff"
-            />
-          </View>
         </Animated.View>
 
         {/* CCPA */}

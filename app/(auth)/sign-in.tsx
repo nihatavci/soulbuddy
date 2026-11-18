@@ -31,6 +31,7 @@ import { PaperBackground } from '@/components/ui/PaperBackground';
 import { GoldDisc } from '@/components/ui/GoldDisc';
 import { AppleSignInButton } from '@/components/ui/AppleSignInButton';
 import { useAuth } from '@/context/AuthContext';
+import { isAgeConfirmed } from '@/lib/age';
 import { useT } from '@/context/LanguageContext';
 
 export default function SignInScreen() {
@@ -78,6 +79,11 @@ export default function SignInScreen() {
 
   const handleApple = async () => {
     setError(null);
+    // Sign in with Apple can create a new account, so the 18+ gate comes first (it then offers sign-up).
+    if (!isAgeConfirmed()) {
+      router.push('/(auth)/age-gate');
+      return;
+    }
     const { error: appleError } = await signInWithApple();
     if (appleError) {
       setError(appleError);

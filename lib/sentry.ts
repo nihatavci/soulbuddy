@@ -14,7 +14,7 @@
 
 import * as Sentry from '@sentry/react-native';
 import type { Breadcrumb, Scope } from '@sentry/react-native';
-import { getConsentPreferences, hasGivenConsent } from '@/lib/consent';
+import { crashReportsAllowed } from '@/lib/consent';
 
 // ─── Initialize ──────────────────────────────────────────────────────────────
 // Call once at the very top of app/_layout.tsx BEFORE any other code runs.
@@ -27,11 +27,9 @@ export function initSentry(): void {
     return;
   }
 
-  // Respect GDPR consent: if the user has explicitly rejected crash reporting,
-  // Sentry stays disabled. If consent hasn't been given yet (first launch),
-  // Sentry initializes but will be reconfigured after the consent screen.
-  const consentGiven = hasGivenConsent();
-  const crashConsent = consentGiven ? getConsentPreferences().crashReport : true;
+  // GDPR: crash reporting is off until the user agrees. Agreeing takes effect on the next launch;
+  // withdrawing stops sending right away (beforeSend below checks at send time).
+  const crashConsent = crashReportsAllowed();
 
   Sentry.init({
     dsn,
@@ -39,8 +37,9 @@ export function initSentry(): void {
     // Performance monitoring — sample 20% of transactions in production
     tracesSampleRate: __DEV__ ? 1.0 : 0.2,
 
-    // Disabled in dev, or when user has rejected crash reporting consent
+    // Disabled in dev, and until the user has agreed to crash reporting
     enabled: !__DEV__ && crashConsent,
+    beforeSendTransaction: (event) => (crashReportsAllowed() ? event : null),
 
     // Environment tag for filtering in Sentry dashboard
     environment: __DEV__ ? 'development' : 'production',
@@ -96,8 +95,9 @@ export function initSentry(): void {
 
     // ── Privacy + Consent: check at send time so runtime toggle changes take effect ─
     beforeSend(event: any) {
-      // Respect crash report consent — checked dynamically so in-session toggles work
-      if (hasGivenConsent() && !getConsentPreferences().crashReport) {
+      // Respect crash report consent — checked dynamically so withdrawing it takes effect at once.
+      // Before the user has chosen anything, nothing is sent.
+      if (!crashReportsAllowed()) {
         return null;
       }
 
