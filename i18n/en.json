@@ -334,7 +334,25 @@
     "deleteConfirmTitle": "Delete this signal?",
     "deleteConfirmBody": "This can't be undone.",
     "deleteConfirmBodyWithConversation": "The replies to this signal will be removed. Any private space it opened stays — the other person keeps your conversation. This can't be undone.",
-    "deleteConfirmConfirm": "Delete"
+    "deleteConfirmConfirm": "Delete",
+    "safetyTitle": "Safety",
+    "report": "Report this signal",
+    "reportTitle": "What is wrong with this signal?",
+    "reportReasons": {
+      "harassment": "Harassment or threats",
+      "sexual": "Sexual or unwanted content",
+      "hate": "Hate or discrimination",
+      "spam": "Spam or scam",
+      "other": "Something else"
+    },
+    "reportSent": "Report sent. Thank you.",
+    "block": "Block {{alias}}",
+    "blockConfirmTitle": "Block {{alias}}?",
+    "blockConfirmBody": "You will not see each other's signals again, and any private conversation between you ends. You can't undo this here.",
+    "blockConfirmConfirm": "Block",
+    "blocked": "Blocked. You will not see each other again.",
+    "actionFailed": "Could not send. Try again.",
+    "moreActions": "Report or block"
   },
   "onboarding": {
     "title": "Set your alias",

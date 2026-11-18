@@ -22,6 +22,14 @@ jest.mock('@/hooks/useSpaces', () => ({
     space.user_a === userId ? (space.alias_b ?? '') : (space.alias_a ?? ''),
 }));
 
+jest.mock('@/hooks/useSafety', () => ({
+  useReport: jest.fn(() => ({ mutateAsync: jest.fn() })),
+  useBlockUser: jest.fn(() => ({ mutateAsync: jest.fn() })),
+  REPORT_REASONS: ['spam', 'harassment', 'sexual', 'hate', 'other'],
+}));
+
+jest.mock('@/components/glow', () => ({ Toast: { show: jest.fn() } }));
+
 const mockUseAuth = jest.fn();
 jest.mock('@/context/AuthContext', () => ({
   useAuth: (...args: unknown[]) => mockUseAuth(...args),

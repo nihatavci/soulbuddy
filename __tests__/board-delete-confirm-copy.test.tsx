@@ -27,6 +27,12 @@ jest.mock('@/hooks/useSignals', () => ({
   useDeleteSignal: jest.fn(() => ({ mutateAsync: mockMutateAsync })),
 }));
 
+jest.mock('@/hooks/useSafety', () => ({
+  useReport: jest.fn(() => ({ mutateAsync: jest.fn() })),
+  useBlockUser: jest.fn(() => ({ mutateAsync: jest.fn() })),
+  REPORT_REASONS: ['spam', 'harassment', 'sexual', 'hate', 'other'],
+}));
+
 jest.mock('@/hooks/useFreshStart', () => ({
   useFreshStart: jest.fn(() => ({ isFreshStart: false, todayCount: 0 })),
 }));

@@ -22,6 +22,7 @@ import { GoldDisc } from '@/components/ui/GoldDisc';
 import { SwipeToDelete } from '@/components/ui/SwipeToDelete';
 import { useSignals, useDeleteSignal } from '@/hooks/useSignals';
 import { useFreshStart } from '@/hooks/useFreshStart';
+import { useBlockUser, useReport, REPORT_REASONS, type ReportReason } from '@/hooks/useSafety';
 import { useAuth } from '@/context/AuthContext';
 import { useT } from '@/context/LanguageContext';
 import { SignalUnreadProvider, useSignalUnread } from '@/context/SignalUnreadContext';
@@ -37,7 +38,7 @@ function timeAgo(iso: string): string {
 }
 
 function SignalCard({
-  signal, onPress, isMine, unseenCount, onMarkSeen, onDelete,
+  signal, onPress, isMine, unseenCount, onMarkSeen, onDelete, onSafety,
 }: {
   signal: PublicSignal;
   onPress: () => void;
@@ -45,6 +46,7 @@ function SignalCard({
   unseenCount: number;
   onMarkSeen: () => void;
   onDelete: () => void;
+  onSafety: () => void;
 }) {
   const t = useT();
   const replyCount = signal.reply_count ?? 0;
@@ -58,7 +60,19 @@ function SignalCard({
     <Pressable style={styles.card} onPress={handlePress} accessibilityRole="button">
       <View style={styles.cardHead}>
         <Text style={styles.alias}>{signal.alias}</Text>
-        <Text style={styles.meta}>{signal.created_at ? timeAgo(signal.created_at) : ''}</Text>
+        <View style={styles.headRight}>
+          <Text style={styles.meta}>{signal.created_at ? timeAgo(signal.created_at) : ''}</Text>
+          {!isMine && (
+            <Pressable
+              onPress={onSafety}
+              accessibilityRole="button"
+              accessibilityLabel={t('board.moreActions')}
+              hitSlop={12}
+            >
+              <Icon name="flag" size={16} color={AppColors.textSecondary} />
+            </Pressable>
+          )}
+        </View>
       </View>
       <Text style={styles.signalText}>{signal.text}</Text>
       <View style={styles.cardFoot}>
@@ -104,6 +118,52 @@ function BoardScreenInner() {
   const { isFreshStart, todayCount } = useFreshStart(signals, user?.id);
   const { countFor, markSignalRead } = useSignalUnread();
   const { mutateAsync: deleteSignal } = useDeleteSignal();
+  const { mutateAsync: sendReport } = useReport();
+  const { mutateAsync: blockUser } = useBlockUser();
+
+  const failToast = (e: any) =>
+    Toast.show(e?.message || t('board.actionFailed'), { type: 'error', position: 'top', duration: 3200 });
+
+  // Report or block the person behind a signal. Both are one tap away on every card that is not mine.
+  const openSafety = (signal: PublicSignal) => {
+    if (!signal.id || !signal.author_id) return;
+    const { id, author_id, alias } = signal;
+    Haptics.selectionAsync();
+    const pickReason = () =>
+      Alert.alert(
+        t('board.reportTitle'),
+        undefined,
+        [
+          ...REPORT_REASONS.map((reason: ReportReason) => ({
+            text: t(`board.reportReasons.${reason}`),
+            onPress: () => {
+              sendReport({ signalId: id, reason })
+                .then(() => Toast.show(t('board.reportSent'), { type: 'success', position: 'top', duration: 3200 }))
+                .catch(failToast);
+            },
+          })),
+          { text: t('common.cancel'), style: 'cancel' as const },
+        ],
+      );
+    const confirmBlock = () =>
+      Alert.alert(t('board.blockConfirmTitle', { alias }), t('board.blockConfirmBody'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('board.blockConfirmConfirm'),
+          style: 'destructive',
+          onPress: () => {
+            blockUser(author_id)
+              .then(() => Toast.show(t('board.blocked'), { type: 'success', position: 'top', duration: 3200 }))
+              .catch(failToast);
+          },
+        },
+      ]);
+    Alert.alert(t('board.safetyTitle'), undefined, [
+      { text: t('board.report'), onPress: pickReason },
+      { text: t('board.block', { alias }), style: 'destructive', onPress: confirmBlock },
+      { text: t('common.cancel'), style: 'cancel' },
+    ]);
+  };
 
   const openReply = (id: string) => {
     Haptics.selectionAsync();
@@ -175,6 +235,7 @@ function BoardScreenInner() {
                   unseenCount={countFor(s.id)}
                   onMarkSeen={() => s.id && markSignalRead(s.id, replyCount)}
                   onDelete={() => s.id && confirmDeleteSignal(s.id, replyCount > 0)}
+                  onSafety={() => openSafety(s)}
                 />
               </React.Fragment>
             );
@@ -209,6 +270,7 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fonts.body, fontSize: 12, letterSpacing: 0.4,
     textTransform: 'uppercase', color: AppColors.textSecondary,
   },
+  headRight: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   meta: { fontFamily: Typography.fonts.body, fontSize: 12, color: AppColors.textSecondary },
   signalText: { fontFamily: 'SpecialElite', fontSize: 17, lineHeight: 25, color: AppColors.text },
   cardFoot: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },

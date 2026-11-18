@@ -334,7 +334,25 @@
     "deleteConfirmTitle": "Dieses Signal löschen?",
     "deleteConfirmBody": "Das kann nicht rückgängig gemacht werden.",
     "deleteConfirmBodyWithConversation": "Die Antworten auf dieses Signal werden entfernt. Ein daraus entstandener privater Raum bleibt bestehen — die andere Person behält eure Unterhaltung. Das kann nicht rückgängig gemacht werden.",
-    "deleteConfirmConfirm": "Löschen"
+    "deleteConfirmConfirm": "Löschen",
+    "safetyTitle": "Sicherheit",
+    "report": "Dieses Signal melden",
+    "reportTitle": "Was stimmt mit diesem Signal nicht?",
+    "reportReasons": {
+      "harassment": "Belästigung oder Drohungen",
+      "sexual": "Sexuelle oder unerwünschte Inhalte",
+      "hate": "Hass oder Diskriminierung",
+      "spam": "Spam oder Betrug",
+      "other": "Etwas anderes"
+    },
+    "reportSent": "Meldung gesendet. Danke.",
+    "block": "{{alias}} blockieren",
+    "blockConfirmTitle": "{{alias}} blockieren?",
+    "blockConfirmBody": "Ihr seht die Signale des anderen nicht mehr, und ein privater Austausch zwischen euch endet. Das lässt sich hier nicht rückgängig machen.",
+    "blockConfirmConfirm": "Blockieren",
+    "blocked": "Blockiert. Ihr seht euch nicht mehr.",
+    "actionFailed": "Senden fehlgeschlagen. Versuche es erneut.",
+    "moreActions": "Melden oder blockieren"
   },
   "onboarding": {
     "title": "Wähle deinen Alias",

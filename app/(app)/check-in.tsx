@@ -5,7 +5,8 @@
  * report path. Supportive and plain — not faux-therapy, not alarmist. One
  * single-select list spans both sections: choosing a Safety option flips the
  * primary action to "Submit report". Nothing is required; there is no wrong
- * answer. UI shell — onPress is mocked (haptic + router.back).
+ * answer. Report sends a report for the other person in the private space (reason picked below);
+ * block ends the conversation and hides them both ways (migration 024).
  */
 
 import React, { useMemo, useState } from 'react';
@@ -23,6 +24,8 @@ import { useT } from '@/context/LanguageContext';
 import { usePrivateSpaces, otherAlias } from '@/hooks/useSpaces';
 import { useSpaceClosurePrompt } from '@/hooks/useSpaceClosurePrompt';
 import { useAuth } from '@/context/AuthContext';
+import { Toast } from '@/components/glow';
+import { useBlockUser, useReport, type ReportReason } from '@/hooks/useSafety';
 
 type FeatherIcon = string;
 
@@ -42,6 +45,14 @@ const FEELING_OPTIONS: Option[] = [
 /** Stable `value`s for the Safety section — used by `isSafety` regardless of
  * whether the alias-aware labels below could be resolved. */
 const SAFETY_VALUES = ['report', 'block'] as const;
+
+const REASON_OPTIONS: (Option & { value: ReportReason })[] = [
+  { value: 'harassment', label: 'Harassment or threats', icon: 'flag' },
+  { value: 'sexual', label: 'Sexual or unwanted content', icon: 'flag' },
+  { value: 'hate', label: 'Hate or discrimination', icon: 'flag' },
+  { value: 'spam', label: 'Spam or scam', icon: 'flag' },
+  { value: 'other', label: 'Something else', icon: 'flag' },
+];
 
 /**
  * Safety options are alias-aware (checkin-report-context-clarity): when a
@@ -136,6 +147,10 @@ export default function CheckInScreen() {
   const { user } = useAuth();
   const { data: spaces } = usePrivateSpaces();
   const [selected, setSelected] = useState<string | null>(null);
+  const [reason, setReason] = useState<ReportReason | null>(null);
+  const [busy, setBusy] = useState(false);
+  const report = useReport();
+  const blockUser = useBlockUser();
 
   // Mirrors SpaceClosureSection's own `spaceId ? spaces?.find(...) : null`
   // lookup below — same pattern, not duplicated divergent logic.
@@ -150,14 +165,50 @@ export default function CheckInScreen() {
   const safetyOptions = useMemo(() => buildSafetyOptions(alias), [alias]);
 
   const isSafety = SAFETY_VALUES.some((v) => v === selected);
-  const canSubmit = selected !== null;
+  const canSubmit = selected !== null && !busy && (selected !== 'report' || reason !== null);
 
   const choose = (value: string) => {
     Haptics.selectionAsync();
     setSelected((prev) => (prev === value ? null : value));
   };
 
+  // Safety submit is async (network); the plain check-in path stays synchronous.
+  const submitSafety = async () => {
+    // Report/block need the real conversation; never pretend it worked when it did not.
+    if (!space || !user) {
+      Toast.show('Could not find this conversation. Close and try again.', { type: 'error', position: 'top', duration: 3200 });
+      return;
+    }
+    const other = space.user_a === user.id ? space.user_b : space.user_a;
+    if (!other) {
+      Toast.show('Could not find this conversation. Close and try again.', { type: 'error', position: 'top', duration: 3200 });
+      return;
+    }
+    setBusy(true);
+    try {
+      if (selected === 'block') {
+        await blockUser.mutateAsync(other);
+      } else {
+        await report.mutateAsync({ spaceId: space.id as string, reason: reason as ReportReason });
+      }
+    } catch (e: any) {
+      setBusy(false);
+      Toast.show(e?.message || 'Could not send. Try again.', { type: 'error', position: 'top', duration: 3200 });
+      return;
+    }
+    setBusy(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Toast.show(selected === 'block' ? 'Blocked. You will not see each other again.' : 'Report sent. Thank you.', { type: 'success', position: 'top', duration: 3200 });
+    // After a block the space is gone from the Private list, so leave it.
+    if (selected === 'block') router.replace('/(app)/(tabs)/private' as any);
+    else router.back();
+  };
+
   const onDone = () => {
+    if (isSafety) {
+      void submitSafety();
+      return;
+    }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     router.back();
   };
@@ -208,6 +259,19 @@ export default function CheckInScreen() {
                   onPress={() => choose(o.value)}
                 />
               ))}
+              {selected === 'report' && (
+                <>
+                  <Text style={[styles.sectionLabel, styles.sectionSpaced]}>What happened?</Text>
+                  {REASON_OPTIONS.map((o) => (
+                    <OptionRow
+                      key={o.value}
+                      option={o}
+                      selected={reason === o.value}
+                      onPress={() => { Haptics.selectionAsync(); setReason((prev) => (prev === o.value ? null : o.value)); }}
+                    />
+                  ))}
+                </>
+              )}
             </>
           )}
 

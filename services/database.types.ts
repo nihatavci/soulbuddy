@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           created_at: string
@@ -386,6 +404,10 @@ export type Database = {
       claim_push_token: {
         Args: { p_platform?: string; p_token: string }
         Returns: undefined
+      }
+      submit_report: {
+        Args: { p_note?: string; p_reason: string; p_signal_id?: string; p_space_id?: string }
+        Returns: string
       }
     }
     Enums: {
